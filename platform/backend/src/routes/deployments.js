@@ -62,6 +62,27 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { siteId, clientId, employeeId, shiftId, startDate, deployedBy } = req.body;
+    if (!siteId || !clientId || !employeeId) {
+      return res.status(400).json({ error: 'siteId, clientId, and employeeId are required' });
+    }
+
+    // Verify site, client, employee existence in DB
+    const [siteCheck, clientCheck, empCheck] = await Promise.all([
+      query('SELECT id FROM sites WHERE id = $1', [siteId]),
+      query('SELECT id FROM clients WHERE id = $1', [clientId]),
+      query('SELECT id FROM employees WHERE id = $1', [employeeId]),
+    ]);
+
+    if (siteCheck.rows.length === 0) {
+      return res.status(400).json({ error: `Site ${siteId} does not exist in database` });
+    }
+    if (clientCheck.rows.length === 0) {
+      return res.status(400).json({ error: `Client ${clientId} does not exist in database` });
+    }
+    if (empCheck.rows.length === 0) {
+      return res.status(400).json({ error: `Employee ${employeeId} does not exist in database` });
+    }
+
     const id = `DEP${Date.now().toString().slice(-6)}`;
 
     // Insert deployment record

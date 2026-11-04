@@ -65,3 +65,25 @@ INSERT INTO user_accounts (id, name, email, password_hash, role, status) VALUES
 ('USR003', 'Operations Manager', 'ops@silverstarindia.net', 'ops123', 'Operations Manager', 'Active')
 ON CONFLICT (id) DO NOTHING;
 
+-- Foundational Clients
+INSERT INTO clients (id, name, contact_person, email, phone, address, contract_start, contract_end, status, portal_username, monthly_billing, services_provided) VALUES
+('CLI001', 'Infosys Tech Park', 'Raghavendra Rao (VP Facilities)', 'facilities@infosys.com', '+91 80 2852 0261', 'Hosur Road, Electronics City Phase 1, Bengaluru, Karnataka 560100', '2026-01-01', '2027-12-31', 'Active', 'infosys_client', 485000.00, '["Physical Security", "Corporate Housekeeping", "BMS Electro-Mechanical"]'::jsonb),
+('CLI002', 'Embassy GolfLinks Business Park', 'Sunil Murthy (Estate Director)', 'admin@embassygroups.com', '+91 80 4000 1200', 'Intermediate Ring Rd, Domlur, Bengaluru, Karnataka 560071', '2026-02-01', '2027-01-31', 'Active', 'embassy_client', 620000.00, '["Armed Escorts", "Pest Control & Sanitization", "24x7 Control Room Monitoring"]'::jsonb),
+('CLI003', 'Prestige Tech Cloud', 'Kishore Kumar (GM Operations)', 'ops@prestigetechcloud.com', '+91 80 2559 1080', 'Devenahalli, International Airport Road, Bengaluru, Karnataka 562157', '2026-03-01', '2027-02-28', 'Active', 'prestige_client', 350000.00, '["Electro-Mechanical Maintenance", "Facade Cleaning", "HVAC Operations"]'::jsonb)
+ON CONFLICT (id) DO NOTHING;
+
+-- Foundational Sites (Geofenced Client Work Locations)
+INSERT INTO sites (id, name, client_id, address, latitude, longitude, geofence_radius, sanctioned_strength, status) VALUES
+('SITE001', 'Infosys - Electronic City Campus Phase 1', 'CLI001', 'Gate 1, Infosys Avenue, Electronics City, Bengaluru 560100', 12.845214, 77.660168, 150, 24, 'Active'),
+('SITE002', 'Infosys - Electronic City Campus Phase 2', 'CLI001', 'Gate 4, Infosys Avenue, Electronics City, Bengaluru 560100', 12.849023, 77.665042, 120, 16, 'Active'),
+('SITE003', 'Embassy GolfLinks - Tower A & B', 'CLI002', 'Tower A Main Lobby, EGL, Intermediate Ring Rd, Bengaluru 560071', 12.948512, 77.647521, 200, 30, 'Active'),
+('SITE004', 'Prestige Tech Cloud - Data Center', 'CLI003', 'Block C Data Annex, Airport Road, Bengaluru 562157', 13.201245, 77.708912, 150, 18, 'Active')
+ON CONFLICT (id) DO NOTHING;
+
+-- Contract Billings
+INSERT INTO contract_billings (id, client_id, contract_number, start_date, end_date, billing_frequency, total_value, monthly_amount, status, last_invoice_date, last_invoice_status) VALUES
+('BIL001', 'CLI001', 'SS-CON-2026-001', '2026-01-01', '2027-12-31', 'Monthly', 5820000.00, 485000.00, 'Active', '2026-10-31', 'Paid'),
+('BIL002', 'CLI002', 'SS-CON-2026-002', '2026-02-01', '2027-01-31', 'Monthly', 7440000.00, 620000.00, 'Active', '2026-10-31', 'Paid')
+ON CONFLICT (id) DO NOTHING;
+
+

@@ -102,8 +102,39 @@ export interface Client {
   servicesProvided?: string[];
 }
 
-// Clean production array loaded from PostgreSQL
-export let CLIENTS: Client[] = [];
+// Clean production array synchronized with PostgreSQL
+export let CLIENTS: Client[] = [
+  {
+    id: "CLI001",
+    name: "Infosys Tech Park",
+    contactPerson: "Raghavendra Rao (VP Facilities)",
+    email: "facilities@infosys.com",
+    phone: "+91 80 2852 0261",
+    address: "Hosur Road, Electronics City Phase 1, Bengaluru, Karnataka 560100",
+    contractStart: "2026-01-01",
+    contractEnd: "2027-12-31",
+    status: "Active",
+    sites: ["SITE001", "SITE002"],
+    portalUsername: "infosys_client",
+    monthlyBilling: 485000,
+    servicesProvided: ["Physical Security", "Corporate Housekeeping", "BMS Electro-Mechanical"],
+  },
+  {
+    id: "CLI002",
+    name: "Embassy GolfLinks Business Park",
+    contactPerson: "Sunil Murthy (Estate Director)",
+    email: "admin@embassygroups.com",
+    phone: "+91 80 4000 1200",
+    address: "Intermediate Ring Rd, Domlur, Bengaluru, Karnataka 560071",
+    contractStart: "2026-02-01",
+    contractEnd: "2027-01-31",
+    status: "Active",
+    sites: ["SITE003"],
+    portalUsername: "embassy_client",
+    monthlyBilling: 620000,
+    servicesProvided: ["Armed Escorts", "Pest Control & Sanitization", "24x7 Control Room Monitoring"],
+  },
+];
 
 export interface Site {
   id: string;
@@ -118,8 +149,45 @@ export interface Site {
   supervisorId: string;
 }
 
-// Clean production array loaded from PostgreSQL
-export let SITES: Site[] = [];
+// Clean production array synchronized with PostgreSQL
+export let SITES: Site[] = [
+  {
+    id: "SITE001",
+    name: "Infosys - Electronic City Campus Phase 1",
+    clientId: "CLI001",
+    address: "Gate 1, Infosys Avenue, Electronics City, Bengaluru 560100",
+    latitude: 12.845214,
+    longitude: 77.660168,
+    geofenceRadius: 150,
+    sanctionedStrength: 24,
+    status: "Active",
+    supervisorId: "EMP837389",
+  },
+  {
+    id: "SITE002",
+    name: "Infosys - Electronic City Campus Phase 2",
+    clientId: "CLI001",
+    address: "Gate 4, Infosys Avenue, Electronics City, Bengaluru 560100",
+    latitude: 12.849023,
+    longitude: 77.665042,
+    geofenceRadius: 120,
+    sanctionedStrength: 16,
+    status: "Active",
+    supervisorId: "EMP837389",
+  },
+  {
+    id: "SITE003",
+    name: "Embassy GolfLinks - Tower A & B",
+    clientId: "CLI002",
+    address: "Tower A Main Lobby, EGL, Intermediate Ring Rd, Bengaluru 560071",
+    latitude: 12.948512,
+    longitude: 77.647521,
+    geofenceRadius: 200,
+    sanctionedStrength: 30,
+    status: "Active",
+    supervisorId: "EMP837389",
+  },
+];
 
 export interface EmergencyContact {
   name: string;

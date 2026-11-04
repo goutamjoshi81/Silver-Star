@@ -112,19 +112,56 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Helper to validate and sanitize foreign keys
+async function sanitizeForeignKeys(b) {
+  let { departmentId, designationId, branchId, deployedSiteId, deployedClientId } = b;
+
+  if (departmentId) {
+    const res = await query('SELECT id FROM departments WHERE id = $1', [departmentId]);
+    if (res.rows.length === 0) departmentId = null;
+  }
+  if (designationId) {
+    const res = await query('SELECT id FROM designations WHERE id = $1', [designationId]);
+    if (res.rows.length === 0) designationId = null;
+  }
+  if (branchId) {
+    const res = await query('SELECT id FROM branches WHERE id = $1', [branchId]);
+    if (res.rows.length === 0) branchId = null;
+  }
+  if (deployedSiteId) {
+    const res = await query('SELECT id FROM sites WHERE id = $1', [deployedSiteId]);
+    if (res.rows.length === 0) deployedSiteId = null;
+  }
+  if (deployedClientId) {
+    const res = await query('SELECT id FROM clients WHERE id = $1', [deployedClientId]);
+    if (res.rows.length === 0) deployedClientId = null;
+  }
+
+  return { departmentId, designationId, branchId, deployedSiteId, deployedClientId };
+}
+
 // POST onboard new employee
 router.post('/', async (req, res) => {
   try {
     const b = req.body;
-    // Auto-generate ID and employee code if not provided
+    // Auto-generate ID and employee code if not provided or if code conflicts
     const id = b.id || `EMP${Date.now().toString().slice(-6)}`;
     
     let employeeCode = b.employeeCode;
-    if (!employeeCode) {
+    if (employeeCode) {
+      const codeCheck = await query('SELECT id FROM employees WHERE employee_code = $1', [employeeCode]);
+      if (codeCheck.rows.length > 0) {
+        const countRes = await query('SELECT COUNT(*) FROM employees');
+        const nextNum = parseInt(countRes.rows[0].count, 10) + 10001 + Math.floor(10 + Math.random() * 90);
+        employeeCode = `SS-${nextNum}`;
+      }
+    } else {
       const countRes = await query('SELECT COUNT(*) FROM employees');
       const nextNum = parseInt(countRes.rows[0].count, 10) + 10001;
       employeeCode = `SS-${nextNum}`;
     }
+
+    const sanitized = await sanitizeForeignKeys(b);
 
     const { rows } = await query(
       `INSERT INTO employees (
@@ -148,16 +185,16 @@ router.post('/', async (req, res) => {
         b.email || `${employeeCode.toLowerCase()}@silverstarindia.net`,
         b.address || '',
         JSON.stringify(b.emergencyContact || {}),
-        b.departmentId || null,
-        b.designationId || null,
+        sanitized.departmentId,
+        sanitized.designationId,
         b.employmentType || 'Permanent',
         b.joiningDate || new Date().toISOString().split('T')[0],
         b.onboardingStatus || 'Approved',
         b.kycStatus || 'Verified',
         b.kycMethod || 'Aadhaar Secure QR',
-        b.deployedSiteId || null,
-        b.deployedClientId || null,
-        b.branchId || 'BR001',
+        sanitized.deployedSiteId,
+        sanitized.deployedClientId,
+        sanitized.branchId || 'BR001',
         b.status || 'Active',
         b.bankName || '',
         b.accountNumber || '',
@@ -177,6 +214,8 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const b = req.body;
+    const sanitized = await sanitizeForeignKeys(b);
+
     const { rows } = await query(
       `UPDATE employees SET
         name = COALESCE($1, name),
@@ -202,13 +241,13 @@ router.put('/:id', async (req, res) => {
         b.phone,
         b.email,
         b.address,
-        b.departmentId,
-        b.designationId,
+        sanitized.departmentId !== undefined ? sanitized.departmentId : b.departmentId,
+        sanitized.designationId !== undefined ? sanitized.designationId : b.designationId,
         b.status,
         b.onboardingStatus,
         b.kycStatus,
-        b.deployedSiteId,
-        b.deployedClientId,
+        sanitized.deployedSiteId !== undefined ? sanitized.deployedSiteId : b.deployedSiteId,
+        sanitized.deployedClientId !== undefined ? sanitized.deployedClientId : b.deployedClientId,
         b.bankName,
         b.accountNumber,
         b.ifsc,

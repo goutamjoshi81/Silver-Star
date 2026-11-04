@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   DEPARTMENTS, DESIGNATIONS, BRANCHES, SHIFTS, SITES, CLIENTS, EMPLOYEES, COMPANY, api
 } from '@mock/mockData'
@@ -104,6 +104,50 @@ export default function OnboardingWizard({ onClose, onSuccess }: WizardProps) {
   const [handoverSupervisorId, setHandoverSupervisorId] = useState('EMP003')
   const [deploymentDate, setDeploymentDate] = useState('2026-11-06')
   const [isHandedOver, setIsHandedOver] = useState(false)
+
+  // Live PostgreSQL records for Clients, Sites & Staff
+  const [clientList, setClientList] = useState<any[]>(CLIENTS)
+  const [siteList, setSiteList] = useState<any[]>(SITES)
+  const [employeeList, setEmployeeList] = useState<any[]>(EMPLOYEES)
+
+  useEffect(() => {
+    let isMounted = true
+    const fetchData = async () => {
+      try {
+        const [cData, sData, eData] = await Promise.all([
+          api.getClients().catch(() => []),
+          api.getSites().catch(() => []),
+          api.getEmployees().catch(() => []),
+        ])
+        if (!isMounted) return
+
+        if (Array.isArray(cData) && cData.length > 0) {
+          setClientList(cData)
+          setHandoverClientId(cData[0].id)
+        }
+        if (Array.isArray(sData) && sData.length > 0) {
+          setSiteList(sData)
+          setHandoverSiteId(sData[0].id)
+        }
+        if (Array.isArray(eData) && eData.length > 0) {
+          setEmployeeList(eData)
+          const nextCode = `SS-${10001 + eData.length}`
+          setGeneratedEmpCode(nextCode)
+          setAppUsername(nextCode)
+        }
+      } catch (err) {
+        console.warn('Error fetching live data in wizard:', err)
+      }
+    }
+    fetchData()
+    return () => { isMounted = false }
+  }, [])
+
+  const handleClientChange = (clientId: string) => {
+    setHandoverClientId(clientId)
+    const matching = siteList.filter(s => s.clientId === clientId)
+    setHandoverSiteId(matching.length > 0 ? matching[0].id : '')
+  }
 
   // Handlers
   const handleSimulateKyc = () => {
@@ -932,28 +976,32 @@ export default function OnboardingWizard({ onClose, onSuccess }: WizardProps) {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
                 <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Target Client Corporate Account *</label>
+                  <label className="block font-semibold text-gray-700 mb-1">Target Client Corporate Account</label>
                   <select
                     value={handoverClientId}
-                    onChange={(e) => setHandoverClientId(e.target.value)}
+                    onChange={(e) => handleClientChange(e.target.value)}
                     className="w-full border border-gray-200 rounded-lg p-2.5 bg-white text-xs font-semibold focus:ring-2 focus:ring-[#202B75]"
                   >
-                    {CLIENTS.map((c) => (
+                    <option value="">-- No Direct Client (Pool Staff) --</option>
+                    {clientList.map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Deployment Facility / Site *</label>
+                  <label className="block font-semibold text-gray-700 mb-1">Deployment Facility / Site</label>
                   <select
                     value={handoverSiteId}
                     onChange={(e) => setHandoverSiteId(e.target.value)}
                     className="w-full border border-gray-200 rounded-lg p-2.5 bg-white text-xs font-semibold focus:ring-2 focus:ring-[#202B75]"
                   >
-                    {SITES.filter(s => s.clientId === handoverClientId).map((s) => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.geofenceRadius}m Geofence)</option>
-                    ))}
+                    <option value="">-- No Immediate Site Deployment --</option>
+                    {siteList
+                      .filter(s => !handoverClientId || s.clientId === handoverClientId)
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>{s.name} ({s.geofenceRadius || 100}m Geofence)</option>
+                      ))}
                   </select>
                 </div>
 
@@ -971,13 +1019,14 @@ export default function OnboardingWizard({ onClose, onSuccess }: WizardProps) {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Reporting Area Supervisor *</label>
+                  <label className="block font-semibold text-gray-700 mb-1">Reporting Area Supervisor</label>
                   <select
                     value={handoverSupervisorId}
                     onChange={(e) => setHandoverSupervisorId(e.target.value)}
                     className="w-full border border-gray-200 rounded-lg p-2.5 bg-white text-xs"
                   >
-                    {EMPLOYEES.filter(e => e.designationId === 'DES002' || e.designationId === 'DES004').map((s) => (
+                    <option value="">-- Operations Supervisor Pool --</option>
+                    {employeeList.filter(e => e.designationId === 'DES002' || e.designationId === 'DES004').map((s) => (
                       <option key={s.id} value={s.id}>{s.name} ({s.employeeCode})</option>
                     ))}
                   </select>
@@ -1004,9 +1053,9 @@ export default function OnboardingWizard({ onClose, onSuccess }: WizardProps) {
                 </p>
                 <ul className="list-disc list-inside space-y-0.5 text-[11px] text-emerald-700 pt-1">
                   <li>Marked as <strong>Approved & Onboarded</strong> in Super Admin & HR directories</li>
-                  <li>Deployed to <strong>{SITES.find(s => s.id === handoverSiteId)?.name}</strong> on the live Operations roster</li>
+                  <li>Deployed to <strong>{siteList.find(s => s.id === handoverSiteId)?.name || 'Central Operations Pool'}</strong> on the live Operations roster</li>
                   <li>Enabled for <strong>Geofenced Punch-In</strong> on the Employee Mobile App</li>
-                  <li>Included in the Client Mobile App headcount for <strong>{CLIENTS.find(c => c.id === handoverClientId)?.name}</strong></li>
+                  <li>Included in the Client Mobile App headcount for <strong>{clientList.find(c => c.id === handoverClientId)?.name || 'General Reserve'}</strong></li>
                 </ul>
               </div>
             </div>
