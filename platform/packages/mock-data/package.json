@@ -1,0 +1,7 @@
+{
+  "name": "@silverstar/mock-data",
+  "version": "1.0.0",
+  "main": "mockData.ts",
+  "types": "mockData.ts",
+  "private": true
+}

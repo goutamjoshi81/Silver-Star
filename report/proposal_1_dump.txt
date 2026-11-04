@@ -1,0 +1,278 @@
+=== PARAGRAPHS ===
+[0] (style: Normal): ADMIN PORTAL – COMPLETE STRUCTURE
+[1] (style: Normal): 
+[2] (style: Normal): Admin dashboard KPIs
+[3] (style: Normal): Total employees.
+[4] (style: Normal): New employee registrations.
+[5] (style: Normal): KYC pending.
+[6] (style: Normal): Employees deployed.
+[7] (style: Normal): Employees not deployed.
+[8] (style: Normal): Present/absent employees.
+[9] (style: Normal): Active client contracts.
+[10] (style: Normal): Active work locations.
+[11] (style: Normal): Pending complaints.
+[12] (style: Normal): Pending approvals.
+[13] (style: Normal): Monthly manpower cost, if payroll/cost data is integrated.
+[14] (style: Normal): 
+[15] (style: Normal): HR PANEL
+[16] (style: Heading 1): HR Panel – Sidebar Structure
+[17] (style: Normal): 
+[18] (style: Heading 1): Employee Onboarding – Complete Workflow
+[19] (style: Normal): 1. Employee Registration – HR enters basic details and creates a new employee record.
+[20] (style: Normal): 2. Employee Information – Capture name, photograph, mobile number, address, date of birth, emergency contact, designation and department.
+[21] (style: Normal): 3. Document Collection – Collect permitted identity, address, education and employment documents, as applicable.
+[22] (style: Normal): 4. eKYC Verification – Verify identity using the selected authorised eKYC method or Aadhaar Secure QR.
+[23] (style: Normal): 5. HR Review and Approval – HR checks information, documents and verification status before approving onboarding.
+[24] (style: Normal): 6. Employee ID Generation – The system automatically generates a unique employee ID.
+[25] (style: Normal): 7. ID Card Generation – Generate the employee ID card with photograph, employee ID, designation and QR code.
+[26] (style: Normal): 8. Account Creation – Create employee login credentials and send an invitation or temporary password securely.
+[27] (style: Normal): 9. Operations Handover – The approved employee becomes available for Operations to assign to a client, site and shift.
+[28] (style: Heading 1): Employee Onboarding Form – Required Fields
+[29] (style: Normal): 
+[30] (style: Normal): OPERATIONS PANEL
+[31] (style: Heading 1): Operations Panel – Sidebar Structure
+[32] (style: Normal): 
+[33] (style: Normal): Geofencing
+[34] (style: List Paragraph): Operations creates the client site in the website.
+[35] (style: List Paragraph): The site location is saved using GPS coordinates.
+[36] (style: List Paragraph): Operations sets a geofence radius, for example, 100 metres.
+[37] (style: List Paragraph): The employee logs in through the mobile app.
+[38] (style: List Paragraph): When the employee is within the permitted area, the app allows punch in.
+[39] (style: List Paragraph): When the employee punches out, the app records the time and location.
+[40] (style: List Paragraph): Attendance is automatically updated in the Operations and HR panels.
+[41] (style: Heading 1): Oparation Scope
+[42] (style: List Number): Operations dashboard
+[43] (style: List Number): Client and site management
+[44] (style: List Number): Workforce deployment
+[45] (style: List Number): Employee directory linked to HR-approved records
+[46] (style: List Number): GPS geofence configuration
+[47] (style: List Number): Daily work reports
+[48] (style: List Number): Operational reports and notifications
+[49] (style: Normal): 
+[50] (style: Normal): Client Mobile App
+[51] (style: Heading 1): Client App – Main Features
+[52] (style: Normal): 
+[53] (style: Heading 1): Employee Deployment Screen
+[54] (style: Normal): Clients should be able to view employees assigned to their organisation.
+[55] (style: Heading 1): Final Client App Scope
+[56] (style: List Bullet): Client login
+[57] (style: List Bullet): Dashboard
+[58] (style: List Bullet): Employee deployment details
+[59] (style: List Bullet): Site-wise employee list
+[60] (style: List Bullet): Present and absent employee count
+[61] (style: List Bullet): Employee punch-in and punch-out records
+[62] (style: List Bullet): Attendance reports
+[63] (style: List Bullet): Basic notifications
+[64] (style: Normal): 
+[65] (style: Normal): EMPLOYEE APP REQUIREMENTS
+[66] (style: Normal): 1. Employee login
+[67] (style: Normal): Login using Employee ID and password.
+[68] (style: Normal): Forgot password / password reset.
+[69] (style: Normal): Secure logout.
+[70] (style: Normal): 2. Employee Information
+[71] (style: List Paragraph): Employee name and ID.
+[72] (style: List Paragraph): Photograph.
+[73] (style: List Paragraph): Designation and department.
+[74] (style: List Paragraph): Assigned client/site.
+[75] (style: List Paragraph): Reporting supervisor.
+[76] (style: Normal): 3. GPS and geofencing attendance
+[77] (style: Normal): Verify employee's GPS location.
+[78] (style: Normal): Check whether the employee is inside the assigned worksite geofence.
+[79] (style: Normal): Enable Punch In only when the employee is within the permitted area.
+[80] (style: Normal): Enable Punch Out based on the configured attendance policy.
+[81] (style: Normal): Record date, time, GPS coordinates and site.
+[82] (style: Normal): 4. Attendance confirmation
+[83] (style: Normal): Show successful Punch In / Punch Out.
+[84] (style: Normal): Display the recorded time.
+[85] (style: Normal): Show an error if the employee is outside the permitted geofence.
+[86] (style: Normal): 
+[87] (style: Normal): Praposed Arcitecture 
+
+[88] (style: Normal): How GPS geofencing will work
+[89] (style: Normal): 
+[90] (style: List Paragraph): Operations creates the client site in the website.
+[91] (style: List Paragraph): The site location is saved using GPS coordinates.
+[92] (style: List Paragraph): Operations sets a geofence radius, for example, 100 metres.
+[93] (style: List Paragraph): The employee logs in through the mobile app.
+[94] (style: List Paragraph): When the employee is within the permitted area, the app allows punch in.
+[95] (style: List Paragraph): When the employee punches out, the app records the time and location.
+[96] (style: List Paragraph): Attendance is automatically updated in the Operations and HR panels.
+[97] (style: Heading 1): Proposed Technical Architecture
+[98] (style: Normal): 
+[99] (style: Normal): Application Architecture and Data Flow
+[100] (style: List Paragraph): All three web panels and both mobile app experiences must communicate with the same backend through secured APIs.
+[101] (style: List Paragraph): The backend must enforce permissions and client/site data boundaries; hiding a screen in the frontend is not sufficient security.
+[102] (style: List Paragraph): Employee records created and approved by HR must become available to Operations for deployment.
+[103] (style: List Paragraph): Operations site assignments and shift schedules must be used by the Employee App during attendance validation.
+[104] (style: List Paragraph): Attendance events must be available to authorised HR, Operations, Super Admin and the relevant client users.
+[105] (style: List Paragraph): Clients must only access their own organisation's assigned employees, sites and attendance records.
+[106] (style: Heading 1): Functional Technical Requirements
+[107] (style: Heading 2): 5.1 Authentication and Access Control
+[108] (style: List Bullet): Secure login for all website users and mobile app users.
+[109] (style: List Bullet): Employee login using Employee ID and password.
+[110] (style: List Bullet): Client login using credentials issued by an authorised administrator.
+[111] (style: List Bullet): Role-based access control for Super Admin, HR, Operations, Client and Employee.
+[112] (style: List Bullet): Password hashing using a recognised secure password-hashing algorithm; never store plaintext passwords.
+[113] (style: List Bullet): Password reset, account activation/deactivation, session expiry and logout.
+[114] (style: List Bullet): Multi-factor authentication for privileged website accounts is recommended.
+[115] (style: List Bullet): Record security-sensitive account and permission changes in audit logs.
+[116] (style: Heading 2): 5.2 Employee Onboarding and HR
+[117] (style: List Bullet): Create and maintain employee profiles with unique employee IDs.
+[118] (style: List Bullet): Capture required personal, contact, emergency and employment information.
+[119] (style: List Bullet): Support document upload, review, approval and rejection with reason/status.
+[120] (style: List Bullet): Integrate a legally permitted KYC method or support Aadhaar Secure QR offline verification as approved for the use case.
+[121] (style: List Bullet): Track KYC status and verification reference without unnecessarily retaining Aadhaar data.
+[122] (style: List Bullet): Generate employee ID cards containing approved fields and a unique QR code.
+[123] (style: List Bullet): Create or activate employee app accounts after HR approval.
+[124] (style: List Bullet): Maintain employee status and assignment/employment history.
+[125] (style: Heading 2): 5.3 Client and Site Management
+[126] (style: List Bullet): Create clients, client contacts, service locations and sites.
+[127] (style: List Bullet): Store each site name, address, latitude, longitude, geofence radius and active status.
+[128] (style: List Bullet): Allow authorised Operations users to select a site location on a map and configure its boundary.
+[129] (style: List Bullet): Maintain client-specific site and workforce records.
+[130] (style: List Bullet): Support site-specific shifts and employee deployment.
+[131] (style: Heading 2): 5.4 Workforce Deployment and Shifts
+[132] (style: List Bullet): Assign HR-approved employees to a client, site, designation and supervisor.
+[133] (style: List Bullet): Maintain assignment start date, end date and assignment history.
+[134] (style: List Bullet): Create shifts with start/end times, applicable days, grace periods and effective dates.
+[135] (style: List Bullet): Prevent or flag conflicting assignments and shift overlaps according to configured rules.
+[136] (style: List Bullet): Make current assignment and shift details available to the Employee App for attendance checks.
+[137] (style: Heading 2): 5.5 GPS Geofencing and Attendance
+[138] (style: List Bullet): Use device location services to obtain the employee's location when Punch In or Punch Out is selected.
+[139] (style: List Bullet): Send employee ID, assigned site ID, coordinates, event timestamp and reported location accuracy to the backend over HTTPS.
+[140] (style: List Bullet): Validate that the employee is assigned to the site and that the site/geofence is active.
+[141] (style: List Bullet): Calculate distance between the device coordinates and the configured site coordinates using a recognised geographic-distance calculation.
+[142] (style: List Bullet): Accept the punch only when the employee is within the configured radius and location accuracy meets the configured rule.
+[143] (style: List Bullet): Validate shift and attendance state, including duplicate punch-in and missing/invalid punch-out conditions.
+[144] (style: List Bullet): Store the original attendance event, validation result, server receipt time and relevant location metadata.
+[145] (style: List Bullet): Provide an exception workflow for GPS unavailable, low accuracy, device permission denied or other genuine failures.
+[146] (style: List Bullet): Allow authorised manual corrections with a mandatory reason and audit trail.
+[147] (style: List Bullet): The initial release should use event-based location checks at punch-in and punch-out, not continuous background tracking.
+[148] (style: Normal): Geofencing limitation: GPS accuracy varies indoors, near tall buildings and across devices. A geofence is a location check, not proof of identity or an infallible boundary. Mock-location and spoofing checks may reduce misuse but cannot guarantee prevention. Site radius and accuracy thresholds must be tested at real sites.
+[149] (style: Heading 2): 5.6 Client Mobile App
+[150] (style: List Bullet): Provide client login.
+[151] (style: List Bullet): Display total employees deployed, present today, absent and assigned sites.
+[152] (style: List Bullet): Show employees assigned to the client's sites.
+[153] (style: List Bullet): Show site-wise deployed, present and absent counts.
+[154] (style: List Bullet): Display permitted attendance details, including punch-in and punch-out times.
+[155] (style: List Bullet): Provide daily, weekly and monthly attendance reports.
+[156] (style: List Bullet): Do not expose Aadhaar/eKYC details, bank details, private HR documents or another client's data.
+[157] (style: List Bullet): Do not include payroll, employee onboarding or unrelated workflow features in the initial client app.
+[158] (style: Heading 2): 5.7 Employee Mobile App
+[159] (style: List Bullet): Provide Employee ID and password login.
+[160] (style: List Bullet): Display basic employee information and current assigned site/shift.
+[161] (style: List Bullet): Provide Punch In and Punch Out actions.
+[162] (style: List Bullet): Request location permission and validate device location at the time of each punch.
+[163] (style: List Bullet): Display clear success, outside-geofence, GPS-unavailable and low-accuracy messages.
+[164] (style: List Bullet): Display basic current-day attendance status.
+[165] (style: List Bullet): Do not include leave, salary, chat, task management or document upload in the initial employee app.
+[166] (style: Normal): 
+[167] (style: Heading 1): Third-Party Services and Integrations
+[168] (style: Normal): 
+[169] (style: Heading 1): Deployment and Environments
+[170] (style: List Bullet): Maintain separate development, testing/staging and production environments.
+[171] (style: List Bullet): Use version control and a controlled release process.
+[172] (style: List Bullet): Protect production credentials and secrets; do not hard-code them in source code.
+[173] (style: List Bullet): Configure automated database backups and application monitoring.
+[174] (style: List Bullet): Set up domain names and HTTPS certificates for the website and API.
+[175] (style: List Bullet): Publish Android and iOS apps through the relevant app stores or approved distribution channels.
+[176] (style: List Bullet): Provide administrator training and handover documentation.
+[177] (style: Heading 1): 11. Testing and Acceptance Criteria
+[178] (style: List Bullet): Verify each role can access only its permitted screens and records.
+[179] (style: List Bullet): Verify client users cannot access another client's sites, employees or attendance.
+[180] (style: List Bullet): Test employee onboarding, document review, KYC status handling and ID-card generation.
+[181] (style: List Bullet): Test employee deployment and shift assignment, including changes and transfer history.
+[182] (style: List Bullet): Test punch-in and punch-out inside and outside the geofence.
+[183] (style: List Bullet): Test low GPS accuracy, denied location permission, GPS unavailable and network interruption cases.
+[184] (style: List Bullet): Test duplicate punch-in, missing punch-out and approved attendance correction.
+[185] (style: List Bullet): Verify client dashboard counts against the underlying attendance records and configured shift rules.
+[186] (style: List Bullet): Test reports, exports, audit logs, backups and restore procedures.
+[187] (style: List Bullet): Conduct security and mobile-device testing before production release.
+[188] (style: Normal): 
+
+=== TABLES ===
+--- Table 0 ---
+  Row 0: ['No.', 'Module', 'Features']
+  Row 1: ['1', 'Dashboard', 'Business overview, KPIs and alerts']
+  Row 2: ['2', 'Client Management', 'Add clients, contracts and client users']
+  Row 3: ['3', 'Employee Management', 'Employee profiles and records']
+  Row 4: ['4', 'Employee Onboarding', 'Registration, documents and eKYC']
+  Row 5: ['5', 'Attendance Management', 'Check-in, check-out and exceptions']
+  Row 6: ['6', 'Geofencing', 'Sites, boundaries and location events']
+  Row 7: ['7', 'Workforce Deployment', 'Assign employees to clients and sites']
+  Row 8: ['8', 'ID Card Management', 'Generate and deactivate IDs']
+  Row 9: ['9', 'Document Management', 'Employee and client documentation']
+  Row 10: ['10', 'Reports & Analytics', 'Business and workforce reporting']
+  Row 11: ['11', 'Billing & Contracts', 'Invoices and contract tracking']
+  Row 12: ['12', 'User & Role Management', 'Access permissions']
+  Row 13: ['13', 'Notifications', 'Alerts and announcements']
+  Row 14: ['14', 'Settings', 'Company, branch and application settings']
+--- Table 1 ---
+  Row 0: ['No.', 'Module', 'Features']
+  Row 1: ['1', 'Dashboard', 'HR overview, employee statistics, onboarding KPIs and alerts']
+  Row 2: ['2', 'Employee Onboarding', 'Register new employees, create employee records and initiate onboarding']
+  Row 3: ['3', 'Employee Management', 'View, search, edit and manage employee profiles']
+  Row 4: ['4', 'eKYC Verification', 'Aadhaar QR or authorised eKYC, verification status and history']
+  Row 5: ['5', 'Document Management', 'Upload, review and verify employee documents']
+  Row 6: ['6', 'Employee ID Card', 'Generate, download, print and deactivate employee ID cards']
+  Row 7: ['7', 'Client & Site Assignment', 'View employee assignment details and coordinate with Operations']
+  Row 8: ['8', 'Department & Designation', 'Create and manage departments, job roles and designations']
+  Row 9: ['9', 'Payroll Information', 'Maintain payroll-related employee inputs and employment details']
+  Row 10: ['10', 'Employee Reports', 'Employee database, onboarding, KYC and document reports']
+  Row 11: ['11', 'User & Access Management', 'HR users, permissions and access controls']
+--- Table 2 ---
+  Row 0: ['Section', 'Information required']
+  Row 1: ['Personal details', 'Name, date of birth, gender and photograph']
+  Row 2: ['Contact details', 'Mobile number, email and residential address']
+  Row 3: ['Emergency details', 'Emergency contact name, number and relationship']
+  Row 4: ['Employment details', 'Designation, department, employment type and joining date']
+  Row 5: ['Identity verification', 'Selected KYC method and verification status']
+  Row 6: ['Documents', 'Identity, address, education and employment documents, as applicable']
+  Row 7: ['Bank details', 'Bank account information, collected securely only if required for payroll']
+  Row 8: ['System details', 'Employee ID, login account and account status']
+--- Table 3 ---
+  Row 0: ['No.', 'Module', 'Features']
+  Row 1: ['1', 'Dashboard', 'Operational overview, site KPIs, workforce status and alerts']
+  Row 2: ['2', 'Client & Site Management', 'View clients, create/manage sites and service locations']
+  Row 3: ['3', 'Workforce Deployment', 'Assign employees to clients, sites and supervisors']
+  Row 4: ['4', 'Employee Directory', 'View HR-approved employee profiles and availability']
+  Row 5: ['6', 'Geofencing & GPS', 'Configure site boundaries, view location events and exceptions']
+  Row 6: ['7', 'Task Management', 'Create, assign and track site-level tasks']
+  Row 7: ['8', 'Daily Work Reports', 'Submit, review and approve site and employee reports']
+  Row 8: ['9', 'Incident Management', 'Record accidents, safety incidents and escalations']
+  Row 9: ['10', 'Operations Reports', 'Site, workforce, attendance, shift and performance reports']
+--- Table 4 ---
+  Row 0: ['No.', 'Module', 'Features']
+  Row 1: ['1', 'Client login', 'Secure client account login']
+  Row 2: ['2', 'Dashboard', 'Total deployed employees, present employees, absent employees and number of assigned sites']
+  Row 3: ['3', 'Employee Deployment', "View employees assigned to the client's organisation and locations"]
+  Row 4: ['4', 'Site Attendance', 'View present, absent, late and punch-in/punch-out details']
+  Row 5: ['5', 'Site Details', 'View assigned sites and workforce strength at each site']
+  Row 6: ['6', 'Reports', 'Daily, weekly and monthly attendance reports']
+  Row 7: ['7', 'Notifications', 'Attendance updates and important alerts']
+  Row 8: ['8', 'Profile', 'Client account details and logout']
+--- Table 5 ---
+  Row 0: ['Employee ID', 'Employee Name', 'Designation', 'Site']
+  Row 1: ['SS1001', 'Employee A', 'Housekeeping', 'Site A']
+  Row 2: ['SS1002', 'Employee B', 'Security', 'Site A']
+  Row 3: ['SS1003', 'Employee C', 'Technician', 'Site B']
+  Row 4: ['SS1004', 'Employee D', 'Housekeeping', 'Site B']
+--- Table 6 ---
+  Row 0: ['Layer', 'Recommended technology', 'Purpose']
+  Row 1: ['Web frontend', 'React.js with TypeScript', 'Super Admin, HR and Operations web panels']
+  Row 2: ['Mobile frontend', 'React Native', 'Android and iOS app with role-based Client and Employee access']
+  Row 3: ['Backend/API', 'Python FastAPI', 'Business logic, authentication, permissions, attendance and integrations']
+  Row 4: ['Database', 'PostgreSQL', 'Central relational data store']
+  Row 5: ['File storage', 'AWS S3 or equivalent object storage', 'Employee photos, permitted documents, reports and generated ID-card PDFs']
+  Row 6: ['Cloud hosting', 'AWS (Mumbai region where appropriate) or equivalent', 'Application hosting, database, storage, monitoring and backups']
+  Row 7: ['Push notifications', 'Firebase Cloud Messaging / Apple Push Notification service', 'Mobile notifications where required']
+  Row 8: ['Maps/location', 'Google Maps Platform or equivalent map provider', 'Site location selection and map display; GPS coordinates from device location services']
+  Row 9: ['PDF/QR generation', 'Backend PDF and QR-code libraries', 'Employee ID-card generation and QR verification']
+--- Table 7 ---
+  Row 0: ['Service', 'Requirement / consideration']
+  Row 1: ['KYC provider', 'Use an authorised provider and legally permitted integration route; confirm onboarding eligibility, consent, pricing and contractual terms.']
+  Row 2: ['Maps provider', 'Map display and site pin selection; check API usage and billing.']
+  Row 3: ['Cloud hosting', 'Application hosting, managed database, storage, backups and monitoring.']
+  Row 4: ['Push notifications', 'FCM for Android and APNs for iOS, subject to app configuration.']
+  Row 5: ['SMS/email provider', 'Optional OTP, invitations, password reset and operational notifications; provider charges apply.']
+  Row 6: ['App stores', 'Google Play and Apple App Store developer accounts and review compliance.']

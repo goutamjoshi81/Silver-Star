@@ -1,0 +1,15 @@
+{
+  "name": "silver-star-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Silver Star Facility Management Pvt. Ltd. - Integrated Digital Platform (5 Applications)",
+  "scripts": {
+    "dev:admin": "npm --prefix apps/super-admin run dev",
+    "dev:hr": "npm --prefix apps/hr-panel run dev",
+    "dev:ops": "npm --prefix apps/operations-panel run dev",
+    "dev:client": "npm --prefix apps/client-mobile run dev",
+    "dev:employee": "npm --prefix apps/employee-mobile run dev",
+    "build:all": "npm --prefix apps/super-admin run build && npm --prefix apps/hr-panel run build && npm --prefix apps/operations-panel run build && npm --prefix apps/client-mobile run build && npm --prefix apps/employee-mobile run build"
+  }
+}
+

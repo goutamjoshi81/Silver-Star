@@ -1,0 +1,1082 @@
+<USER_REQUEST>
+# MASTER DEVELOPMENT PROMPT – SILVER STAR FACILITY MANAGEMENT DIGITAL PLATFORM
+
+## 1. Project Overview
+
+Act as a Senior UI/UX Designer, Frontend Architect and Full-Stack-Level Frontend Developer.
+
+Build a complete, professional frontend for **Silver Star Facility Management Pvt. Ltd.**
+
+Client website: https://silverstarindia.net/
+
+Reference proposal: `Silver_Star_Facility_Management_Proposal_Report.pdf`
+
+The uploaded PDF is the final approved functional and technical proposal. Read the entire document before starting development. Use it as the primary source of truth for the application's features, workflows, modules, and scope.
+
+The project consists of five frontend applications:
+
+1. Super Admin Web Panel
+2. HR Management Web Panel
+3. Operations Management Web Panel
+4. Client Mobile Application
+5. Employee Mobile Application
+
+**IMPORTANT: FRONTEND DEVELOPMENT ONLY.**
+
+Do not develop the backend, database, API integrations, authentication server, payment integrations or production infrastructure at this stage.
+
+The objective is to build a complete, visually polished and interactive frontend prototype that the client can review and approve before backend development begins.
+
+---
+
+## 2. Website Branding and Design Reference
+
+Study the client's official website thoroughly:
+
+https://silverstarindia.net/
+
+Use the website as the primary reference for:
+
+- Company logo and branding.
+- Brand colours.
+- Typography style.
+- Corporate identity.
+- Overall visual language.
+- Company name and service information.
+- Company-related terminology.
+
+### Design direction
+
+Create a classic, premium corporate application.
+
+Use:
+- Navy blue as the primary colour.
+- Cyan/teal as the secondary brand colour.
+- White and subtle light-grey backgrounds.
+- Dark navy text.
+- Subtle borders and shadows.
+- Professional icons.
+- Consistent spacing and typography.
+
+The interface should feel like a professionally developed enterprise facility-management platform.
+
+### Avoid
+
+- Excessive gradients.
+- Excessive animations.
+- Neon colours.
+- Oversized cards.
+- Unnecessary illustrations.
+- Excessively rounded components.
+- Overcrowded dashboards.
+- Unnecessary decorative elements.
+- Generic AI-generated dashboard designs.
+
+Use a clean, structured layout with excellent readability.
+
+Use the actual Silver Star logo from the official website wherever possible. Do not recreate or redesign the logo.
+
+---
+
+## 3. Technology Stack
+
+### Web applications
+- React.js
+- TypeScript
+- Vite
+- Tailwind CSS
+- Reusable component architecture.
+- React Router.
+- Lucide React icons.
+- Recharts for dashboard visualizations.
+
+### Mobile applications
+- React Native.
+- Expo.
+- TypeScript.
+- React Navigation.
+- Native device-friendly layouts.
+
+### Development restriction
+
+Do not create backend services.
+
+Do not create:
+- FastAPI backend.
+- PostgreSQL database.
+- AWS infrastructure.
+- Authentication APIs.
+- Real Aadhaar verification.
+- Real GPS verification APIs.
+- SMS gateways.
+- Payment integrations.
+
+Build frontend interfaces and simulated interactions only.
+
+Keep the project architecture ready for future backend integration.
+
+---
+
+# 4. Centralized Dummy Data Architecture – VERY IMPORTANT
+
+I do not want dummy content scattered throughout the application.
+
+Create ONE centralized mock-data directory.
+
+Suggested structure:
+
+`src/data/mockData.ts`
+
+This file should contain all demonstration data used throughout the web panels.
+
+Organize the data into structured objects and arrays:
+
+- Company information.
+- Branches.
+- Employees.
+- Employee documents.
+- Employee onboarding records.
+- KYC verification statuses.
+- Employee ID card information.
+- Clients.
+- Client contracts.
+- Work locations.
+- Site coordinates.
+- Geofence configurations.
+- Employee deployments.
+- Departments.
+- Designations.
+- Shifts.
+- Attendance records.
+- Daily work reports.
+- Incidents and complaints.
+- Notifications.
+- User accounts and roles.
+- Dashboard KPI values.
+
+For mobile applications, use the same centralized mock-data source wherever the project architecture allows it. If the applications have separate runtime projects, maintain one clearly defined shared data package or shared data module.
+
+### Mock-data rules
+
+1. Never hardcode employee names, client names, attendance records or site information inside individual components.
+2. All demonstration records must come from the centralized data source.
+3. Reuse the same employee across HR, Operations, Super Admin and Employee App.
+4. Reuse the same client and site information across all applications.
+5. Keep the mock dataset small and meaningful.
+6. Do not fill every page with unnecessary fictional records.
+7. Mark demonstration data clearly as DEMO DATA.
+8. Keep all values easy to replace with API responses later.
+9. Use consistent IDs and relationships across all modules.
+10. Provide meaningful empty states when no records exist.
+
+The purpose is to make future database integration straightforward.
+
+---
+
+# 5. Application 1 – Super Admin Web Panel
+
+This is the central management and governance platform.
+
+Create a professional desktop-first dashboard with:
+
+- Collapsible sidebar.
+- Top navigation bar.
+- Company logo.
+- Page title and breadcrumbs.
+- Notification icon.
+- User profile and logout.
+- Search and filtering.
+- Responsive content area.
+
+### 5.1 Executive Dashboard
+
+Display the following 11 KPIs:
+
+1. Total Active Employees.
+2. New Registrations (MTD).
+3. KYC Pending Verification.
+4. Employees Deployed.
+5. Employees Not Deployed.
+6. Present vs Absent Today.
+7. Active Client Contracts.
+8. Active Work Locations.
+9. Pending Client Complaints.
+10. Pending Approvals.
+11. Monthly Manpower Cost.
+
+Include:
+- Attendance overview.
+- Employee deployment summary.
+- Department-wise workforce chart.
+- Recent activities.
+- Pending approvals.
+- Urgent operational alerts.
+
+### 5.2 Client Management
+
+Features:
+- Client listing.
+- Add client.
+- Edit client.
+- View client details.
+- Client status.
+- Contract information.
+- Branch and site mapping.
+- Client portal user management.
+
+### 5.3 Employee Management
+
+Features:
+- Employee directory.
+- Employee profile.
+- Employee status.
+- Department and designation.
+- Employment history.
+- Current deployment.
+- Search and filtering.
+
+### 5.4 Employee Onboarding
+
+Features:
+- New employee registration.
+- Onboarding status.
+- Document collection status.
+- KYC verification status.
+- Approval and rejection status.
+- Employee profile review.
+
+### 5.5 Attendance Management
+
+Features:
+- Daily attendance.
+- Present and absent employees.
+- Punch-in and punch-out records.
+- Late arrivals.
+- Attendance corrections.
+- Manual correction history.
+
+### 5.6 Geofencing & Sites
+
+Features:
+- Site directory.
+- Site location.
+- GPS coordinates.
+- Geofence radius.
+- Site activation status.
+- Map interface.
+- Geofence exception records.
+
+### 5.7 Workforce Deployment
+
+Features:
+- Available employees.
+- Deployed employees.
+- Site allocation.
+- Employee transfers.
+- Supervisor assignment.
+- Relief staff assignment.
+- Deployment history.
+
+### 5.8 ID Card Management
+
+Features:
+- Employee ID card preview.
+- Generate ID card interface.
+- QR code preview.
+- Download PDF button (demo).
+- Print option (demo).
+- Deactivation status.
+
+### 5.9 Document Management
+
+Features:
+- Employee documents.
+- KYC documents.
+- Educational certificates.
+- Police verification.
+- Company compliance documents.
+- Document expiry status.
+
+### 5.10 Reports & Analytics
+
+Features:
+- Attendance reports.
+- Employee reports.
+- Site-wise workforce reports.
+- Overtime reports.
+- Muster roll.
+- SLA reports.
+- Export PDF/Excel demonstration actions.
+
+### 5.11 Billing & Contracts
+
+Features:
+- Client contracts.
+- Contract validity.
+- Billing milestones.
+- Rate card information.
+- Attendance-backed billing inputs.
+
+### 5.12 User & Role Management
+
+Features:
+- User directory.
+- Super Admin.
+- HR Executive.
+- Operations Manager.
+- Corporate Client.
+- Employee.
+- Permission configuration UI.
+
+### 5.13 Notifications Engine
+
+Features:
+- System notifications.
+- Operational alerts.
+- Compliance notifications.
+- Broadcast announcements.
+
+### 5.14 System Settings
+
+Features:
+- Company profile.
+- Branch configuration.
+- Department configuration.
+- Designations.
+- Default geofence settings.
+- Shift configuration.
+- General preferences.
+
+---
+
+# 6. Application 2 – HR Management Web Panel
+
+The HR panel must be a separate role-based experience.
+
+It should have its own dashboard, navigation and dedicated workflows.
+
+### HR Dashboard
+
+Display:
+- Total employees.
+- New registrations.
+- Pending onboarding.
+- KYC pending.
+- Approved employees.
+- Rejected applications.
+- Document verification status.
+- Monthly onboarding trends.
+
+### 6.1 Employee Onboarding
+
+Create a professional multi-step onboarding form.
+
+Follow the nine-step workflow from the proposal:
+
+1. Employee Registration.
+2. Demographic & Profile Capture.
+3. Document Collection.
+4. Digital eKYC Verification.
+5. HR Review & Approval.
+6. Employee ID Generation.
+7. Digital QR ID Card Generation.
+8. Account Provisioning.
+9. Operations Handover.
+
+### Employee information form
+
+Personal details:
+- Full legal name.
+- Date of birth.
+- Gender.
+- Marital status.
+- Blood group.
+- Photograph.
+
+Contact details:
+- Primary mobile number.
+- Alternate mobile number.
+- Email.
+- Permanent address.
+- Current address.
+- PIN code.
+
+Emergency details:
+- Emergency contact name.
+- Relationship.
+- Phone number.
+- Alternative address.
+
+Employment details:
+- Department.
+- Designation.
+- Employment type.
+- Joining date.
+
+Identity verification:
+- KYC method.
+- Verification reference.
+- Verification date.
+- Verification officer.
+
+Documents:
+- Photo ID.
+- Address proof.
+- Education certificate.
+- Police verification certificate.
+
+Bank and statutory details:
+- Bank name.
+- Account holder name.
+- Account number.
+- IFSC.
+- PF/ESI identifiers.
+
+### 6.2 eKYC Verification
+
+Create a dedicated eKYC interface with:
+
+- Verification method selection.
+- Aadhaar Secure QR option.
+- DigiLocker option.
+- Authorized eKYC gateway option.
+- Verification status.
+- Verification reference.
+- Verification history.
+
+IMPORTANT: This is only a frontend simulation. Do not claim that Aadhaar or DigiLocker verification is actually happening.
+
+Never display full Aadhaar numbers in demonstration screens.
+
+### 6.3 Document Management
+
+- Document upload UI.
+- Document preview.
+- Approve/reject.
+- Verification status.
+- Expiry tracking.
+
+### 6.4 Employee Directory
+
+- Employee search.
+- Employee details.
+- Profile editing.
+- Department filtering.
+- Employment status.
+
+### 6.5 Employee ID Cards
+
+Create a professional Silver Star employee ID card design.
+
+Include:
+- Company logo.
+- Employee photograph.
+- Employee name.
+- Employee ID.
+- Designation.
+- Department.
+- Emergency contact.
+- QR code.
+
+Include card preview, download and print demonstration actions.
+
+### 6.6 Client & Site Mapping
+
+HR should be able to view employee deployment information and verify statutory compliance before dispatch.
+
+### 6.7 Departments & Roles
+
+Include:
+- Housekeeping.
+- Security.
+- Electro-Mechanical.
+- Manufacturing Support.
+- Other relevant company departments based on the proposal.
+
+### 6.8 Payroll Information
+
+Include:
+- Bank information.
+- PF/ESI identifiers.
+- Pay structure inputs.
+- Employee payroll information.
+
+### 6.9 HR Reports
+
+- Onboarding reports.
+- Document expiry reports.
+- Compliance reports.
+- Employee statistics.
+- Attrition reports.
+
+### 6.10 HR Access Controls
+
+- Recruiter.
+- Compliance Officer.
+- Payroll Admin.
+
+---
+
+# 7. Application 3 – Operations Management Web Panel
+
+This panel is for operations managers, area supervisors and field executives.
+
+Its primary purpose is to manage deployed employees at client locations.
+
+### Operations Dashboard
+
+Display:
+- Total deployed employees.
+- Employees present today.
+- Employees absent today.
+- Active client sites.
+- Active shifts.
+- Employees available for deployment.
+- Site staffing shortages.
+- Pending incidents.
+
+### 7.1 Client & Site Management
+
+Features:
+- Client list.
+- Site list.
+- Add site.
+- Edit site.
+- Site contact details.
+- Site coordinates.
+- Site status.
+- Assigned workforce.
+
+### 7.2 Workforce Deployment
+
+Features:
+- View HR-approved employees.
+- Available workforce.
+- Assign employees to client sites.
+- Select department and designation.
+- Assign supervisor.
+- Assign shift.
+- Employee transfer.
+- Relief staff assignment.
+- Deployment history.
+
+Only HR-approved employees should appear in the deployable employee list.
+
+### 7.3 Employee Directory
+
+Features:
+- Employee information.
+- Current assignment.
+- Site allocation history.
+- Available/deployed status.
+- Search and filters.
+
+### 7.4 Geofencing & GPS Setup
+
+Create an interactive map-based interface.
+
+Features:
+- Site location selection.
+- Map pin placement.
+- Latitude and longitude.
+- Geofence radius configuration.
+- 50m, 100m and custom radius.
+- Geofence boundary visualization.
+- Site activation/deactivation.
+
+Use Google Maps only if a frontend development key is available. Otherwise, create a clean map placeholder with an interactive site-location configuration experience. Never invent a real map connection.
+
+### 7.5 Task & Shift Management
+
+Features:
+- Create shift.
+- Shift start time.
+- Shift end time.
+- Grace period.
+- Assign shift.
+- Daily/weekly/monthly roster.
+- Employee shift schedule.
+- Shift conflict warning.
+
+### 7.6 Daily Work Reports (DWR)
+
+Features:
+- Daily reports.
+- Site-wise reports.
+- Supervisor submissions.
+- Equipment maintenance logs.
+- Consumables usage.
+- Report review.
+- Approval status.
+
+### 7.7 Incident Management
+
+Features:
+- Create incident.
+- Incident category.
+- Security alerts.
+- Workplace accidents.
+- Property damage.
+- Client complaints.
+- Priority.
+- Assigned person.
+- Resolution status.
+
+### 7.8 Operations Reports
+
+Features:
+- Site-wise attendance.
+- Workforce strength.
+- Shift deviations.
+- Overtime.
+- Attendance summary.
+
+### 7.9 Field Audit Logs
+
+Features:
+- Employee transfers.
+- Shift modifications.
+- Manual attendance corrections.
+- Supervisor overrides.
+- Date and time history.
+
+---
+
+# 8. Application 4 – Client Mobile Application
+
+Build a simple, elegant and easy-to-use mobile application.
+
+This application is for Silver Star's corporate clients.
+
+The client should be able to see only employees deployed at their own contracted sites.
+
+### 8.1 Client Login
+
+- Company credentials.
+- Login.
+- Forgot password.
+- Logout.
+
+### 8.2 Client Dashboard
+
+Display:
+- Total deployed employees.
+- Present today.
+- Absent today.
+- Assigned locations.
+
+Use clear summary cards.
+
+### 8.3 Employee Deployment
+
+Display:
+- Employee name.
+- Employee ID.
+- Photograph.
+- Designation.
+- Assigned site.
+- Shift.
+
+### 8.4 Attendance
+
+Display:
+- Present employees.
+- Absent employees.
+- Punch-in time.
+- Punch-out time.
+- Attendance status.
+- Site-wise attendance.
+
+### 8.5 Site Details
+
+Display:
+- Site name.
+- Location.
+- Total assigned employees.
+- Present employees.
+- Absent employees.
+- Sanctioned workforce versus actual workforce.
+
+### 8.6 Attendance Reports
+
+- Daily muster.
+- Weekly attendance.
+- Monthly attendance.
+- PDF/Excel export demonstration.
+
+### 8.7 Notifications
+
+- Shift commencement.
+- Staff shortages.
+- Emergency notices.
+- Supervisor updates.
+
+### 8.8 Profile & Security
+
+- Client profile.
+- Contact information.
+- Change password UI.
+- Active sessions.
+- Secure logout.
+
+### Client application restrictions
+
+Do not add:
+- Employee recruitment.
+- Payroll editing.
+- Internal task dispatch.
+- HR administration.
+- Employee KYC documents.
+- Sensitive employee bank information.
+
+Keep the application focused on workforce transparency and attendance.
+
+---
+
+# 9. Application 5 – Employee Mobile Application
+
+This application is for frontline employees such as:
+
+- Security Guards.
+- Housekeeping Attendants.
+- Housekeeping Supervisors.
+- Electro-Mechanical Technicians.
+
+Design it for entry-level Android smartphones.
+
+Keep the interface extremely simple.
+
+### 9.1 Employee Login
+
+- Employee ID.
+- Password.
+- Login.
+- Forgot password.
+
+### 9.2 Employee Home Screen
+
+Display:
+- Employee photograph.
+- Employee name.
+- Employee ID.
+- Designation.
+- Department.
+- Reporting supervisor.
+- Assigned client.
+- Assigned site.
+- Current shift.
+
+### 9.3 Attendance
+
+Create two prominent actions:
+
+- PUNCH IN.
+- PUNCH OUT.
+
+The interface should clearly show:
+
+- Current attendance status.
+- Assigned work location.
+- Shift timing.
+- GPS permission status.
+- Location accuracy.
+- Geofence verification result.
+
+### Simulated geofencing experience
+
+Create a frontend-only simulation of:
+
+1. User taps Punch In.
+2. Application requests location permission through the available device interface.
+3. Application displays location-checking state.
+4. Application displays a simulated distance from the assigned site.
+5. Application shows either successful verification or outside-geofence rejection.
+6. Successful punch displays timestamp and attendance status.
+
+Do not implement actual backend geofence validation.
+
+Never claim a real attendance record has been securely registered.
+
+### 9.4 Attendance History
+
+Display:
+- Today's attendance.
+- Previous attendance.
+- Punch-in time.
+- Punch-out time.
+- Attendance status.
+
+### Employee application restrictions
+
+Do not add:
+- Leave application.
+- Salary advance.
+- Internal chat.
+- Complex document uploaders.
+- Unnecessary employee services.
+
+Keep the initial application focused on identity, shift verification and geofenced attendance.
+
+---
+
+# 10. Important Cross-Application Workflows
+
+The frontend must demonstrate how the different applications work together.
+
+### Workflow A – Employee Onboarding
+
+HR registers an employee → collects documents → simulates eKYC → HR approves → Employee ID generated → ID card preview generated → employee becomes available in Operations.
+
+### Workflow B – Workforce Deployment
+
+Operations selects an HR-approved employee → selects client → selects site → assigns designation → assigns supervisor → assigns shift → confirms deployment.
+
+The employee should now appear in the Employee App's assigned-site and shift screens.
+
+### Workflow C – Attendance
+
+Employee opens app → taps Punch In → simulated GPS verification → attendance status updated in the demo state.
+
+The attendance information should reflect consistently in:
+
+- Super Admin attendance.
+- HR attendance.
+- Operations attendance.
+- Client attendance.
+
+### Workflow D – Client Visibility
+
+Operations deploys employees to a site → employee attendance changes → client dashboard reflects the corresponding workforce and attendance status.
+
+### Workflow E – ID Card
+
+HR approves employee → unique employee ID is displayed → ID card preview becomes available.
+
+These workflows must be demonstrable using shared mock data and local frontend state.
+
+---
+
+# 11. UI/UX Quality Requirements
+
+### Web panels
+
+Use a consistent design system across all three management panels.
+
+Recommended layout:
+
+- Sidebar: approximately 250px.
+- Top navigation: approximately 64px.
+- Main content with sufficient spacing.
+- Tables with clear headings.
+- Filters above tables.
+- Search functionality.
+- Proper status badges.
+- Consistent modal design.
+- Professional forms.
+- Breadcrumb navigation.
+
+### Mobile applications
+
+Use mobile-first layouts with:
+
+- Clear bottom navigation.
+- Readable text.
+- Large touch targets.
+- Simple cards.
+- Minimal navigation levels.
+- Clear success/error messages.
+
+### Responsive requirements
+
+Web panels must work on desktop, laptop and tablet.
+
+Mobile apps must be designed for Android and iOS screen sizes.
+
+---
+
+# 12. Frontend Interaction Requirements
+
+Every visible interactive element must work in the prototype.
+
+Examples:
+
+- Sidebar navigation.
+- Add employee.
+- Edit employee.
+- View employee details.
+- Search.
+- Filters.
+- Dropdowns.
+- Form validation.
+- Modal windows.
+- Tabs.
+- Approve/reject actions.
+- Employee deployment.
+- Shift assignment.
+- Attendance actions.
+- Notifications.
+- Profile menu.
+- Download/print demonstration buttons.
+
+Use local state and the centralized mock-data layer to simulate these operations.
+
+Do not create buttons that look functional but do nothing.
+
+If a feature requires a backend, clearly indicate that it is in demonstration mode.
+
+---
+
+# 13. Architecture and Code Quality
+
+Follow professional frontend engineering standards.
+
+Requirements:
+
+- Reusable components.
+- Modular folder structure.
+- TypeScript interfaces and types.
+- Centralized mock data.
+- Shared UI components.
+- Consistent naming conventions.
+- Clean routing.
+- Reusable forms.
+- Error and empty states.
+- Responsive layouts.
+- Maintainable CSS.
+- No unnecessary duplicated code.
+
+Suggested structure:
+
+```text
+silver-star-platform/
+│
+├── apps/
+│   ├── web/
+│   │   ├── super-admin/
+│   │   ├── hr-panel/
+│   │   └── operations-panel/
+│   │
+│   ├── client-mobile/
+│   └── employee-mobile/
+│
+├── packages/
+│   ├── shared-types/
+│   ├── mock-data/
+│   │   └── mockData.ts
+│   └── shared-assets/
+│
+├── docs/
+│   └── frontend-documentation.md
+│
+└── README.md
+```
+
+You may adjust this structure if required for a stable React/Vite and Expo workspace, but maintain clear separation between applications.
+
+---
+
+# 14. Future Backend Integration Readiness
+
+Although this phase is frontend only, prepare the application for future integration with:
+
+- Python FastAPI.
+- PostgreSQL.
+- AWS S3.
+- AWS infrastructure.
+- Google Maps.
+- Aadhaar Secure QR verification.
+- DigiLocker.
+- Firebase Cloud Messaging.
+- SMS gateway.
+
+Use a clean data-access abstraction so centralized mock data can later be replaced by API services without rewriting the UI components.
+
+Do not add fake API calls or pretend that integrations are live.
+
+---
+
+# 15. Development and Execution Instructions
+
+Follow this development sequence:
+
+**Phase 1 – Brand and Architecture**
+- Study the client website.
+- Inspect the uploaded proposal.
+- Establish the design system.
+- Set up project structure.
+- Create shared components.
+- Create centralized mock data.
+
+**Phase 2 – Web Management Panels**
+- Build Super Admin.
+- Build HR.
+- Build Operations.
+- Connect their demonstration workflows.
+
+**Phase 3 – Mobile Applications**
+- Build Client App.
+- Build Employee App.
+- Connect shared demonstration data.
+
+**Phase 4 – Testing and Refinement**
+- Test navigation.
+- Test forms.
+- Test all interactive elements.
+- Test role-based screen separation.
+- Test cross-application workflows.
+- Check responsive layouts.
+- Fix console errors.
+- Remove unnecessary placeholder sections.
+
+**Phase 5 – Final Review**
+- Run all five applications.
+- Verify that every module has its intended interface.
+- Verify consistent branding.
+- Verify that demonstration data is centralized.
+- Document how to start each application.
+
+Do not stop after creating just the dashboard or a few sample screens.
+
+Build all five complete frontend experiences.
+
+---
+
+# 16. Final Quality Expectations
+
+The final result must look like a professionally developed enterprise application that can be demonstrated directly to the management team of Silver Star Facility Management Pvt. Ltd.
+
+Prioritize:
+
+1. Professional corporate design.
+2. Easy navigation.
+3. Simple employee workflows.
+4. Complete module coverage.
+5. Consistent data across applications.
+6. Proper responsive layouts.
+7. Clean and maintainable code.
+8. Future backend integration readiness.
+
+**FINAL INSTRUCTION:**
+
+Build the complete frontend only. Do not modify the client's business requirements, invent additional modules, or add unnecessary features outside the uploaded proposal.
+
+Use the official Silver Star website for branding and company information, and the uploaded final proposal for application functionality.
+
+All demo records must be maintained centrally so that after client approval we can replace the mock data with the actual database through APIs.
+
+The result should be clean, classic, professional, practical and production-quality in its frontend architecture.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-11-02T09:23:39+05:30.
+
+The user's current state is as follows:
+Active Document: c:\Users\gouta\Desktop\silver star\report\Silver_Star_Facility_Management_Proposal_Report.pdf (LANGUAGE_UNSPECIFIED)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\gouta\Desktop\silver star\report\generate_diagrams.py (LANGUAGE_UNSPECIFIED)
+- c:\Users\gouta\Desktop\silver star\report\export_to_pdf.py (LANGUAGE_UNSPECIFIED)
+- c:\Users\gouta\Desktop\silver star\report\build_full_report.py (LANGUAGE_UNSPECIFIED)
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from Gemini 3.8 Flash (High) to Claude Sonnet 4.6 (Thinking). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>
