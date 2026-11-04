@@ -1,18 +1,37 @@
-import { useState } from 'react'
-import { ATTENDANCE_TODAY, ATTENDANCE_HISTORY, EMPLOYEES, SITES } from '@mock/mockData'
+import { useState, useEffect } from 'react'
+import { EMPLOYEES, SITES, api } from '@mock/mockData'
 import { Clock, CheckCircle, XCircle, AlertCircle, Filter } from 'lucide-react'
 
 export default function Attendance() {
   const [tab, setTab] = useState<'today' | 'history'>('today')
+  const [todayRecords, setTodayRecords] = useState<any[]>([])
+  const [historyRecords, setHistoryRecords] = useState<any[]>([])
+  const [employees, setEmployees] = useState<any[]>(EMPLOYEES)
+  const [sites, setSites] = useState<any[]>(SITES)
 
-  const records = tab === 'today' ? ATTENDANCE_TODAY : ATTENDANCE_HISTORY
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0]
+    Promise.all([
+      api.getAttendance({ date: today }).catch(() => []),
+      api.getAttendance().catch(() => []),
+      api.getEmployees().catch(() => []),
+      api.getSites().catch(() => []),
+    ]).then(([td, hist, emps, sts]) => {
+      setTodayRecords(td || [])
+      setHistoryRecords(hist || [])
+      if (emps && emps.length > 0) setEmployees(emps)
+      if (sts && sts.length > 0) setSites(sts)
+    })
+  }, [])
 
-  const getEmp = (id: string) => EMPLOYEES.find(e => e.id === id)
-  const getSite = (id: string) => SITES.find(s => s.id === id)?.name || '—'
+  const records = tab === 'today' ? todayRecords : historyRecords
 
-  const present = ATTENDANCE_TODAY.filter(a => a.status === 'Present').length
-  const absent = ATTENDANCE_TODAY.filter(a => a.status === 'Absent').length
-  const late = ATTENDANCE_TODAY.filter(a => a.status === 'Late').length
+  const getEmp = (id: string) => employees.find(e => e.id === id) || EMPLOYEES.find(e => e.id === id)
+  const getSite = (id: string) => sites.find(s => s.id === id)?.name || SITES.find(s => s.id === id)?.name || '—'
+
+  const present = todayRecords.filter(a => a.status === 'Present').length
+  const absent = todayRecords.filter(a => a.status === 'Absent').length
+  const late = todayRecords.filter(a => a.status === 'Late').length
 
   return (
     <div className="space-y-4">
@@ -38,7 +57,7 @@ export default function Attendance() {
           Today's Attendance
         </button>
         <button onClick={() => setTab('history')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'history' ? 'border-[#202B75] text-[#202B75]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-          History
+          Historical Records
         </button>
       </div>
 
@@ -52,50 +71,48 @@ export default function Attendance() {
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Punch In</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Punch Out</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">GPS</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">GPS Verified</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {records.map(rec => {
-              const emp = getEmp(rec.employeeId)
-              return (
-                <tr key={rec.id} className="hover:bg-gray-50/50">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-gray-900">{emp?.name || rec.employeeId}</p>
-                    <p className="text-xs text-gray-400">{emp?.employeeCode}</p>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{getSite(rec.siteId)}</td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{rec.date}</td>
-                  <td className="px-4 py-3">
-                    <span className={`font-mono text-xs ${rec.punchIn ? 'text-gray-800' : 'text-gray-300'}`}>
-                      {rec.punchIn || '—'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`font-mono text-xs ${rec.punchOut ? 'text-gray-800' : 'text-gray-300'}`}>
-                      {rec.punchOut || '—'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${rec.gpsVerified ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
-                      {rec.gpsVerified ? 'Verified' : 'N/A'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                      rec.status === 'Present' ? 'bg-emerald-50 text-emerald-600' :
-                      rec.status === 'Late' ? 'bg-amber-50 text-amber-600' :
-                      rec.status === 'Absent' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'
-                    }`}>{rec.status}</span>
-                  </td>
-                </tr>
-              )
-            })}
+            {records.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="text-center py-8 text-gray-400">
+                  No attendance records recorded yet. Punch in from Employee Mobile to record attendance.
+                </td>
+              </tr>
+            ) : (
+              records.map(rec => {
+                const emp = getEmp(rec.employeeId)
+                return (
+                  <tr key={rec.id} className="hover:bg-gray-50/50">
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-gray-900">{emp?.name || rec.employeeName || rec.employeeId}</p>
+                      <p className="text-xs text-gray-400">{emp?.employeeCode || rec.employeeCode}</p>
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">{getSite(rec.siteId)}</td>
+                    <td className="px-4 py-3 text-gray-700 font-mono text-xs">{rec.date}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-800">{rec.punchIn || '—'}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-800">{rec.punchOut || '—'}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${rec.gpsVerified ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
+                        {rec.gpsVerified ? '✓ Geofence Verified' : '✗ Failed Geofence'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                        rec.status === 'Present' ? 'bg-emerald-50 text-emerald-600' :
+                        rec.status === 'Late' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-500'
+                      }`}>{rec.status}</span>
+                    </td>
+                  </tr>
+                )
+              })
+            )}
           </tbody>
         </table>
       </div>
     </div>
   )
 }
-

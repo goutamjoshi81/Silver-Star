@@ -1,13 +1,25 @@
-import { useState } from 'react'
-import { EMPLOYEES, EMPLOYEE_DOCUMENTS, DEPARTMENTS } from '@mock/mockData'
+import { useState, useEffect } from 'react'
+import { DEPARTMENTS, EMPLOYEE_DOCUMENTS, api } from '@mock/mockData'
 import { Download, FileSpreadsheet, Calendar, Filter, CheckCircle2, AlertCircle, Clock, FileCheck } from 'lucide-react'
 
 export default function HRReports() {
+  const [employees, setEmployees] = useState<any[]>([])
+  const [documents, setDocuments] = useState<any[]>([])
   const [filterPreset, setFilterPreset] = useState<'all' | 'today' | '7days' | 'month' | 'custom'>('all')
   const [startDate, setStartDate] = useState<string>('2024-01-01')
   const [endDate, setEndDate] = useState<string>('2026-12-31')
   const [activeTab, setActiveTab] = useState<'kyc' | 'docs' | 'departments'>('kyc')
   const [exportNotice, setExportNotice] = useState<string | null>(null)
+
+  useEffect(() => {
+    Promise.all([
+      api.getEmployees().catch(() => []),
+      api.getDocuments().catch(() => []),
+    ]).then(([emps, docs]) => {
+      setEmployees(emps || [])
+      setDocuments(docs || [])
+    })
+  }, [])
 
   // Handle Preset changes
   const applyPreset = (preset: 'all' | 'today' | '7days' | 'month' | 'custom') => {
@@ -33,7 +45,7 @@ export default function HRReports() {
   }
 
   // Filter employees by joiningDate
-  const filteredEmployees = EMPLOYEES.filter(emp => {
+  const filteredEmployees = employees.filter(emp => {
     if (!emp.joiningDate) return true
     if (filterPreset === 'all') return true
     return emp.joiningDate >= startDate && emp.joiningDate <= endDate

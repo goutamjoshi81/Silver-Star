@@ -1,18 +1,33 @@
-import { useState } from 'react'
-import { SITES, CLIENTS, EMPLOYEES } from '@mock/mockData'
+import { useState, useEffect } from 'react'
+import { SITES, CLIENTS, EMPLOYEES, api } from '@mock/mockData'
 import { MapPin, Circle, Eye, Edit2, X, Radio } from 'lucide-react'
 
 export default function Geofencing() {
+  const [sites, setSites] = useState<any[]>(SITES)
+  const [clients, setClients] = useState<any[]>(CLIENTS)
+  const [employees, setEmployees] = useState<any[]>(EMPLOYEES)
   const [selected, setSelected] = useState<string | null>(null)
 
-  const site = SITES.find(s => s.id === selected)
-  const client = site ? CLIENTS.find(c => c.id === site.clientId) : null
-  const supervisor = site ? EMPLOYEES.find(e => e.id === site.supervisorId) : null
+  useEffect(() => {
+    Promise.all([
+      api.getSites().catch(() => []),
+      api.getClients().catch(() => []),
+      api.getEmployees().catch(() => []),
+    ]).then(([sts, cls, emps]) => {
+      if (sts && sts.length > 0) setSites(sts)
+      if (cls && cls.length > 0) setClients(cls)
+      if (emps && emps.length > 0) setEmployees(emps)
+    })
+  }, [])
+
+  const site = sites.find(s => s.id === selected) || SITES.find(s => s.id === selected)
+  const client = site ? (clients.find(c => c.id === site.clientId) || CLIENTS.find(c => c.id === site.clientId)) : null
+  const supervisor = site ? (employees.find(e => e.id === site.supervisorId) || EMPLOYEES.find(e => e.id === site.supervisorId)) : null
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">{SITES.length} active work locations</p>
+        <p className="text-sm text-gray-500">{sites.length} active work locations</p>
         <button className="flex items-center gap-2 bg-[#202B75] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#161f56] transition-colors">
           <MapPin size={14} /> Add Site
         </button>
@@ -27,7 +42,7 @@ export default function Geofencing() {
             <p className="text-xs text-gray-400">Google Maps integration ready for production</p>
           </div>
           {/* Dummy site pins */}
-          {SITES.map((s, i) => (
+          {sites.map((s, i) => (
             <button
               key={s.id}
               onClick={() => setSelected(s.id)}
@@ -54,39 +69,39 @@ export default function Geofencing() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {SITES.map(site => {
-              const cli = CLIENTS.find(c => c.id === site.clientId)
+            {sites.map(s => {
+              const cli = clients.find(c => c.id === s.clientId) || CLIENTS.find(c => c.id === s.clientId)
               return (
-                <tr key={site.id} className="hover:bg-gray-50/50">
+                <tr key={s.id} className="hover:bg-gray-50/50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-[#26BCEE]/10 rounded-lg flex items-center justify-center">
                         <Radio className="w-4 h-4 text-[#26BCEE]" />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{site.name}</p>
-                        <p className="text-xs text-gray-400">{site.address}</p>
+                        <p className="font-medium text-gray-900">{s.name}</p>
+                        <p className="text-xs text-gray-400">{s.address}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-gray-600 text-xs">{cli?.name}</td>
+                  <td className="px-4 py-3 text-gray-600 text-xs">{cli?.name || s.clientName || '—'}</td>
                   <td className="px-4 py-3 text-gray-600 font-mono text-xs">
-                    {site.latitude.toFixed(4)}, {site.longitude.toFixed(4)}
+                    {Number(s.latitude).toFixed(4)}, {Number(s.longitude).toFixed(4)}
                   </td>
                   <td className="px-4 py-3">
                     <span className="bg-[#202B75]/10 text-[#202B75] text-xs font-semibold px-2 py-1 rounded-full">
-                      {site.geofenceRadius}m
+                      {s.geofenceRadius}m
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-700 text-sm font-semibold">{site.sanctionedStrength}</td>
+                  <td className="px-4 py-3 text-gray-700 text-sm font-semibold">{s.sanctionedStrength}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${site.status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500'}`}>
-                      {site.status}
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${s.status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500'}`}>
+                      {s.status}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <button onClick={() => setSelected(site.id)} className="p-1.5 text-gray-400 hover:text-[#202B75] hover:bg-gray-100 rounded-lg transition-colors">
+                      <button onClick={() => setSelected(s.id)} className="p-1.5 text-gray-400 hover:text-[#202B75] hover:bg-gray-100 rounded-lg transition-colors">
                         <Eye size={14} />
                       </button>
                       <button className="p-1.5 text-gray-400 hover:text-[#202B75] hover:bg-gray-100 rounded-lg transition-colors">
@@ -120,7 +135,7 @@ export default function Geofencing() {
                 <div><p className="text-xs text-gray-400 mb-0.5">Longitude</p><p className="font-mono text-sm">{site.longitude}</p></div>
                 <div><p className="text-xs text-gray-400 mb-0.5">Geofence Radius</p><p className="font-semibold">{site.geofenceRadius} metres</p></div>
                 <div><p className="text-xs text-gray-400 mb-0.5">Sanctioned Strength</p><p className="font-semibold">{site.sanctionedStrength} staff</p></div>
-                <div className="col-span-2"><p className="text-xs text-gray-400 mb-0.5">Supervisor</p><p className="font-medium">{supervisor?.name} ({supervisor?.employeeCode})</p></div>
+                <div className="col-span-2"><p className="text-xs text-gray-400 mb-0.5">Supervisor</p><p className="font-medium">{supervisor?.name || 'Assigned Supervisor'} ({supervisor?.employeeCode || 'SS-10003'})</p></div>
               </div>
 
               {/* Geofence visual */}
@@ -141,4 +156,3 @@ export default function Geofencing() {
     </div>
   )
 }
-

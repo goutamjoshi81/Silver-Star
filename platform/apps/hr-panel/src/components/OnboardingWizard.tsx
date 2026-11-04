@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  DEPARTMENTS, DESIGNATIONS, BRANCHES, SHIFTS, SITES, CLIENTS, EMPLOYEES, COMPANY
+  DEPARTMENTS, DESIGNATIONS, BRANCHES, SHIFTS, SITES, CLIENTS, EMPLOYEES, COMPANY, api
 } from '@mock/mockData'
 import {
   User, MapPin, FileText, ShieldCheck, CheckCircle2, CreditCard,
@@ -115,18 +115,17 @@ export default function OnboardingWizard({ onClose, onSuccess }: WizardProps) {
     }, 1500)
   }
 
-  const handleFinishHandover = () => {
+  const handleFinishHandover = async () => {
     setIsHandedOver(true)
     const newEmp = {
-      id: `EMP00${EMPLOYEES.length + 1}`,
       employeeCode: generatedEmpCode,
       name: fullName,
-      dob,
+      dob: dob || null,
       gender,
       maritalStatus,
       bloodGroup,
       phone: primaryPhone,
-      email,
+      email: email || `${generatedEmpCode.toLowerCase()}@silverstarindia.net`,
       address: currentAddress,
       emergencyContact: {
         name: emergencyName,
@@ -136,23 +135,59 @@ export default function OnboardingWizard({ onClose, onSuccess }: WizardProps) {
       departmentId,
       designationId,
       employmentType,
-      joiningDate,
+      joiningDate: joiningDate || new Date().toISOString().split('T')[0],
       onboardingStatus: 'Approved',
       kycStatus: 'Verified',
       kycMethod,
-      deployedSiteId: handoverSiteId,
-      deployedClientId: handoverClientId,
+      deployedSiteId: handoverSiteId || null,
+      deployedClientId: handoverClientId || null,
       branchId,
       status: 'Active',
       bankName,
       accountNumber,
       ifsc,
-      pfNumber: pfUan,
+      pfNumber: pfUan || null,
     }
 
-    setTimeout(() => {
+    try {
+      const savedEmp = await api.createEmployee(newEmp)
+      
+      // Auto-deploy if site/client selected
+      if (handoverSiteId && handoverClientId) {
+        await api.createDeployment({
+          siteId: handoverSiteId,
+          clientId: handoverClientId,
+          employeeId: savedEmp.id,
+          shiftId: handoverShiftId,
+          startDate: deploymentDate || new Date().toISOString().split('T')[0],
+          deployedBy: 'HR Onboarding Wizard',
+        }).catch(err => console.warn('Deployment save error:', err))
+      }
+
+      // Auto-save uploaded documents to database
+      if (uploadedDocs.photoId?.name) {
+        await api.uploadDocument({
+          employeeId: savedEmp.id,
+          documentType: 'Aadhaar Card',
+          fileName: uploadedDocs.photoId.name,
+          fileUrl: '#',
+        }).catch(() => {})
+      }
+      if (uploadedDocs.policeCert?.name) {
+        await api.uploadDocument({
+          employeeId: savedEmp.id,
+          documentType: 'Police Verification',
+          fileName: uploadedDocs.policeCert.name,
+          fileUrl: '#',
+        }).catch(() => {})
+      }
+
+      onSuccess(savedEmp)
+    } catch (err: any) {
+      console.error('Failed to save to PostgreSQL database:', err)
+      // Still notify user or fallback
       onSuccess(newEmp)
-    }, 1200)
+    }
   }
 
   return (

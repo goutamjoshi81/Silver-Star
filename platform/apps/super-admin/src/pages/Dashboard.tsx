@@ -1,6 +1,7 @@
+import { useState, useEffect } from 'react'
 import {
   DASHBOARD_KPIS, EMPLOYEES, ATTENDANCE_TODAY, NOTIFICATIONS, INCIDENTS,
-  CLIENTS, SITES, DEPARTMENTS
+  CLIENTS, SITES, DEPARTMENTS, api
 } from '@mock/mockData'
 import {
   Users, UserCheck, UserPlus, Clock, MapPin, AlertCircle,
@@ -12,42 +13,64 @@ import {
   PieChart, Pie, Cell, Legend
 } from 'recharts'
 
-const kpiCards = [
-  { label: 'Total Active Employees', value: DASHBOARD_KPIS.totalActiveEmployees, icon: Users, color: 'bg-[#202B75]' },
-  { label: 'New Registrations (MTD)', value: DASHBOARD_KPIS.newRegistrationsMTD, icon: UserPlus, color: 'bg-emerald-600' },
-  { label: 'KYC Pending', value: DASHBOARD_KPIS.kycPending, icon: UserCheck, color: 'bg-amber-500' },
-  { label: 'Employees Deployed', value: DASHBOARD_KPIS.employeesDeployed, icon: MapPin, color: 'bg-[#26BCEE]' },
-  { label: 'Not Deployed', value: DASHBOARD_KPIS.employeesNotDeployed, icon: AlertCircle, color: 'bg-rose-500' },
-  { label: 'Present Today', value: DASHBOARD_KPIS.presentToday, icon: Clock, color: 'bg-teal-600' },
-  { label: 'Absent Today', value: DASHBOARD_KPIS.absentToday, icon: Clock, color: 'bg-red-500' },
-  { label: 'Active Contracts', value: DASHBOARD_KPIS.activeClientContracts, icon: Building2, color: 'bg-violet-600' },
-  { label: 'Active Work Locations', value: DASHBOARD_KPIS.activeWorkLocations, icon: MapPin, color: 'bg-indigo-500' },
-  { label: 'Pending Complaints', value: DASHBOARD_KPIS.pendingComplaints, icon: FileWarning, color: 'bg-orange-500' },
-  { label: 'Pending Approvals', value: DASHBOARD_KPIS.pendingApprovals, icon: CheckSquare, color: 'bg-yellow-500' },
-  { label: 'Monthly Manpower Cost', value: `₹${(DASHBOARD_KPIS.monthlyManpowerCost / 100000).toFixed(1)}L`, icon: Banknote, color: 'bg-slate-600' },
-]
-
-const deptData = DEPARTMENTS.map(d => ({
-  name: d.code,
-  employees: EMPLOYEES.filter(e => e.departmentId === d.id).length,
-})).filter(d => d.employees > 0)
-
-const attendanceData = [
-  { name: 'Present', value: DASHBOARD_KPIS.presentToday, color: '#26BCEE' },
-  { name: 'Absent', value: DASHBOARD_KPIS.absentToday, color: '#ef4444' },
-  { name: 'Late', value: ATTENDANCE_TODAY.filter(a => a.status === 'Late').length, color: '#f59e0b' },
-]
-
-const monthlyData = [
-  { month: 'Jun', present: 85, absent: 15 },
-  { month: 'Jul', present: 88, absent: 12 },
-  { month: 'Aug', present: 82, absent: 18 },
-  { month: 'Sep', present: 90, absent: 10 },
-  { month: 'Oct', present: 87, absent: 13 },
-  { month: 'Nov', present: 83, absent: 17 },
-]
-
 export default function Dashboard() {
+  const [kpis, setKpis] = useState(DASHBOARD_KPIS)
+  const [employees, setEmployees] = useState<any[]>(EMPLOYEES)
+  const [attendance, setAttendance] = useState<any[]>(ATTENDANCE_TODAY)
+  const [notifications, setNotifications] = useState<any[]>(NOTIFICATIONS)
+  const [incidents, setIncidents] = useState<any[]>(INCIDENTS)
+
+  useEffect(() => {
+    Promise.all([
+      api.getKpis().catch(() => DASHBOARD_KPIS),
+      api.getEmployees().catch(() => []),
+      api.getAttendance().catch(() => []),
+      api.getNotifications().catch(() => []),
+      api.getIncidents().catch(() => []),
+    ]).then(([k, emps, att, notifs, incs]) => {
+      if (k) setKpis(k)
+      if (emps) setEmployees(emps)
+      if (att) setAttendance(att)
+      if (notifs) setNotifications(notifs)
+      if (incs) setIncidents(incs)
+    })
+  }, [])
+
+  const kpiCards = [
+    { label: 'Total Active Employees', value: kpis.totalActiveEmployees, icon: Users, color: 'bg-[#202B75]' },
+    { label: 'New Registrations (MTD)', value: kpis.newRegistrationsMTD, icon: UserPlus, color: 'bg-emerald-600' },
+    { label: 'KYC Pending', value: kpis.kycPending, icon: UserCheck, color: 'bg-amber-500' },
+    { label: 'Employees Deployed', value: kpis.employeesDeployed, icon: MapPin, color: 'bg-[#26BCEE]' },
+    { label: 'Not Deployed', value: kpis.employeesNotDeployed, icon: AlertCircle, color: 'bg-rose-500' },
+    { label: 'Present Today', value: kpis.presentToday, icon: Clock, color: 'bg-teal-600' },
+    { label: 'Absent Today', value: kpis.absentToday, icon: Clock, color: 'bg-red-500' },
+    { label: 'Active Contracts', value: kpis.activeClientContracts, icon: Building2, color: 'bg-violet-600' },
+    { label: 'Active Work Locations', value: kpis.activeWorkLocations, icon: MapPin, color: 'bg-indigo-500' },
+    { label: 'Pending Complaints', value: kpis.pendingComplaints, icon: FileWarning, color: 'bg-orange-500' },
+    { label: 'Pending Approvals', value: kpis.pendingApprovals, icon: CheckSquare, color: 'bg-yellow-500' },
+    { label: 'Monthly Manpower Cost', value: `₹${(kpis.monthlyManpowerCost / 100000).toFixed(1)}L`, icon: Banknote, color: 'bg-slate-600' },
+  ]
+
+  const deptData = DEPARTMENTS.map(d => ({
+    name: d.code,
+    employees: employees.filter(e => e.departmentId === d.id).length,
+  })).filter(d => d.employees > 0)
+
+  const attendanceData = [
+    { name: 'Present', value: kpis.presentToday, color: '#26BCEE' },
+    { name: 'Absent', value: kpis.absentToday, color: '#ef4444' },
+    { name: 'Late', value: attendance.filter(a => a.status === 'Late').length, color: '#f59e0b' },
+  ]
+
+  const monthlyData = [
+    { month: 'Jun', present: 85, absent: 15 },
+    { month: 'Jul', present: 88, absent: 12 },
+    { month: 'Aug', present: 82, absent: 18 },
+    { month: 'Sep', present: 90, absent: 10 },
+    { month: 'Oct', present: 87, absent: 13 },
+    { month: 'Nov', present: 83, absent: 17 },
+  ]
+
   return (
     <div className="space-y-6">
       {/* KPI Grid */}
@@ -119,7 +142,7 @@ export default function Dashboard() {
             <ShieldAlert className="w-4 h-4 text-red-500" /> Operational Alerts
           </h2>
           <div className="space-y-3">
-            {NOTIFICATIONS.filter(n => !n.read).map(n => (
+            {notifications.filter(n => !n.read).map(n => (
               <div key={n.id} className="flex gap-3 items-start">
                 <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
                   n.type === 'error' ? 'bg-red-500' : n.type === 'warning' ? 'bg-amber-500' : 'bg-blue-500'
@@ -137,7 +160,7 @@ export default function Dashboard() {
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
           <h2 className="text-sm font-semibold text-[#202B75] mb-4">Recent Incidents</h2>
           <div className="space-y-3">
-            {INCIDENTS.map(inc => (
+            {incidents.map(inc => (
               <div key={inc.id} className="border border-gray-100 rounded-lg p-3">
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-xs font-semibold text-gray-800">{inc.title}</p>
@@ -159,4 +182,3 @@ export default function Dashboard() {
     </div>
   )
 }
-

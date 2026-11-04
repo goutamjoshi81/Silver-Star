@@ -1,18 +1,34 @@
-import { useState } from 'react'
-import { EMPLOYEES, DEPARTMENTS, DESIGNATIONS, SITES } from '@mock/mockData'
+import { useState, useEffect } from 'react'
+import { DEPARTMENTS, DESIGNATIONS, SITES, api } from '@mock/mockData'
 import { Link } from 'react-router-dom'
 import { Plus, Eye, Clock, CheckCircle2, Play, UserCheck, ShieldCheck } from 'lucide-react'
 import OnboardingWizard from '../components/OnboardingWizard'
 
 export default function EmployeeOnboarding() {
-  const [employeeList, setEmployeeList] = useState(EMPLOYEES)
+  const [employeeList, setEmployeeList] = useState<any[]>([])
   const [showWizard, setShowWizard] = useState(false)
   const [successToast, setSuccessToast] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  const loadEmployees = async () => {
+    try {
+      const data = await api.getEmployees()
+      setEmployeeList(data)
+    } catch (err) {
+      console.error('Error fetching employees:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadEmployees()
+  }, [])
 
   const handleWizardSuccess = (newEmp: any) => {
     setShowWizard(false)
-    setEmployeeList([newEmp, ...employeeList])
-    setSuccessToast(`HR Handover Complete: ${newEmp.name} (${newEmp.employeeCode}) dispatched to Operations!`)
+    loadEmployees()
+    setSuccessToast(`HR Handover Complete: ${newEmp.name} (${newEmp.employeeCode}) saved to PostgreSQL database!`)
     setTimeout(() => setSuccessToast(null), 6000)
   }
 

@@ -1,14 +1,22 @@
-import { useState } from 'react'
-import { EMPLOYEES, DEPARTMENTS, DESIGNATIONS, SITES } from '@mock/mockData'
+import { useState, useEffect } from 'react'
+import { DEPARTMENTS, DESIGNATIONS, SITES, api } from '@mock/mockData'
 import {
   CheckCircle2, Clock, XCircle, Eye, ShieldCheck,
   AlertCircle, ExternalLink, Filter
 } from 'lucide-react'
 
 export default function Onboarding() {
-  const [employeeList] = useState(EMPLOYEES)
+  const [employeeList, setEmployeeList] = useState<any[]>([])
   const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null)
   const [statusFilter, setStatusFilter] = useState('all')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api.getEmployees()
+      .then(setEmployeeList)
+      .catch(err => console.error('Error fetching employees:', err))
+      .finally(() => setLoading(false))
+  }, [])
 
   const pending = employeeList.filter(e => e.onboardingStatus === 'Pending')
   const approved = employeeList.filter(e => e.onboardingStatus === 'Approved')

@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   ATTENDANCE_HISTORY, EMPLOYEES, SITES, CLIENTS,
-  EMPLOYEE_DOCUMENTS, DAILY_WORK_REPORTS, DEPARTMENTS
+  EMPLOYEE_DOCUMENTS, DAILY_WORK_REPORTS, DEPARTMENTS, api
 } from '@mock/mockData'
 import {
   Download, FileSpreadsheet, BarChart2, Filter, Calendar,
@@ -25,9 +25,28 @@ export default function Reports() {
   const [endDate, setEndDate] = useState<string>('2026-12-31')
   const [exportNotice, setExportNotice] = useState<string | null>(null)
 
+  const [employeesList, setEmployeesList] = useState<any[]>(EMPLOYEES)
+  const [attendanceList, setAttendanceList] = useState<any[]>(ATTENDANCE_HISTORY)
+  const [documentsList, setDocumentsList] = useState<any[]>(EMPLOYEE_DOCUMENTS)
+  const [dwrList, setDwrList] = useState<any[]>(DAILY_WORK_REPORTS)
+
+  useEffect(() => {
+    Promise.all([
+      api.getEmployees().catch(() => []),
+      api.getAttendance().catch(() => []),
+      api.getDocuments().catch(() => []),
+      api.getDailyReports().catch(() => []),
+    ]).then(([emps, att, docs, dwrs]) => {
+      if (emps && emps.length > 0) setEmployeesList(emps)
+      if (att && att.length > 0) setAttendanceList(att)
+      if (docs && docs.length > 0) setDocumentsList(docs)
+      if (dwrs && dwrs.length > 0) setDwrList(dwrs)
+    })
+  }, [])
+
   const applyPreset = (preset: 'all' | 'today' | 'yesterday' | '7days' | 'month' | 'custom') => {
     setFilterPreset(preset)
-    const today = '2026-11-02'
+    const today = new Date().toISOString().split('T')[0]
     if (preset === 'all') {
       setStartDate('2024-01-01')
       setEndDate('2026-12-31')
@@ -35,29 +54,32 @@ export default function Reports() {
       setStartDate(today)
       setEndDate(today)
     } else if (preset === 'yesterday') {
-      setStartDate('2026-11-01')
-      setEndDate('2026-11-01')
+      const y = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+      setStartDate(y)
+      setEndDate(y)
     } else if (preset === '7days') {
-      setStartDate('2026-10-26')
+      const d7 = new Date(Date.now() - 7*86400000).toISOString().split('T')[0]
+      setStartDate(d7)
       setEndDate(today)
     } else if (preset === 'month') {
-      setStartDate('2026-11-01')
-      setEndDate('2026-11-30')
+      const ym = today.slice(0, 7)
+      setStartDate(`${ym}-01`)
+      setEndDate(`${ym}-31`)
     }
   }
 
   // Filtered Datasets based on Date Filter
-  const filteredAttendance = ATTENDANCE_HISTORY.filter(a => {
+  const filteredAttendance = attendanceList.filter(a => {
     if (filterPreset === 'all') return true
     return a.date >= startDate && a.date <= endDate
   })
 
-  const filteredDWR = DAILY_WORK_REPORTS.filter(d => {
+  const filteredDWR = dwrList.filter(d => {
     if (filterPreset === 'all') return true
     return d.date >= startDate && d.date <= endDate
   })
 
-  const filteredEmployees = EMPLOYEES.filter(e => {
+  const filteredEmployees = employeesList.filter(e => {
     if (filterPreset === 'all') return true
     return e.joiningDate >= startDate && e.joiningDate <= endDate
   })

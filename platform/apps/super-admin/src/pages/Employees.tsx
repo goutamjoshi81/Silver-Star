@@ -1,14 +1,38 @@
-import { useState } from 'react'
-import { EMPLOYEES, DEPARTMENTS, DESIGNATIONS, SITES, CLIENTS } from '@mock/mockData'
-import { Search, Eye, Edit2, Filter, X, User, Phone, Mail, MapPin, Briefcase } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { DEPARTMENTS, DESIGNATIONS, SITES, CLIENTS, api } from '@mock/mockData'
+import { Search, Eye, Edit2, Filter, X, User, Phone, Mail, MapPin, Briefcase, Trash2 } from 'lucide-react'
 
 export default function Employees() {
+  const [employees, setEmployees] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [deptFilter, setDeptFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [selected, setSelected] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const filtered = EMPLOYEES.filter(e => {
+  const loadData = () => {
+    api.getEmployees()
+      .then(setEmployees)
+      .catch(err => console.error('Error fetching employees:', err))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const handleDelete = async (id: string, name: string) => {
+    if (confirm(`Are you sure you want to delete employee ${name}?`)) {
+      try {
+        await api.deleteEmployee(id)
+        loadData()
+      } catch (err: any) {
+        alert(`Error deleting employee: ${err.message}`)
+      }
+    }
+  }
+
+  const filtered = employees.filter(e => {
     const matchSearch = e.name.toLowerCase().includes(search.toLowerCase()) ||
       e.employeeCode.toLowerCase().includes(search.toLowerCase()) ||
       e.phone.toLowerCase().includes(search.toLowerCase())
@@ -17,7 +41,7 @@ export default function Employees() {
     return matchSearch && matchDept && matchStatus
   })
 
-  const emp = EMPLOYEES.find(e => e.id === selected)
+  const emp = employees.find(e => e.id === selected)
 
   const getDept = (id: string) => DEPARTMENTS.find(d => d.id === id)?.name || '—'
   const getDesig = (id: string) => DESIGNATIONS.find(d => d.id === id)?.name || '—'
@@ -26,7 +50,7 @@ export default function Employees() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <p className="text-sm text-gray-500">{filtered.length} of {EMPLOYEES.length} employees</p>
+        <p className="text-sm text-gray-500">{filtered.length} of {employees.length} employees</p>
         <div className="flex items-center gap-2 flex-wrap">
           <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)}
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#202B75]">

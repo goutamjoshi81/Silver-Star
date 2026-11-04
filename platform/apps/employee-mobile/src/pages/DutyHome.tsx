@@ -1,60 +1,81 @@
-import { useState } from 'react'
-import { EMPLOYEES, SITES, SHIFTS, ATTENDANCE_TODAY } from '@mock/mockData'
+import { useState, useEffect } from 'react'
+import { EMPLOYEES, SITES, SHIFTS, ATTENDANCE_TODAY, api } from '@mock/mockData'
 import {
   MapPin, ShieldCheck, Clock, AlertTriangle, CheckCircle2,
   Navigation, RefreshCw, XCircle, ChevronRight, Radio
 } from 'lucide-react'
 
 export default function DutyHome() {
-  const emp = EMPLOYEES.find(e => e.id === 'EMP001')!
-  const site = SITES.find(s => s.id === emp.deployedSiteId)!
-  const supervisor = EMPLOYEES.find(e => e.id === site.supervisorId)
-  const shift = SHIFTS[0] // Morning shift
-
-  // State
-  const [punchedIn, setPunchedIn] = useState(true)
-  const [punchTime, setPunchTime] = useState('08:52 AM')
+  const [employees, setEmployees] = useState<any[]>(EMPLOYEES)
+  const [sites, setSites] = useState<any[]>(SITES)
+  const [punchedIn, setPunchedIn] = useState(false)
+  const [punchTime, setPunchTime] = useState('--:--')
   const [isVerifying, setIsVerifying] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
   const [simulateOutside, setSimulateOutside] = useState(false)
   const [showResultModal, setShowResultModal] = useState(false)
   const [resultSuccess, setResultSuccess] = useState(true)
 
-  const handlePunchAction = () => {
+  useEffect(() => {
+    Promise.all([
+      api.getEmployees().catch(() => []),
+      api.getSites().catch(() => []),
+    ]).then(([emps, sts]) => {
+      if (emps && emps.length > 0) setEmployees(emps)
+      if (sts && sts.length > 0) setSites(sts)
+    })
+  }, [])
+
+  const emp = employees[0] || EMPLOYEES[0] || {
+    id: 'EMP001',
+    name: 'Staff Member',
+    employeeCode: 'SS-10001',
+    deployedSiteId: 'SITE001',
+  }
+  const site = sites.find(s => s.id === emp.deployedSiteId) || sites[0] || SITES[0]
+  const supervisor = employees.find(e => e.id === site?.supervisorId)
+  const shift = SHIFTS[0] // Morning shift
+
+  const handlePunchAction = async () => {
     setIsVerifying(true)
     setCurrentStep(1)
 
-    // Step 1: GPS Acquisition (800ms)
+    // Step 1: GPS Acquisition (500ms)
     setTimeout(() => {
       setCurrentStep(2)
-      // Step 2: Anti-Spoofing (800ms)
+      // Step 2: Anti-Spoofing (500ms)
       setTimeout(() => {
         setCurrentStep(3)
-        // Step 3: Distance Calc (800ms)
-        setTimeout(() => {
+        // Step 3: Distance Calc (500ms)
+        setTimeout(async () => {
           setCurrentStep(4)
-          // Step 4: Outcome (600ms)
-          setTimeout(() => {
-            setIsVerifying(false)
-            if (simulateOutside) {
-              setResultSuccess(false)
-            } else {
-              setResultSuccess(true)
-              const now = new Date()
-              const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              if (punchedIn) {
-                setPunchedIn(false)
-                setPunchTime(timeStr)
-              } else {
-                setPunchedIn(true)
-                setPunchTime(timeStr)
-              }
+          try {
+            if (!simulateOutside && emp?.id) {
+              await api.punchAttendance({
+                employeeId: emp.id,
+                siteId: site?.id || 'SITE001',
+                latitude: simulateOutside ? 0 : (site?.latitude || 12.8456),
+                longitude: simulateOutside ? 0 : (site?.longitude || 77.6603),
+              })
             }
-            setShowResultModal(true)
-          }, 600)
-        }, 800)
-      }, 800)
-    }, 800)
+          } catch (err) {
+            console.warn('Punch attendance save error:', err)
+          }
+
+          setIsVerifying(false)
+          if (simulateOutside) {
+            setResultSuccess(false)
+          } else {
+            setResultSuccess(true)
+            const now = new Date()
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            setPunchedIn(!punchedIn)
+            setPunchTime(timeStr)
+          }
+          setShowResultModal(true)
+        }, 500)
+      }, 500)
+    }, 500)
   }
 
   return (

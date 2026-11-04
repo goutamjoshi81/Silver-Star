@@ -1,11 +1,17 @@
-import { useState } from 'react'
-import { EMPLOYEES, DESIGNATIONS, COMPANY } from '@mock/mockData'
+import { useState, useEffect } from 'react'
+import { DESIGNATIONS, COMPANY, api } from '@mock/mockData'
 import { QrCode, X, User } from 'lucide-react'
 import SilverStarIDCard from '../components/SilverStarIDCard'
 
 export default function IDCardGeneration() {
+  const [employees, setEmployees] = useState<any[]>([])
   const [selected, setSelected] = useState<string | null>(null)
-  const emp = EMPLOYEES.find(e => e.id === selected)
+
+  useEffect(() => {
+    api.getEmployees().then(setEmployees).catch(() => {})
+  }, [])
+
+  const emp = employees.find(e => e.id === selected)
   const desig = emp ? DESIGNATIONS.find(d => d.id === emp.designationId) : null
 
   return (
@@ -32,7 +38,12 @@ export default function IDCardGeneration() {
 
       {/* Staff Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        {EMPLOYEES.filter(e => e.onboardingStatus === 'Approved').map(empItem => (
+        {employees.length === 0 ? (
+          <div className="col-span-full py-8 text-center text-gray-400 text-xs">
+            No approved employees yet. Complete an onboarding to view generated ID cards.
+          </div>
+        ) : (
+          employees.filter(e => e.onboardingStatus === 'Approved').map(empItem => (
           <div key={empItem.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 space-y-3 hover:border-gray-300 transition-colors">
             <div className="w-12 h-12 bg-[#202B75] rounded-full flex items-center justify-center mx-auto text-white font-bold text-base shadow-sm">
               {empItem.name.split(' ').map(n=>n[0]).join('').slice(0,2)}
@@ -51,7 +62,7 @@ export default function IDCardGeneration() {
               <QrCode size={12} /> View Smart Card
             </button>
           </div>
-        ))}
+        )))}
       </div>
 
       {/* Modal with Authentic SilverStarIDCard */}

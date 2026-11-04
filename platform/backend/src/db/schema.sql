@@ -279,3 +279,4 @@ CREATE INDEX IF NOT EXISTS idx_deployments_client ON deployments(client_id);
 CREATE INDEX IF NOT EXISTS idx_docs_employee ON employee_documents(employee_id);
 CREATE INDEX IF NOT EXISTS idx_dwr_site_date ON daily_work_reports(site_id, date);
 CREATE INDEX IF NOT EXISTS idx_gst_invoices_client ON gst_invoices(client_id);
+

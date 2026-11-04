@@ -1,26 +1,125 @@
-import { useState } from 'react'
-import { CLIENTS, SITES, CONTRACT_BILLINGS } from '@mock/mockData'
-import { Plus, Search, Eye, Edit2, X, Building2, Phone, Mail, Calendar, MapPin } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { SITES, CONTRACT_BILLINGS, api } from '@mock/mockData'
+import { Plus, Search, Eye, Edit2, X, Building2, Phone, Mail, Calendar, MapPin, Check } from 'lucide-react'
 
 export default function Clients() {
+  const [clients, setClients] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [newClient, setNewClient] = useState({
+    name: '',
+    contactPerson: '',
+    email: '',
+    phone: '',
+    address: '',
+    monthlyBilling: 0,
+    servicesProvided: ['Security Services', 'Housekeeping'],
+  })
+  const [loading, setLoading] = useState(true)
 
-  const filtered = CLIENTS.filter(c =>
+  const loadData = () => {
+    api.getClients()
+      .then(setClients)
+      .catch(err => console.error('Error loading clients:', err))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const handleCreateClient = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      await api.createClient(newClient)
+      setShowAddModal(false)
+      setNewClient({
+        name: '',
+        contactPerson: '',
+        email: '',
+        phone: '',
+        address: '',
+        monthlyBilling: 0,
+        servicesProvided: ['Security Services'],
+      })
+      loadData()
+    } catch (err: any) {
+      alert(`Error creating client: ${err.message}`)
+    }
+  }
+
+  const filtered = clients.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     c.contactPerson.toLowerCase().includes(search.toLowerCase())
   )
 
-  const client = CLIENTS.find(c => c.id === selected)
+  const client = clients.find(c => c.id === selected)
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">{CLIENTS.length} client accounts</p>
-        <button className="flex items-center gap-2 bg-[#202B75] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#161f56] transition-colors">
+        <p className="text-sm text-gray-500">{clients.length} client accounts</p>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-2 bg-[#202B75] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#161f56] transition-colors font-medium shadow-sm"
+        >
           <Plus size={14} /> Add Client
         </button>
       </div>
+
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-bold text-gray-800">Add New Client Account</h3>
+              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleCreateClient} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Company / Organization Name *</label>
+                <input required value={newClient.name} onChange={e => setNewClient({ ...newClient, name: e.target.value })}
+                  placeholder="e.g. Acme Tech Park" className="w-full border rounded-lg p-2.5" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-gray-700 mb-1">Contact Person *</label>
+                  <input required value={newClient.contactPerson} onChange={e => setNewClient({ ...newClient, contactPerson: e.target.value })}
+                    placeholder="e.g. Ramesh Verma" className="w-full border rounded-lg p-2.5" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-700 mb-1">Phone Number *</label>
+                  <input required value={newClient.phone} onChange={e => setNewClient({ ...newClient, phone: e.target.value })}
+                    placeholder="+91 98765 43210" className="w-full border rounded-lg p-2.5 font-mono" />
+                </div>
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Official Email Address *</label>
+                <input required type="email" value={newClient.email} onChange={e => setNewClient({ ...newClient, email: e.target.value })}
+                  placeholder="client@acme.com" className="w-full border rounded-lg p-2.5" />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Facility / Billing Address *</label>
+                <input required value={newClient.address} onChange={e => setNewClient({ ...newClient, address: e.target.value })}
+                  placeholder="Electronic City, Bangalore" className="w-full border rounded-lg p-2.5" />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Estimated Monthly Contract Value (₹)</label>
+                <input type="number" value={newClient.monthlyBilling || ''} onChange={e => setNewClient({ ...newClient, monthlyBilling: parseFloat(e.target.value) || 0 })}
+                  placeholder="250000" className="w-full border rounded-lg p-2.5 font-mono" />
+              </div>
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 border rounded-lg text-gray-600">Cancel</button>
+                <button type="submit" className="px-5 py-2 bg-[#202B75] text-white rounded-lg font-semibold flex items-center gap-1.5">
+                  <Check size={14} /> Save to Database
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative">
@@ -47,53 +146,61 @@ export default function Clients() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {filtered.map(client => {
-              const contract = CONTRACT_BILLINGS.find(c => c.clientId === client.id)
-              return (
-                <tr key={client.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-[#202B75]/10 rounded-lg flex items-center justify-center">
-                        <Building2 className="w-4 h-4 text-[#202B75]" />
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-center py-8 text-gray-400">
+                  No clients found. Click "+ Add Client" to create your first client in PostgreSQL.
+                </td>
+              </tr>
+            ) : (
+              filtered.map(client => {
+                const contract = CONTRACT_BILLINGS.find(c => c.clientId === client.id)
+                return (
+                  <tr key={client.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-[#202B75]/10 rounded-lg flex items-center justify-center">
+                          <Building2 className="w-4 h-4 text-[#202B75]" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{client.name}</p>
+                          <p className="text-xs text-gray-400">{client.id}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{client.name}</p>
-                        <p className="text-xs text-gray-400">{client.id}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-gray-700">{client.contactPerson}</p>
+                      <p className="text-xs text-gray-400">{client.email}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="bg-[#26BCEE]/10 text-[#26BCEE] text-xs font-semibold px-2 py-1 rounded-full">
+                        {client.sites?.length || 0} site{client.sites?.length !== 1 ? 's' : ''}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-gray-700">{contract?.contractNumber || '—'}</p>
+                      <p className="text-xs text-gray-400">₹{((client.monthlyBilling || 0) / 1000).toFixed(0)}K/mo</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                        client.status === 'Active' ? 'bg-emerald-50 text-emerald-600' :
+                        client.status === 'Pending' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-500'
+                      }`}>{client.status}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setSelected(client.id)} className="p-1.5 text-gray-400 hover:text-[#202B75] hover:bg-gray-100 rounded-lg transition-colors">
+                          <Eye size={14} />
+                        </button>
+                        <button className="p-1.5 text-gray-400 hover:text-[#202B75] hover:bg-gray-100 rounded-lg transition-colors">
+                          <Edit2 size={14} />
+                        </button>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="text-gray-700">{client.contactPerson}</p>
-                    <p className="text-xs text-gray-400">{client.email}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="bg-[#26BCEE]/10 text-[#26BCEE] text-xs font-semibold px-2 py-1 rounded-full">
-                      {client.sites.length} site{client.sites.length !== 1 ? 's' : ''}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="text-gray-700">{contract?.contractNumber || '—'}</p>
-                    <p className="text-xs text-gray-400">₹{((contract?.monthlyAmount || 0) / 1000).toFixed(0)}K/mo</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                      client.status === 'Active' ? 'bg-emerald-50 text-emerald-600' :
-                      client.status === 'Pending' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-500'
-                    }`}>{client.status}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => setSelected(client.id)} className="p-1.5 text-gray-400 hover:text-[#202B75] hover:bg-gray-100 rounded-lg transition-colors">
-                        <Eye size={14} />
-                      </button>
-                      <button className="p-1.5 text-gray-400 hover:text-[#202B75] hover:bg-gray-100 rounded-lg transition-colors">
-                        <Edit2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )
-            })}
+                    </td>
+                  </tr>
+                )
+              })
+            )}
           </tbody>
         </table>
       </div>
@@ -139,29 +246,9 @@ export default function Clients() {
               <div>
                 <p className="text-xs text-gray-400 mb-2">Services Provided</p>
                 <div className="flex flex-wrap gap-2">
-                  {client.servicesProvided?.map(s => (
+                  {client.servicesProvided?.map((s: string) => (
                     <span key={s} className="bg-[#202B75]/10 text-[#202B75] text-xs px-3 py-1 rounded-full">{s}</span>
                   ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="text-xs text-gray-400 mb-2">Assigned Sites</p>
-                <div className="space-y-2">
-                  {client.sites.map(sid => {
-                    const site = SITES.find(s => s.id === sid)
-                    return site ? (
-                      <div key={sid} className="border border-gray-100 rounded-lg p-3 flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-gray-800">{site.name}</p>
-                          <p className="text-xs text-gray-400">{site.address}</p>
-                        </div>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${site.status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500'}`}>
-                          {site.status}
-                        </span>
-                      </div>
-                    ) : null
-                  })}
                 </div>
               </div>
             </div>
@@ -171,4 +258,3 @@ export default function Clients() {
     </div>
   )
 }
-

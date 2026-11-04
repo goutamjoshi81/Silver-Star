@@ -1,87 +1,73 @@
-import { useState } from 'react'
-import { CONTRACT_BILLINGS, CLIENTS } from '@mock/mockData'
+import { useState, useEffect } from 'react'
+import { CONTRACT_BILLINGS, CLIENTS, api } from '@mock/mockData'
 import {
   Receipt, CheckCircle2, Clock, AlertTriangle, FileText, Download,
   Upload, Plus, Building2, Calendar, FileSpreadsheet, X, Check, ShieldCheck
 } from 'lucide-react'
 
 export default function Billing() {
-  const [contracts, setContracts] = useState(CONTRACT_BILLINGS)
+  const [contracts, setContracts] = useState<any[]>(CONTRACT_BILLINGS)
+  const [clients, setClients] = useState<any[]>(CLIENTS)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
 
   // GST Upload Form State
-  const [selectedClient, setSelectedClient] = useState(CLIENTS[0].id)
-  const [invoiceNumber, setInvoiceNumber] = useState('SS-INV-2026-1101')
+  const [selectedClient, setSelectedClient] = useState('')
+  const [invoiceNumber, setInvoiceNumber] = useState(`SS-INV-${Date.now().toString().slice(-6)}`)
   const [taxableAmount, setTaxableAmount] = useState('380000')
-  const [gstin, setGstin] = useState('29AABCS1429B1Z2')
+  const [gstin, setGstin] = useState('29AABCS1429B1ZB')
   const [billingMonth, setBillingMonth] = useState('November 2026')
   const [uploadedFileName, setUploadedFileName] = useState('')
 
   // GST Invoices Record
-  const [gstBills, setGstBills] = useState([
-    {
-      id: 'GST001',
-      invoiceNo: 'SS-INV-2026-1001',
-      clientId: 'CLI001',
-      month: 'October 2026',
-      taxable: 380000,
-      cgst: 34200,
-      sgst: 34200,
-      total: 448400,
-      status: 'Paid & Reconciled',
-      filedDate: '2026-11-01',
-    },
-    {
-      id: 'GST002',
-      invoiceNo: 'SS-INV-2026-1002',
-      clientId: 'CLI002',
-      month: 'October 2026',
-      taxable: 205800,
-      cgst: 18522,
-      sgst: 18522,
-      total: 242844,
-      status: 'Pending Client Payment',
-      filedDate: '2026-11-01',
-    },
-    {
-      id: 'GST003',
-      invoiceNo: 'SS-INV-2026-1003',
-      clientId: 'CLI003',
-      month: 'October 2026',
-      taxable: 195000,
-      cgst: 17550,
-      sgst: 17550,
-      total: 230100,
-      status: 'Paid & Reconciled',
-      filedDate: '2026-11-01',
-    },
-  ])
+  const [gstBills, setGstBills] = useState<any[]>([])
 
-  const getClient = (clientId: string) => CLIENTS.find(c => c.id === clientId)
+  const loadData = async () => {
+    try {
+      const [invs, cons, cls] = await Promise.all([
+        api.getInvoices().catch(() => []),
+        api.getContracts().catch(() => []),
+        api.getClients().catch(() => []),
+      ])
+      if (invs && invs.length > 0) setGstBills(invs)
+      if (cons && cons.length > 0) setContracts(cons)
+      if (cls && cls.length > 0) {
+        setClients(cls)
+        if (!selectedClient) setSelectedClient(cls[0].id)
+      } else if (CLIENTS.length > 0 && !selectedClient) {
+        setSelectedClient(CLIENTS[0].id)
+      }
+    } catch (err) {
+      console.error('Error loading billing data:', err)
+    }
+  }
 
-  const handleUploadGST = (e: React.FormEvent) => {
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const getClient = (clientId: string) => clients.find(c => c.id === clientId) || CLIENTS.find(c => c.id === clientId)
+
+  const handleUploadGST = async (e: React.FormEvent) => {
     e.preventDefault()
-    const client = CLIENTS.find(c => c.id === selectedClient)
+    const client = getClient(selectedClient)
     const base = Number(taxableAmount) || 0
     const taxEach = base * 0.09
     const total = base + (taxEach * 2)
 
-    const newBill = {
-      id: `GST00${gstBills.length + 1}`,
-      invoiceNo: invoiceNumber,
-      clientId: selectedClient,
-      month: billingMonth,
-      taxable: base,
-      cgst: taxEach,
-      sgst: taxEach,
-      total,
-      status: 'Uploaded (GST Portal Pending)' as const,
-      filedDate: '2026-11-02',
+    try {
+      await api.createInvoice({
+        clientId: selectedClient,
+        subtotal: base,
+        dueDate: new Date(Date.now() + 15*24*60*60*1000).toISOString().split('T')[0],
+        gstBillFileUrl: uploadedFileName || 'gst_invoice.pdf',
+      })
+      await loadData()
+      setFeedback(`GST Tax Invoice ${invoiceNumber} for ${client?.name || selectedClient} (Total: ₹${total.toLocaleString('en-IN')}) saved to PostgreSQL database!`)
+    } catch (err: any) {
+      setFeedback(`Error uploading GST bill: ${err.message}`)
     }
 
-    setGstBills([newBill, ...gstBills])
-    setFeedback(`GST Tax Invoice ${invoiceNumber} for ${client?.name} (Total: ₹${total.toLocaleString('en-IN')}) uploaded and recorded successfully!`)
     setIsUploadModalOpen(false)
     setTimeout(() => setFeedback(null), 4500)
   }

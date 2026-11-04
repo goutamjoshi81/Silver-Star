@@ -1,18 +1,27 @@
-import { useState } from 'react'
-import { EMPLOYEES, DEPARTMENTS, DESIGNATIONS, SITES, CLIENTS } from '@mock/mockData'
+import { useState, useEffect } from 'react'
+import { DEPARTMENTS, DESIGNATIONS, SITES, CLIENTS, api } from '@mock/mockData'
 import { Search, Phone, MessageSquare, Mail, MapPin, ShieldCheck, UserCheck, LayoutGrid, List } from 'lucide-react'
 
 export default function EmployeeDirectory() {
+  const [employees, setEmployees] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [selectedDept, setSelectedDept] = useState<string>('All')
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
+  const [loading, setLoading] = useState(true)
 
-  const filtered = EMPLOYEES.filter(e => {
+  useEffect(() => {
+    api.getEmployees()
+      .then(data => setEmployees(data))
+      .catch(err => console.error('Failed to load employees from DB:', err))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const filtered = employees.filter(e => {
     const matchesSearch =
       e.name.toLowerCase().includes(search.toLowerCase()) ||
       e.employeeCode.toLowerCase().includes(search.toLowerCase()) ||
       e.phone.toLowerCase().includes(search.toLowerCase()) ||
-      e.email.toLowerCase().includes(search.toLowerCase())
+      (e.email && e.email.toLowerCase().includes(search.toLowerCase()))
 
     const matchesDept = selectedDept === 'All' || e.departmentId === selectedDept
     return matchesSearch && matchesDept

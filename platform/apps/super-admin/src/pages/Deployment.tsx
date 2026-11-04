@@ -1,14 +1,17 @@
-import { useState } from 'react'
-import { EMPLOYEES, SITES, CLIENTS, DEPARTMENTS, DESIGNATIONS, SHIFTS } from '@mock/mockData'
+import { useState, useEffect } from 'react'
+import { SITES, CLIENTS, DEPARTMENTS, DESIGNATIONS, SHIFTS, api } from '@mock/mockData'
 import {
   UserCheck, UserX, UserPlus, Building2, MapPin, ArrowRight,
   CheckCircle2, X, Phone, Search, Users
 } from 'lucide-react'
 
 export default function Deployment() {
-  const [employeesList, setEmployeesList] = useState(EMPLOYEES)
+  const [employeesList, setEmployeesList] = useState<any[]>([])
+  const [clientsList, setClientsList] = useState<any[]>([])
+  const [sitesList, setSitesList] = useState<any[]>([])
   const [activeClientFilter, setActiveClientFilter] = useState<string>('All')
   const [searchQuery, setSearchQuery] = useState('')
+  const [loading, setLoading] = useState(true)
   const [deployModal, setDeployModal] = useState<{
     open: boolean
     clientId?: string
@@ -18,15 +21,36 @@ export default function Deployment() {
   }>({ open: false })
 
   const [selectedEmpId, setSelectedEmpId] = useState<string>('')
-  const [selectedShiftId, setSelectedShiftId] = useState<string>('SH001')
+  const [selectedShiftId, setSelectedShiftId] = useState<string>('SHF001')
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+
+  const loadData = async () => {
+    try {
+      const [emps, cls, sts] = await Promise.all([
+        api.getEmployees(),
+        api.getClients(),
+        api.getSites(),
+      ])
+      setEmployeesList(emps)
+      setClientsList(cls)
+      setSitesList(sts)
+    } catch (err) {
+      console.error('Error loading deployment data:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [])
 
   const deployed = employeesList.filter(e => e.deployedSiteId !== null)
   const undeployed = employeesList.filter(e => e.deployedSiteId === null)
 
   const handleOpenDeployModal = (clientId: string, clientName: string, siteId?: string, siteName?: string) => {
-    const targetSite = siteId || SITES.find(s => s.clientId === clientId)?.id || SITES[0]?.id
-    const targetSiteName = siteName || SITES.find(s => s.id === targetSite)?.name || 'Main Campus'
+    const targetSite = siteId || sitesList.find(s => s.clientId === clientId)?.id || SITES.find(s => s.clientId === clientId)?.id || 'SITE001'
+    const targetSiteName = siteName || sitesList.find(s => s.id === targetSite)?.name || 'Main Campus'
     setDeployModal({
       open: true,
       clientId,
@@ -39,44 +63,45 @@ export default function Deployment() {
     }
   }
 
-  const handleConfirmDeploy = (e: React.FormEvent) => {
+  const handleConfirmDeploy = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedEmpId || !deployModal.siteId) return
 
     const emp = employeesList.find(e => e.id === selectedEmpId)
-    setEmployeesList(prev => prev.map(e => {
-      if (e.id === selectedEmpId) {
-        return {
-          ...e,
-          deployedSiteId: deployModal.siteId!,
-          deployedClientId: deployModal.clientId || null,
-        }
-      }
-      return e
-    }))
-
-    setToastMessage(`Admin Deployed: ${emp?.name} allocated to ${deployModal.clientName} (${deployModal.siteName}). Mobile duty access authorized.`)
+    try {
+      await api.createDeployment({
+        siteId: deployModal.siteId!,
+        clientId: deployModal.clientId!,
+        employeeId: selectedEmpId,
+        shiftId: selectedShiftId,
+        deployedBy: 'Super Admin',
+      })
+      await loadData()
+      setToastMessage(`Admin Deployed: ${emp?.name} allocated to ${deployModal.clientName} (${deployModal.siteName}). Saved to PostgreSQL database!`)
+    } catch (err: any) {
+      setToastMessage(`Error deploying: ${err.message}`)
+    }
     setTimeout(() => setToastMessage(null), 4000)
     setDeployModal({ open: false })
   }
 
-  const handleRelieve = (empId: string, empName: string, clientName: string) => {
-    setEmployeesList(prev => prev.map(e => {
-      if (e.id === empId) {
-        return {
-          ...e,
-          deployedSiteId: null,
-          deployedClientId: null,
-        }
-      }
-      return e
-    }))
-    setToastMessage(`Relieved ${empName} from ${clientName}. Employee returned to available reserve pool.`)
+  const handleRelieve = async (empId: string, empName: string, clientName: string) => {
+    try {
+      await api.updateEmployee(empId, {
+        deployedSiteId: null,
+        deployedClientId: null,
+      })
+      await loadData()
+      setToastMessage(`Relieved ${empName} from ${clientName}. Saved to PostgreSQL database!`)
+    } catch (err: any) {
+      setToastMessage(`Error relieving: ${err.message}`)
+    }
     setTimeout(() => setToastMessage(null), 4000)
   }
 
   // Filter clients
-  const filteredClients = CLIENTS.filter(client => {
+  const activeClients = clientsList.length > 0 ? clientsList : CLIENTS
+  const filteredClients = activeClients.filter(client => {
     if (activeClientFilter !== 'All' && client.id !== activeClientFilter) return false
     if (!searchQuery) return true
     return (

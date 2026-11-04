@@ -1,28 +1,59 @@
-import { useState } from 'react'
-import { EMPLOYEE_DOCUMENTS, EMPLOYEES, DEPARTMENTS } from '@mock/mockData'
+import { useState, useEffect } from 'react'
+import { DEPARTMENTS, api } from '@mock/mockData'
 import { FileText, Download, Check, X, Clock, User, Search, ChevronDown, ChevronUp, ShieldCheck, AlertCircle, Eye } from 'lucide-react'
 
 export default function DocumentReview() {
+  const [employees, setEmployees] = useState<any[]>([])
+  const [docsState, setDocsState] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<'All' | 'Approved' | 'Pending'>('All')
-  const [expandedEmpId, setExpandedEmpId] = useState<string | null>(EMPLOYEES[0]?.id || null)
-  const [docsState, setDocsState] = useState(EMPLOYEE_DOCUMENTS)
+  const [expandedEmpId, setExpandedEmpId] = useState<string | null>(null)
   const [actionFeedback, setActionFeedback] = useState<string | null>(null)
 
-  const handleApprove = (docId: string, empName: string, docName: string) => {
-    setDocsState(prev => prev.map(d => d.id === docId ? { ...d, status: 'Approved' } : d))
-    setActionFeedback(`Approved ${docName} for ${empName}`)
+  const loadData = async () => {
+    try {
+      const [empList, docList] = await Promise.all([
+        api.getEmployees(),
+        api.getDocuments()
+      ])
+      setEmployees(empList)
+      setDocsState(docList)
+      if (empList.length > 0 && !expandedEmpId) {
+        setExpandedEmpId(empList[0].id)
+      }
+    } catch (err) {
+      console.error('Failed to load documents from database:', err)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const handleApprove = async (docId: string, empName: string, docName: string) => {
+    try {
+      await api.reviewDocument(docId, 'Approved')
+      setDocsState(prev => prev.map(d => d.id === docId ? { ...d, status: 'Approved' } : d))
+      setActionFeedback(`Approved ${docName} for ${empName} (Saved to Database)`)
+    } catch (err: any) {
+      setActionFeedback(`Error approving: ${err.message}`)
+    }
     setTimeout(() => setActionFeedback(null), 3000)
   }
 
-  const handleReject = (docId: string, empName: string, docName: string) => {
-    setDocsState(prev => prev.map(d => d.id === docId ? { ...d, status: 'Rejected' } : d))
-    setActionFeedback(`Rejected ${docName} for ${empName}`)
+  const handleReject = async (docId: string, empName: string, docName: string) => {
+    try {
+      await api.reviewDocument(docId, 'Rejected', 'Document unreadable or invalid format')
+      setDocsState(prev => prev.map(d => d.id === docId ? { ...d, status: 'Rejected' } : d))
+      setActionFeedback(`Rejected ${docName} for ${empName} (Saved to Database)`)
+    } catch (err: any) {
+      setActionFeedback(`Error rejecting: ${err.message}`)
+    }
     setTimeout(() => setActionFeedback(null), 3000)
   }
 
   // Group documents by employee
-  const employeesWithDocs = EMPLOYEES.map(emp => {
+  const employeesWithDocs = employees.map(emp => {
     const empDocs = docsState.filter(d => d.employeeId === emp.id)
     const dept = DEPARTMENTS.find(d => d.id === emp.departmentId)
     const approvedCount = empDocs.filter(d => d.status === 'Approved').length

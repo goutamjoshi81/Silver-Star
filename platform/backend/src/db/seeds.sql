@@ -64,3 +64,4 @@ INSERT INTO user_accounts (id, name, email, password_hash, role, status) VALUES
 ('USR002', 'HR Manager', 'hr@silverstarindia.net', 'hr123', 'HR Executive', 'Active'),
 ('USR003', 'Operations Manager', 'ops@silverstarindia.net', 'ops123', 'Operations Manager', 'Active')
 ON CONFLICT (id) DO NOTHING;
+

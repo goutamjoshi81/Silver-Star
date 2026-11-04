@@ -1,14 +1,16 @@
-import { useState } from 'react'
-import { DAILY_WORK_REPORTS, SITES, CLIENTS, EMPLOYEES } from '@mock/mockData'
+import { useState, useEffect } from 'react'
+import { DAILY_WORK_REPORTS, SITES, CLIENTS, EMPLOYEES, api } from '@mock/mockData'
 import {
   FileText, CheckCircle, Clock, Plus, Download, FileSpreadsheet,
   Calendar, Filter, Building2, User, Eye, X, Check
 } from 'lucide-react'
 
 export default function DailyWorkReports() {
-  const [reports, setReports] = useState(DAILY_WORK_REPORTS)
+  const [reports, setReports] = useState<any[]>(DAILY_WORK_REPORTS)
+  const [sites, setSites] = useState<any[]>(SITES)
+  const [employees, setEmployees] = useState<any[]>(EMPLOYEES)
   const [dateFilter, setDateFilter] = useState<string>('all')
-  const [selectedDate, setSelectedDate] = useState<string>('2026-11-02')
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
   const [selectedSite, setSelectedSite] = useState<string>('All')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [exportNotice, setExportNotice] = useState<string | null>(null)
@@ -16,20 +18,47 @@ export default function DailyWorkReports() {
 
   // New report form state
   const [newSiteId, setNewSiteId] = useState('SITE001')
-  const [newDate, setNewDate] = useState('2026-11-02')
-  const [newSupervisor, setNewSupervisor] = useState('EMP003')
+  const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0])
+  const [newSupervisor, setNewSupervisor] = useState('')
   const [newSummary, setNewSummary] = useState('')
   const [newConsumables, setNewConsumables] = useState('')
 
+  const loadData = async () => {
+    try {
+      const [dwrs, sts, emps] = await Promise.all([
+        api.getDailyReports().catch(() => []),
+        api.getSites().catch(() => []),
+        api.getEmployees().catch(() => []),
+      ])
+      if (dwrs && dwrs.length > 0) setReports(dwrs)
+      if (sts && sts.length > 0) {
+        setSites(sts)
+        setNewSiteId(sts[0].id)
+      }
+      if (emps && emps.length > 0) {
+        setEmployees(emps)
+        setNewSupervisor(emps[0].id)
+      }
+    } catch (err) {
+      console.error('Error loading daily reports:', err)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
   // Filtered reports
   const filteredReports = reports.filter(r => {
+    const today = new Date().toISOString().split('T')[0]
     let matchesDate = true
     if (dateFilter === 'specific') {
       matchesDate = r.date === selectedDate
     } else if (dateFilter === 'today') {
-      matchesDate = r.date === '2026-11-02'
+      matchesDate = r.date === today
     } else if (dateFilter === 'yesterday') {
-      matchesDate = r.date === '2026-11-01'
+      const y = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+      matchesDate = r.date === y
     }
 
     const matchesSite = selectedSite === 'All' || r.siteId === selectedSite
@@ -42,25 +71,27 @@ export default function DailyWorkReports() {
     setTimeout(() => setExportNotice(null), 4000)
   }
 
-  const handleAddReport = (e: React.FormEvent) => {
+  const handleAddReport = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newSummary.trim()) return
 
-    const newEntry = {
-      id: `DWR00${reports.length + 1}`,
-      siteId: newSiteId,
-      date: newDate,
-      submittedBy: newSupervisor,
-      status: 'Approved' as const,
-      summary: newSummary,
-      consumables: newConsumables || 'Standard cleaning/patrol consumables',
+    try {
+      await api.createDailyReport({
+        siteId: newSiteId,
+        date: newDate,
+        submittedBy: newSupervisor || null,
+        status: 'Approved',
+        summary: newSummary,
+        consumables: newConsumables || 'Standard cleaning/patrol consumables',
+      })
+      await loadData()
+      setIsModalOpen(false)
+      setNewSummary('')
+      setNewConsumables('')
+      setExportNotice(`Daily Work Report logged and saved to PostgreSQL database!`)
+    } catch (err: any) {
+      setExportNotice(`Error saving report: ${err.message}`)
     }
-
-    setReports([newEntry, ...reports])
-    setIsModalOpen(false)
-    setNewSummary('')
-    setNewConsumables('')
-    setExportNotice(`Daily Work Report #${newEntry.id} logged successfully for site!`)
     setTimeout(() => setExportNotice(null), 3500)
   }
 

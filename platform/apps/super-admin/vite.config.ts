@@ -8,6 +8,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    port: 5173,
+    host: true,
+  },
   resolve: {
     alias: {
       '@mock': resolve(__dirname, '../../packages/mock-data'),
