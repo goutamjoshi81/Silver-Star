@@ -4,6 +4,9 @@
   "private": true,
   "description": "Silver Star Facility Management Pvt. Ltd. - Integrated Digital Platform (5 Applications)",
   "scripts": {
+    "server": "npm --prefix backend start",
+    "dev:server": "npm --prefix backend run dev",
+    "db:migrate": "npm --prefix backend run migrate",
     "dev:admin": "npm --prefix apps/super-admin run dev",
     "dev:hr": "npm --prefix apps/hr-panel run dev",
     "dev:ops": "npm --prefix apps/operations-panel run dev",

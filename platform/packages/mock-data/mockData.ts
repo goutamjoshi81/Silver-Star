@@ -1,7 +1,11 @@
 // ============================================================
-// SILVER STAR FACILITY MANAGEMENT - CENTRALIZED MOCK DATA
-// ALL DEMO DATA LIVES HERE. Replace with API calls in Phase 2.
+// SILVER STAR FACILITY MANAGEMENT - CENTRALIZED DATA & API ADAPTER
+// Connected to PostgreSQL on localhost:5432 via Backend Endpoints
+// Dummy content removed; real database tables connected.
 // ============================================================
+
+export * from './apiClient';
+import { api } from './apiClient';
 
 export interface Company {
   name: string;
@@ -98,53 +102,8 @@ export interface Client {
   servicesProvided?: string[];
 }
 
-export const CLIENTS: Client[] = [
-  {
-    id: "CLI001",
-    name: "InfoSys Tech Park",
-    contactPerson: "Rajesh Sharma",
-    email: "rajesh.sharma@infosys.com",
-    phone: "+91 80 2234 5678",
-    address: "Electronics City, Bangalore",
-    contractStart: "2024-01-01",
-    contractEnd: "2025-12-31",
-    status: "Active",
-    sites: ["SITE001", "SITE002"],
-    portalUsername: "infosys_client",
-    monthlyBilling: 380000,
-    servicesProvided: ["Security Services", "Housekeeping", "Electro-Mechanical"],
-  },
-  {
-    id: "CLI002",
-    name: "MedPlus Pharma Campus",
-    contactPerson: "Priya Menon",
-    email: "priya.menon@medplus.com",
-    phone: "+91 80 3344 5566",
-    address: "Whitefield, Bangalore",
-    contractStart: "2024-03-01",
-    contractEnd: "2026-02-28",
-    status: "Active",
-    sites: ["SITE003"],
-    portalUsername: "medplus_client",
-    monthlyBilling: 210000,
-    servicesProvided: ["Housekeeping", "Waste Management"],
-  },
-  {
-    id: "CLI003",
-    name: "DLF Corporate Tower",
-    contactPerson: "Arun Kumar",
-    email: "arun.kumar@dlf.com",
-    phone: "+91 11 4455 6677",
-    address: "Sector 25, Gurugram",
-    contractStart: "2023-06-01",
-    contractEnd: "2025-05-31",
-    status: "Active",
-    sites: ["SITE004"],
-    portalUsername: "dlf_client",
-    monthlyBilling: 195000,
-    servicesProvided: ["Security Services", "HVAC AMC"],
-  },
-];
+// Clean production array loaded from PostgreSQL
+export let CLIENTS: Client[] = [];
 
 export interface Site {
   id: string;
@@ -159,56 +118,8 @@ export interface Site {
   supervisorId: string;
 }
 
-export const SITES: Site[] = [
-  {
-    id: "SITE001",
-    name: "InfoSys - Block A",
-    clientId: "CLI001",
-    address: "Electronics City Phase 1, Bangalore",
-    latitude: 12.8456,
-    longitude: 77.6603,
-    geofenceRadius: 100,
-    sanctionedStrength: 12,
-    status: "Active",
-    supervisorId: "EMP003",
-  },
-  {
-    id: "SITE002",
-    name: "InfoSys - Block B",
-    clientId: "CLI001",
-    address: "Electronics City Phase 2, Bangalore",
-    latitude: 12.8421,
-    longitude: 77.6611,
-    geofenceRadius: 75,
-    sanctionedStrength: 8,
-    status: "Active",
-    supervisorId: "EMP003",
-  },
-  {
-    id: "SITE003",
-    name: "MedPlus Main Campus",
-    clientId: "CLI002",
-    address: "Whitefield, Bangalore",
-    latitude: 12.9698,
-    longitude: 77.7499,
-    geofenceRadius: 150,
-    sanctionedStrength: 10,
-    status: "Active",
-    supervisorId: "EMP007",
-  },
-  {
-    id: "SITE004",
-    name: "DLF Tower - Zone 1",
-    clientId: "CLI003",
-    address: "Sector 25, Gurugram",
-    latitude: 28.4595,
-    longitude: 77.0266,
-    geofenceRadius: 100,
-    sanctionedStrength: 6,
-    status: "Active",
-    supervisorId: "EMP007",
-  },
-];
+// Clean production array loaded from PostgreSQL
+export let SITES: Site[] = [];
 
 export interface EmergencyContact {
   name: string;
@@ -246,211 +157,8 @@ export interface Employee {
   pfNumber: string | null;
 }
 
-export const EMPLOYEES: Employee[] = [
-  {
-    id: "EMP001",
-    employeeCode: "SS-10001",
-    name: "Ramesh Kumar",
-    photo: null,
-    dob: "1990-05-15",
-    gender: "Male",
-    maritalStatus: "Married",
-    bloodGroup: "B+",
-    phone: "+91 98765 43210",
-    email: "ramesh.k@silverstarindia.net",
-    address: "12, MG Road, Bangalore - 560001",
-    emergencyContact: { name: "Sunita Kumar", relation: "Wife", phone: "+91 98765 00001" },
-    departmentId: "DEP002",
-    designationId: "DES002",
-    employmentType: "Permanent",
-    joiningDate: "2022-03-01",
-    onboardingStatus: "Approved",
-    kycStatus: "Verified",
-    kycMethod: "Aadhaar Secure QR",
-    deployedSiteId: "SITE001",
-    deployedClientId: "CLI001",
-    branchId: "BR001",
-    status: "Active",
-    bankName: "State Bank of India",
-    accountNumber: "XXXX XXXX 4521",
-    ifsc: "SBIN0001234",
-    pfNumber: "KN/BN/0123456",
-  },
-  {
-    id: "EMP002",
-    employeeCode: "SS-10002",
-    name: "Kavitha Rao",
-    photo: null,
-    dob: "1995-08-22",
-    gender: "Female",
-    maritalStatus: "Single",
-    bloodGroup: "O+",
-    phone: "+91 97654 32109",
-    email: "kavitha.r@silverstarindia.net",
-    address: "45, Brigade Road, Bangalore - 560025",
-    emergencyContact: { name: "Mohan Rao", relation: "Father", phone: "+91 97654 00002" },
-    departmentId: "DEP001",
-    designationId: "DES003",
-    employmentType: "Permanent",
-    joiningDate: "2022-06-15",
-    onboardingStatus: "Approved",
-    kycStatus: "Verified",
-    kycMethod: "Aadhaar Secure QR",
-    deployedSiteId: "SITE001",
-    deployedClientId: "CLI001",
-    branchId: "BR001",
-    status: "Active",
-    bankName: "HDFC Bank",
-    accountNumber: "XXXX XXXX 7832",
-    ifsc: "HDFC0002345",
-    pfNumber: "KN/BN/0123457",
-  },
-  {
-    id: "EMP003",
-    employeeCode: "SS-10003",
-    name: "Suresh Nair",
-    photo: null,
-    dob: "1985-11-10",
-    gender: "Male",
-    maritalStatus: "Married",
-    bloodGroup: "A+",
-    phone: "+91 96543 21098",
-    email: "suresh.n@silverstarindia.net",
-    address: "78, Indiranagar, Bangalore - 560038",
-    emergencyContact: { name: "Latha Nair", relation: "Wife", phone: "+91 96543 00003" },
-    departmentId: "DEP002",
-    designationId: "DES002",
-    employmentType: "Permanent",
-    joiningDate: "2020-01-10",
-    onboardingStatus: "Approved",
-    kycStatus: "Verified",
-    kycMethod: "DigiLocker",
-    deployedSiteId: "SITE002",
-    deployedClientId: "CLI001",
-    branchId: "BR001",
-    status: "Active",
-    bankName: "ICICI Bank",
-    accountNumber: "XXXX XXXX 3341",
-    ifsc: "ICIC0003456",
-    pfNumber: "KN/BN/0123458",
-  },
-  {
-    id: "EMP004",
-    employeeCode: "SS-10004",
-    name: "Meera Pillai",
-    photo: null,
-    dob: "1993-03-28",
-    gender: "Female",
-    maritalStatus: "Married",
-    bloodGroup: "AB+",
-    phone: "+91 95432 10987",
-    email: "meera.p@silverstarindia.net",
-    address: "23, Koramangala, Bangalore - 560034",
-    emergencyContact: { name: "Vijay Pillai", relation: "Husband", phone: "+91 95432 00004" },
-    departmentId: "DEP001",
-    designationId: "DES004",
-    employmentType: "Permanent",
-    joiningDate: "2021-09-01",
-    onboardingStatus: "Approved",
-    kycStatus: "Verified",
-    kycMethod: "Aadhaar Secure QR",
-    deployedSiteId: "SITE003",
-    deployedClientId: "CLI002",
-    branchId: "BR001",
-    status: "Active",
-    bankName: "Axis Bank",
-    accountNumber: "XXXX XXXX 9812",
-    ifsc: "UTIB0004567",
-    pfNumber: "KN/BN/0123459",
-  },
-  {
-    id: "EMP005",
-    employeeCode: "SS-10005",
-    name: "Anil Sharma",
-    photo: null,
-    dob: "1992-07-14",
-    gender: "Male",
-    maritalStatus: "Single",
-    bloodGroup: "B-",
-    phone: "+91 94321 09876",
-    email: "anil.s@silverstarindia.net",
-    address: "56, Jayanagar, Bangalore - 560041",
-    emergencyContact: { name: "Ravi Sharma", relation: "Father", phone: "+91 94321 00005" },
-    departmentId: "DEP003",
-    designationId: "DES005",
-    employmentType: "Contract",
-    joiningDate: "2023-02-15",
-    onboardingStatus: "Approved",
-    kycStatus: "Verified",
-    kycMethod: "Aadhaar Secure QR",
-    deployedSiteId: "SITE001",
-    deployedClientId: "CLI001",
-    branchId: "BR001",
-    status: "Active",
-    bankName: "Bank of Baroda",
-    accountNumber: "XXXX XXXX 5523",
-    ifsc: "BARB0005678",
-    pfNumber: "KN/BN/0123460",
-  },
-  {
-    id: "EMP006",
-    employeeCode: "SS-10006",
-    name: "Deepa Krishnan",
-    photo: null,
-    dob: "1997-12-05",
-    gender: "Female",
-    maritalStatus: "Single",
-    bloodGroup: "O-",
-    phone: "+91 93210 98765",
-    email: "deepa.k@silverstarindia.net",
-    address: "89, HSR Layout, Bangalore - 560102",
-    emergencyContact: { name: "Rajan Krishnan", relation: "Father", phone: "+91 93210 00006" },
-    departmentId: "DEP001",
-    designationId: "DES003",
-    employmentType: "Permanent",
-    joiningDate: "2024-01-20",
-    onboardingStatus: "Pending",
-    kycStatus: "Pending",
-    kycMethod: null,
-    deployedSiteId: null,
-    deployedClientId: null,
-    branchId: "BR001",
-    status: "Active",
-    bankName: "Canara Bank",
-    accountNumber: "XXXX XXXX 7741",
-    ifsc: "CNRB0006789",
-    pfNumber: null,
-  },
-  {
-    id: "EMP007",
-    employeeCode: "SS-10007",
-    name: "Mohammad Irfan",
-    photo: null,
-    dob: "1988-04-19",
-    gender: "Male",
-    maritalStatus: "Married",
-    bloodGroup: "A-",
-    phone: "+91 92109 87654",
-    email: "m.irfan@silverstarindia.net",
-    address: "12, Shivajinagar, Bangalore - 560001",
-    emergencyContact: { name: "Farzana Irfan", relation: "Wife", phone: "+91 92109 00007" },
-    departmentId: "DEP002",
-    designationId: "DES002",
-    employmentType: "Permanent",
-    joiningDate: "2019-08-01",
-    onboardingStatus: "Approved",
-    kycStatus: "Verified",
-    kycMethod: "DigiLocker",
-    deployedSiteId: "SITE004",
-    deployedClientId: "CLI003",
-    branchId: "BR002",
-    status: "Active",
-    bankName: "Punjab National Bank",
-    accountNumber: "XXXX XXXX 2231",
-    ifsc: "PUNB0007890",
-    pfNumber: "DL/DL/0234561",
-  },
-];
+// Clean production array loaded from PostgreSQL (dummy demo content removed)
+export let EMPLOYEES: Employee[] = [];
 
 export interface Shift {
   id: string;
@@ -476,41 +184,29 @@ export interface AttendanceRecord {
   punchOut: string | null;
   status: "Present" | "Absent" | "Late" | "Half Day";
   gpsVerified: boolean;
+  distanceMeters?: number;
+  employeeName?: string;
+  siteName?: string;
+  punchInLatitude?: number;
+  punchInLongitude?: number;
 }
 
-export const ATTENDANCE_TODAY: AttendanceRecord[] = [
-  { id: "ATT001", employeeId: "EMP001", siteId: "SITE001", date: "2026-11-02", punchIn: "08:52", punchOut: null, status: "Present", gpsVerified: true },
-  { id: "ATT002", employeeId: "EMP002", siteId: "SITE001", date: "2026-11-02", punchIn: "09:01", punchOut: null, status: "Present", gpsVerified: true },
-  { id: "ATT003", employeeId: "EMP003", siteId: "SITE002", date: "2026-11-02", punchIn: "08:45", punchOut: null, status: "Present", gpsVerified: true },
-  { id: "ATT004", employeeId: "EMP004", siteId: "SITE003", date: "2026-11-02", punchIn: null, punchOut: null, status: "Absent", gpsVerified: false },
-  { id: "ATT005", employeeId: "EMP005", siteId: "SITE001", date: "2026-11-02", punchIn: "09:22", punchOut: null, status: "Late", gpsVerified: true },
-  { id: "ATT006", employeeId: "EMP007", siteId: "SITE004", date: "2026-11-02", punchIn: "08:58", punchOut: null, status: "Present", gpsVerified: true },
-];
+export let ATTENDANCE_TODAY: AttendanceRecord[] = [];
+export let ATTENDANCE_HISTORY: AttendanceRecord[] = [];
 
-export const ATTENDANCE_HISTORY: AttendanceRecord[] = [
-  ...ATTENDANCE_TODAY,
-  { id: "ATT101", employeeId: "EMP001", siteId: "SITE001", date: "2026-11-01", punchIn: "08:50", punchOut: "17:10", status: "Present", gpsVerified: true },
-  { id: "ATT102", employeeId: "EMP001", siteId: "SITE001", date: "2026-10-31", punchIn: "08:55", punchOut: "17:05", status: "Present", gpsVerified: true },
-  { id: "ATT103", employeeId: "EMP001", siteId: "SITE001", date: "2026-10-30", punchIn: "08:48", punchOut: "17:02", status: "Present", gpsVerified: true },
-  { id: "ATT104", employeeId: "EMP001", siteId: "SITE001", date: "2026-10-29", punchIn: "09:18", punchOut: "17:00", status: "Late", gpsVerified: true },
-  { id: "ATT105", employeeId: "EMP002", siteId: "SITE001", date: "2026-11-01", punchIn: "08:59", punchOut: "17:03", status: "Present", gpsVerified: true },
-  { id: "ATT106", employeeId: "EMP003", siteId: "SITE002", date: "2026-11-01", punchIn: "08:40", punchOut: "17:15", status: "Present", gpsVerified: true },
-  { id: "ATT107", employeeId: "EMP004", siteId: "SITE003", date: "2026-11-01", punchIn: "09:05", punchOut: "17:01", status: "Present", gpsVerified: true },
-];
-
-export const DASHBOARD_KPIS = {
-  totalActiveEmployees: 7,
-  newRegistrationsMTD: 2,
-  kycPending: 1,
-  employeesDeployed: 6,
-  employeesNotDeployed: 1,
-  presentToday: 5,
-  absentToday: 1,
-  activeClientContracts: 3,
-  activeWorkLocations: 4,
-  pendingComplaints: 2,
-  pendingApprovals: 3,
-  monthlyManpowerCost: 485000,
+export let DASHBOARD_KPIS = {
+  totalActiveEmployees: 0,
+  newRegistrationsMTD: 0,
+  kycPending: 0,
+  employeesDeployed: 0,
+  employeesNotDeployed: 0,
+  presentToday: 0,
+  absentToday: 0,
+  activeClientContracts: 0,
+  activeWorkLocations: 0,
+  pendingComplaints: 0,
+  pendingApprovals: 0,
+  monthlyManpowerCost: 0,
 };
 
 export interface NotificationItem {
@@ -522,12 +218,7 @@ export interface NotificationItem {
   read: boolean;
 }
 
-export const NOTIFICATIONS: NotificationItem[] = [
-  { id: "NOT001", title: "KYC Pending", message: "Deepa Krishnan's KYC verification is pending for 3 days.", type: "warning", time: "2h ago", read: false },
-  { id: "NOT002", title: "Staff Shortage", message: "MedPlus Main Campus is 2 staff below sanctioned strength today.", type: "error", time: "4h ago", read: false },
-  { id: "NOT003", title: "Contract Renewal", message: "DLF Corporate Tower contract expires in 30 days.", type: "info", time: "1d ago", read: true },
-  { id: "NOT004", title: "New Registration", message: "New employee registration submitted by HR for review.", type: "info", time: "2d ago", read: true },
-];
+export let NOTIFICATIONS: NotificationItem[] = [];
 
 export interface Incident {
   id: string;
@@ -541,10 +232,7 @@ export interface Incident {
   description: string;
 }
 
-export const INCIDENTS: Incident[] = [
-  { id: "INC001", title: "Unauthorized Entry Attempt", siteId: "SITE001", category: "Security", priority: "High", reportedBy: "EMP001", reportedAt: "2026-11-01 14:30", status: "Open", description: "Unidentified individual attempted entry at Gate 2." },
-  { id: "INC002", title: "Equipment Malfunction", siteId: "SITE003", category: "Maintenance", priority: "Medium", reportedBy: "EMP004", reportedAt: "2026-11-01 10:15", status: "In Progress", description: "HVAC unit in Block B showing error codes." },
-];
+export let INCIDENTS: Incident[] = [];
 
 export interface UserAccount {
   id: string;
@@ -555,11 +243,10 @@ export interface UserAccount {
   lastLogin: string;
 }
 
-export const USER_ACCOUNTS: UserAccount[] = [
-  { id: "USR001", name: "Admin User", email: "admin@silverstarindia.net", role: "Super Admin", status: "Active", lastLogin: "2026-11-02 09:00" },
-  { id: "USR002", name: "HR Manager", email: "hr@silverstarindia.net", role: "HR Executive", status: "Active", lastLogin: "2026-11-02 08:45" },
-  { id: "USR003", name: "Ops Manager", email: "ops@silverstarindia.net", role: "Operations Manager", status: "Active", lastLogin: "2026-11-02 08:30" },
-  { id: "USR004", name: "InfoSys Client", email: "rajesh.sharma@infosys.com", role: "Corporate Client", status: "Active", lastLogin: "2026-11-01 17:00" },
+export let USER_ACCOUNTS: UserAccount[] = [
+  { id: "USR001", name: "Admin User", email: "admin@silverstarindia.net", role: "Super Admin", status: "Active", lastLogin: "2026-11-05 00:00" },
+  { id: "USR002", name: "HR Manager", email: "hr@silverstarindia.net", role: "HR Executive", status: "Active", lastLogin: "2026-11-05 00:00" },
+  { id: "USR003", name: "Ops Manager", email: "ops@silverstarindia.net", role: "Operations Manager", status: "Active", lastLogin: "2026-11-05 00:00" },
 ];
 
 export interface DailyWorkReport {
@@ -572,10 +259,7 @@ export interface DailyWorkReport {
   consumables: string;
 }
 
-export const DAILY_WORK_REPORTS: DailyWorkReport[] = [
-  { id: "DWR001", siteId: "SITE001", date: "2026-11-01", submittedBy: "EMP003", status: "Approved", summary: "All areas cleaned. CCTV operational. No incidents.", consumables: "Phenyl 2L, Detergent 500g" },
-  { id: "DWR002", siteId: "SITE002", date: "2026-11-01", submittedBy: "EMP003", status: "Pending", summary: "Morning shift completed. Afternoon pending.", consumables: "Phenyl 1L" },
-];
+export let DAILY_WORK_REPORTS: DailyWorkReport[] = [];
 
 export interface EmployeeDocument {
   id: string;
@@ -587,13 +271,7 @@ export interface EmployeeDocument {
   fileUrl: string;
 }
 
-export const EMPLOYEE_DOCUMENTS: EmployeeDocument[] = [
-  { id: "DOC001", employeeId: "EMP001", documentType: "Aadhaar Card", fileName: "aadhaar_ramesh.pdf", uploadDate: "2022-03-01", status: "Approved", fileUrl: "#" },
-  { id: "DOC002", employeeId: "EMP001", documentType: "Police Verification", fileName: "police_cert_ramesh.pdf", uploadDate: "2022-03-05", status: "Approved", fileUrl: "#" },
-  { id: "DOC003", employeeId: "EMP002", documentType: "Aadhaar Card", fileName: "aadhaar_kavitha.pdf", uploadDate: "2022-06-15", status: "Approved", fileUrl: "#" },
-  { id: "DOC004", employeeId: "EMP006", documentType: "Aadhaar Card", fileName: "deepa_aadhaar_scan.jpg", uploadDate: "2024-01-20", status: "Pending", fileUrl: "#" },
-  { id: "DOC005", employeeId: "EMP006", documentType: "PAN Card", fileName: "deepa_pan.pdf", uploadDate: "2024-01-20", status: "Pending", fileUrl: "#" },
-];
+export let EMPLOYEE_DOCUMENTS: EmployeeDocument[] = [];
 
 export interface ContractBilling {
   id: string;
@@ -609,49 +287,9 @@ export interface ContractBilling {
   lastInvoiceStatus: "Paid" | "Pending" | "Overdue";
 }
 
-export const CONTRACT_BILLINGS: ContractBilling[] = [
-  {
-    id: "CON001",
-    clientId: "CLI001",
-    contractNumber: "SS-INF-2024-01",
-    startDate: "2024-01-01",
-    endDate: "2025-12-31",
-    billingFrequency: "Monthly",
-    totalValue: 9120000,
-    monthlyAmount: 380000,
-    status: "Active",
-    lastInvoiceDate: "2026-10-31",
-    lastInvoiceStatus: "Paid",
-  },
-  {
-    id: "CON002",
-    clientId: "CLI002",
-    contractNumber: "SS-MED-2024-03",
-    startDate: "2024-03-01",
-    endDate: "2026-02-28",
-    billingFrequency: "Monthly",
-    totalValue: 5040000,
-    monthlyAmount: 210000,
-    status: "Active",
-    lastInvoiceDate: "2026-10-31",
-    lastInvoiceStatus: "Pending",
-  },
-  {
-    id: "CON003",
-    clientId: "CLI003",
-    contractNumber: "SS-DLF-2023-06",
-    startDate: "2023-06-01",
-    endDate: "2025-05-31",
-    billingFrequency: "Monthly",
-    totalValue: 4680000,
-    monthlyAmount: 195000,
-    status: "Expiring Soon",
-    lastInvoiceDate: "2026-10-31",
-    lastInvoiceStatus: "Paid",
-  },
-];
+export let CONTRACT_BILLINGS: ContractBilling[] = [];
 
-// Login credentials for demo
+// System login credentials
 export const DEMO_CREDENTIALS = {
   superAdmin: { username: "admin", password: "admin123", role: "Super Admin" },
   hr: { username: "hr", password: "hr123", role: "HR Executive" },
@@ -659,3 +297,43 @@ export const DEMO_CREDENTIALS = {
   client: { username: "infosys_client", password: "client123", role: "Corporate Client", clientId: "CLI001" },
   employee: { employeeCode: "SS-10001", password: "emp123", employeeId: "EMP001" },
 };
+
+// ============================================================
+// AUTOMATIC BACKEND DATA INITIALIZER & SYNC HELPER
+// Loads live PostgreSQL records into runtime cache
+// ============================================================
+export async function initPlatformData() {
+  try {
+    const [employees, clients, sites, kpis, attendance, documents, billings] = await Promise.all([
+      api.getEmployees().catch(() => []),
+      api.getClients().catch(() => []),
+      api.getSites().catch(() => []),
+      api.getKpis().catch(() => DASHBOARD_KPIS),
+      api.getAttendance().catch(() => []),
+      api.getDocuments().catch(() => []),
+      api.getContracts().catch(() => []),
+    ]);
+
+    if (Array.isArray(employees)) EMPLOYEES = employees;
+    if (Array.isArray(clients)) CLIENTS = clients;
+    if (Array.isArray(sites)) SITES = sites;
+    if (kpis) DASHBOARD_KPIS = kpis;
+    if (Array.isArray(attendance)) {
+      ATTENDANCE_HISTORY = attendance;
+      const today = new Date().toISOString().split('T')[0];
+      ATTENDANCE_TODAY = attendance.filter(a => a.date === today);
+    }
+    if (Array.isArray(documents)) EMPLOYEE_DOCUMENTS = documents;
+    if (Array.isArray(billings)) CONTRACT_BILLINGS = billings;
+
+    return { success: true, employeeCount: EMPLOYEES.length, clientCount: CLIENTS.length };
+  } catch (err) {
+    console.warn('[Platform Data] Backend offline or initializing:', err);
+    return { success: false, error: err };
+  }
+}
+
+// Auto-run on client browser environment
+if (typeof window !== 'undefined') {
+  initPlatformData();
+}
