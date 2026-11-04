@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
-import { DEPARTMENTS, EMPLOYEE_DOCUMENTS, api } from '@mock/mockData'
+import {
+  DEPARTMENTS, EMPLOYEE_DOCUMENTS, api,
+  exportToCorporateExcel, exportToCorporatePdf, type CorporateExportOptions
+} from '@mock/mockData'
 import { Download, FileSpreadsheet, Calendar, Filter, CheckCircle2, AlertCircle, Clock, FileCheck } from 'lucide-react'
 
 export default function HRReports() {
@@ -58,8 +61,101 @@ export default function HRReports() {
   }, 0)
 
   const handleExport = (type: 'PDF' | 'Excel') => {
-    setExportNotice(`Generated ${type} Report for period (${startDate} to ${endDate}) with ${filteredEmployees.length} employee records. Downloading demo file...`)
-    setTimeout(() => setExportNotice(null), 4500)
+    let options: CorporateExportOptions
+
+    if (activeTab === 'kyc') {
+      options = {
+        title: 'Statutory eKYC & Identity Verification Audit Report',
+        subtitle: 'Official UIDAI Aadhaar QR and DigiLocker verification logs for on-site staff',
+        category: 'HR STATUTORY COMPLIANCE REPORT',
+        dateRange: { start: startDate, end: endDate },
+        kpis: [
+          { label: 'Total Assessed Staff', value: filteredEmployees.length },
+          { label: 'Verified Staff', value: verifiedCount },
+          { label: 'Pending Verification', value: pendingCount },
+          { label: 'Compliance Rate', value: `${filteredEmployees.length ? Math.round((verifiedCount / filteredEmployees.length) * 100) : 0}%` },
+        ],
+        columns: [
+          { header: 'Sl No', key: 'sl_no', align: 'center' },
+          { header: 'Employee Code', key: 'employeeCode' },
+          { header: 'Staff Name', key: 'name' },
+          { header: 'Department', key: 'departmentName', format: (v, r) => v || DEPARTMENTS.find(d => d.id === r.departmentId)?.name || 'Operations' },
+          { header: 'Designation', key: 'designationName', format: (v, r) => v || 'Staff' },
+          { header: 'Contact Mobile', key: 'phone' },
+          { header: 'eKYC Method', key: 'kycMethod', format: v => v || 'Aadhaar Secure QR' },
+          { header: 'KYC Status', key: 'kycStatus', align: 'center' },
+          { header: 'Joining Date', key: 'joiningDate', align: 'center' },
+        ],
+        data: filteredEmployees,
+        filename: `SilverStar_HR_KYC_Report_${startDate}_to_${endDate}`,
+        notes: 'Compliance report certified in accordance with Section 12 of PSARA Regulations.',
+      }
+    } else if (activeTab === 'docs') {
+      options = {
+        title: 'Employee Statutory Documents Dossier Report',
+        subtitle: 'Audit listing of identity proofs, police clearances, and banking records',
+        category: 'EMPLOYEE DOCUMENTATION AUDIT',
+        kpis: [
+          { label: 'Total Uploaded Proofs', value: documents.length },
+          { label: 'Approved Documents', value: documents.filter(d => d.status === 'Approved').length },
+          { label: 'Pending Review', value: documents.filter(d => d.status === 'Pending').length },
+        ],
+        columns: [
+          { header: 'Sl No', key: 'sl_no', align: 'center' },
+          { header: 'Document Type', key: 'documentType' },
+          { header: 'File Name', key: 'fileName' },
+          { header: 'Staff Name', key: 'employeeName', format: (v, r) => v || employees.find(e => e.id === r.employeeId)?.name || r.employeeId },
+          { header: 'Upload Date', key: 'uploadDate', align: 'center' },
+          { header: 'Verification Status', key: 'status', align: 'center' },
+        ],
+        data: documents,
+        filename: `SilverStar_Employee_Documents_${new Date().toISOString().split('T')[0]}`,
+      }
+    } else {
+      // departments
+      const deptData = DEPARTMENTS.map((dept, i) => {
+        const staff = filteredEmployees.filter(e => e.departmentId === dept.id)
+        const verified = staff.filter(e => e.kycStatus === 'Verified').length
+        return {
+          sl_no: i + 1,
+          code: dept.code,
+          name: dept.name,
+          headcount: staff.length,
+          verified: verified,
+          complianceRate: staff.length > 0 ? `${Math.round((verified / staff.length) * 100)}%` : '100%',
+        }
+      })
+
+      options = {
+        title: 'Departmental Headcount & Manpower Allocation Audit',
+        subtitle: 'Enterprise workforce distribution across housekeeping, security, and electro-mechanical divisions',
+        category: 'WORKFORCE DISTRIBUTION AUDIT',
+        kpis: [
+          { label: 'Total Departments', value: DEPARTMENTS.length },
+          { label: 'Total Active Workforce', value: filteredEmployees.length },
+          { label: 'Overall KYC Verified', value: verifiedCount },
+        ],
+        columns: [
+          { header: 'Sl No', key: 'sl_no', align: 'center' },
+          { header: 'Dept Code', key: 'code', align: 'center' },
+          { header: 'Department Name', key: 'name' },
+          { header: 'Total Staff Headcount', key: 'headcount', align: 'center' },
+          { header: 'KYC Verified Staff', key: 'verified', align: 'center' },
+          { header: 'Compliance Rate', key: 'complianceRate', align: 'center' },
+        ],
+        data: deptData,
+        filename: `SilverStar_Departmental_Allocation_${new Date().toISOString().split('T')[0]}`,
+      }
+    }
+
+    if (type === 'Excel') {
+      exportToCorporateExcel(options)
+      setExportNotice(`Corporate Excel spreadsheet "${options.title}" generated and downloaded!`)
+    } else {
+      exportToCorporatePdf(options)
+      setExportNotice(`Corporate PDF report "${options.title}" generated in print preview!`)
+    }
+    setTimeout(() => setExportNotice(null), 5000)
   }
 
   return (

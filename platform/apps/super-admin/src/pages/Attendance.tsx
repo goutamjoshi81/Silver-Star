@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { EMPLOYEES, SITES, api } from '@mock/mockData'
-import { Clock, CheckCircle, XCircle, AlertCircle, Filter } from 'lucide-react'
+import { EMPLOYEES, SITES, api, exportToCorporateExcel, exportToCorporatePdf } from '@mock/mockData'
+import { Clock, CheckCircle, XCircle, AlertCircle, Filter, Download, FileSpreadsheet } from 'lucide-react'
 
 export default function Attendance() {
   const [tab, setTab] = useState<'today' | 'history'>('today')
@@ -33,6 +33,41 @@ export default function Attendance() {
   const absent = todayRecords.filter(a => a.status === 'Absent').length
   const late = todayRecords.filter(a => a.status === 'Late').length
 
+  const handleExportAttendance = (format: 'PDF' | 'Excel') => {
+    const isToday = tab === 'today'
+    const title = isToday ? "Today's Live Geofenced Attendance Muster" : "Historical Facility Attendance Muster Roll"
+    const options = {
+      title,
+      subtitle: `Certified muster report for ${isToday ? 'current operational shift' : 'past billing cycles'}`,
+      category: 'STATUTORY MUSTER AUDIT',
+      kpis: [
+        { label: 'Total Records', value: records.length },
+        { label: 'Present Staff', value: records.filter(r => r.status === 'Present').length },
+        { label: 'Late Arrivals', value: records.filter(r => r.status === 'Late').length },
+        { label: 'Absent Staff', value: records.filter(r => r.status === 'Absent').length },
+      ],
+      columns: [
+        { header: 'Sl No', key: 'sl_no', align: 'center' as const },
+        { header: 'Emp Code', key: 'employeeId', format: (v: any) => getEmp(v)?.employeeCode || v },
+        { header: 'Employee Name', key: 'employeeId', format: (v: any) => getEmp(v)?.name || 'Staff' },
+        { header: 'Work Location / Site', key: 'siteId', format: (v: any) => getSite(v) },
+        { header: 'Date', key: 'date', align: 'center' as const },
+        { header: 'Punch In', key: 'punchIn', align: 'center' as const, format: (v: any) => v || '—' },
+        { header: 'Punch Out', key: 'punchOut', align: 'center' as const, format: (v: any) => v || '—' },
+        { header: 'GPS Verification', key: 'gpsVerified', align: 'center' as const, format: (v: any) => v ? 'Verified Geofence' : 'Standard' },
+        { header: 'Status', key: 'status', align: 'center' as const },
+      ],
+      data: records,
+      filename: `SilverStar_Attendance_${tab}_${new Date().toISOString().split('T')[0]}`,
+    }
+
+    if (format === 'Excel') {
+      exportToCorporateExcel(options)
+    } else {
+      exportToCorporatePdf(options)
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Summary */}
@@ -51,14 +86,30 @@ export default function Attendance() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200">
-        <button onClick={() => setTab('today')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'today' ? 'border-[#202B75] text-[#202B75]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-          Today's Attendance
-        </button>
-        <button onClick={() => setTab('history')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'history' ? 'border-[#202B75] text-[#202B75]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-          Historical Records
-        </button>
+      {/* Tabs and Action Buttons */}
+      <div className="flex items-center justify-between border-b border-gray-200">
+        <div className="flex gap-2">
+          <button onClick={() => setTab('today')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'today' ? 'border-[#202B75] text-[#202B75]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            Today's Attendance
+          </button>
+          <button onClick={() => setTab('history')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'history' ? 'border-[#202B75] text-[#202B75]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            Historical Records
+          </button>
+        </div>
+        <div className="flex items-center gap-2 pb-2">
+          <button
+            onClick={() => handleExportAttendance('PDF')}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#202B75] text-white rounded-lg text-xs font-semibold hover:bg-[#161f56] transition-colors shadow-sm"
+          >
+            <Download size={13} /> Export Muster PDF
+          </button>
+          <button
+            onClick={() => handleExportAttendance('Excel')}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-semibold hover:bg-emerald-800 transition-colors shadow-sm"
+          >
+            <FileSpreadsheet size={13} /> Export Excel
+          </button>
+        </div>
       </div>
 
       {/* Table */}

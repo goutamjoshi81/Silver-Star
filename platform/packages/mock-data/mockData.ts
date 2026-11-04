@@ -5,6 +5,7 @@
 // ============================================================
 
 export * from './apiClient';
+export * from './exportUtils';
 import { api } from './apiClient';
 
 export interface Company {

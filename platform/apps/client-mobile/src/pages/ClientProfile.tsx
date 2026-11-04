@@ -1,4 +1,4 @@
-import { CLIENTS, CONTRACT_BILLINGS } from '@mock/mockData'
+import { CLIENTS, CONTRACT_BILLINGS, generateTaxInvoicePdf } from '@mock/mockData'
 import { Building2, Mail, Phone, MapPin, Receipt, ShieldCheck, LogOut, Download } from 'lucide-react'
 
 export default function ClientProfile({ onLogout }: { onLogout: () => void }) {
@@ -48,7 +48,19 @@ export default function ClientProfile({ onLogout }: { onLogout: () => void }) {
           </div>
 
           <button
-            onClick={() => alert(`Demo: Downloading monthly invoice for ${contract.contractNumber}`)}
+            onClick={() => {
+              if (contract) {
+                generateTaxInvoicePdf({
+                  invoiceNumber: `SS-INV-${contract.contractNumber.replace(/[^a-zA-Z0-9]/g, '')}`,
+                  invoiceDate: contract.lastInvoiceDate || new Date().toISOString().split('T')[0],
+                  dueDate: contract.endDate,
+                  clientName: client?.name || 'Infosys Tech Park',
+                  clientAddress: client?.address || 'Electronic City Phase 1, Bengaluru',
+                  subtotal: Number(contract.monthlyAmount) || 485000,
+                  serviceDescription: 'Integrated Facility Services, Physical Guarding & Corporate Housekeeping',
+                })
+              }
+            }}
             className="w-full mt-2 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors"
           >
             <Download size={13} /> Download Latest Tax Invoice

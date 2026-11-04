@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SITES, EMPLOYEES, ATTENDANCE_HISTORY, ATTENDANCE_TODAY } from '@mock/mockData'
+import { SITES, EMPLOYEES, ATTENDANCE_HISTORY, ATTENDANCE_TODAY, exportToCorporatePdf } from '@mock/mockData'
 import { Clock, ShieldCheck, CheckCircle2, AlertTriangle, Download } from 'lucide-react'
 
 export default function ClientAttendance() {
@@ -20,7 +20,31 @@ export default function ClientAttendance() {
           <p className="text-[11px] text-slate-500">Geo-verified punch-in & shift attendance logs</p>
         </div>
         <button
-          onClick={() => alert('Demo: Downloading Client Muster Roll Report (PDF)...')}
+          onClick={() => {
+            exportToCorporatePdf({
+              title: 'Client Facility Attendance Muster Roll',
+              subtitle: 'Daily geo-verified biometric punch-in attendance log for client audit',
+              category: 'CLIENT MUSTER RECORD',
+              kpis: [
+                { label: 'Total Punches', value: attendanceList.length },
+                { label: 'Present Staff', value: attendanceList.filter(a => a.status === 'Present').length },
+                { label: 'Geofence Verified', value: attendanceList.filter(a => a.gpsVerified).length },
+              ],
+              columns: [
+                { header: 'Sl No', key: 'sl_no', align: 'center' },
+                { header: 'Employee Code', key: 'employeeId', format: v => EMPLOYEES.find(e => e.id === v)?.employeeCode || v },
+                { header: 'Staff Name', key: 'employeeId', format: v => EMPLOYEES.find(e => e.id === v)?.name || 'Staff' },
+                { header: 'Facility / Site', key: 'siteId', format: v => SITES.find(s => s.id === v)?.name || v },
+                { header: 'Date', key: 'date', align: 'center' },
+                { header: 'Punch In', key: 'punchIn', align: 'center', format: v => v || '—' },
+                { header: 'Punch Out', key: 'punchOut', align: 'center', format: v => v || '—' },
+                { header: 'GPS Verification', key: 'gpsVerified', align: 'center', format: v => v ? 'Verified Geofence' : 'Standard' },
+                { header: 'Status', key: 'status', align: 'center' },
+              ],
+              data: attendanceList,
+              filename: `SilverStar_Client_Muster_${filterDate}_${new Date().toISOString().split('T')[0]}`,
+            })
+          }}
           className="flex items-center gap-1 bg-[#202B75] text-white text-[11px] px-2.5 py-1.5 rounded-lg font-medium hover:bg-[#161f56] transition-colors"
         >
           <Download size={12} /> Muster PDF

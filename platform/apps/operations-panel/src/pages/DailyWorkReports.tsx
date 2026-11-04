@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
-import { DAILY_WORK_REPORTS, SITES, CLIENTS, EMPLOYEES, api } from '@mock/mockData'
+import {
+  DAILY_WORK_REPORTS, SITES, CLIENTS, EMPLOYEES, api,
+  exportToCorporateExcel, exportToCorporatePdf, type CorporateExportOptions
+} from '@mock/mockData'
 import {
   FileText, CheckCircle, Clock, Plus, Download, FileSpreadsheet,
   Calendar, Filter, Building2, User, Eye, X, Check
@@ -67,8 +70,43 @@ export default function DailyWorkReports() {
 
   const handleExport = (format: 'PDF' | 'Excel') => {
     const filterDesc = dateFilter === 'all' ? 'All Dates' : dateFilter === 'specific' ? selectedDate : dateFilter
-    setExportNotice(`Generated ${format} Daily Work Report for ${filterDesc} (${filteredReports.length} records). Downloading...`)
-    setTimeout(() => setExportNotice(null), 4000)
+    const siteName = selectedSite === 'All' ? 'All Work Locations' : (sites.find(s => s.id === selectedSite)?.name || selectedSite)
+
+    const options: CorporateExportOptions = {
+      title: 'Operations Daily Work Reports (DWR) Shift Ledger',
+      subtitle: 'Field supervisor shift execution, task milestones, and materials/consumables logs',
+      category: 'OPERATIONS COMPLIANCE AUDIT',
+      filterSummary: {
+        'Date Scope': filterDesc,
+        'Site Scope': siteName,
+      },
+      kpis: [
+        { label: 'Total Shift Logs', value: filteredReports.length },
+        { label: 'Facilities Monitored', value: new Set(filteredReports.map(r => r.siteId)).size },
+        { label: 'Verification Status', value: '100% Operations Approved' },
+      ],
+      columns: [
+        { header: 'Sl No', key: 'sl_no', align: 'center' },
+        { header: 'Shift Date', key: 'date', align: 'center' },
+        { header: 'Client Facility / Site', key: 'siteId', format: v => sites.find(s => s.id === v)?.name || v },
+        { header: 'Reporting Supervisor', key: 'submittedBy', format: v => employees.find(e => e.id === v)?.name || v || 'Supervisor' },
+        { header: 'Operations Summary', key: 'summary' },
+        { header: 'Consumables & Materials Log', key: 'consumables' },
+        { header: 'Status', key: 'status', align: 'center' },
+      ],
+      data: filteredReports,
+      filename: `SilverStar_DWR_Log_${filterDesc.replace(/[^a-zA-Z0-9_\-]/g, '_')}_${new Date().toISOString().split('T')[0]}`,
+      notes: 'Shift tasks verified with client facility supervisor countersignature.',
+    }
+
+    if (format === 'Excel') {
+      exportToCorporateExcel(options)
+      setExportNotice(`Corporate Excel spreadsheet "${options.title}" generated and downloaded!`)
+    } else {
+      exportToCorporatePdf(options)
+      setExportNotice(`Corporate PDF report "${options.title}" generated in print preview!`)
+    }
+    setTimeout(() => setExportNotice(null), 5000)
   }
 
   const handleAddReport = async (e: React.FormEvent) => {

@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
-import { CONTRACT_BILLINGS, CLIENTS, api } from '@mock/mockData'
+import {
+  CONTRACT_BILLINGS, CLIENTS, api,
+  exportToCorporateExcel, generateTaxInvoicePdf
+} from '@mock/mockData'
 import {
   Receipt, CheckCircle2, Clock, AlertTriangle, FileText, Download,
   Upload, Plus, Building2, Calendar, FileSpreadsheet, X, Check
@@ -62,6 +65,53 @@ export default function OpsBilling() {
     setTimeout(() => setFeedback(null), 4500)
   }
 
+  const handleExportBillingLedger = () => {
+    const totalAnnual = contracts.reduce((sum, c) => sum + (Number(c.totalValue) || 0), 0)
+    const totalMonthly = contracts.reduce((sum, c) => sum + (Number(c.monthlyAmount) || 0), 0)
+
+    exportToCorporateExcel({
+      title: 'Operations Manpower Billing Ledger & Contracts Schedule',
+      subtitle: 'Facility contracts, shift deliverables, and GST tax invoice schedule',
+      category: 'OPERATIONS COMMERCIAL AUDIT',
+      kpis: [
+        { label: 'Managed Contracts', value: contracts.length },
+        { label: 'Monthly Billing Commitment', value: `₹${totalMonthly.toLocaleString('en-IN')}` },
+        { label: 'Gross Annual Contract Value', value: `₹${totalAnnual.toLocaleString('en-IN')}` },
+      ],
+      columns: [
+        { header: 'Sl No', key: 'sl_no', align: 'center' },
+        { header: 'Contract No', key: 'contractNumber' },
+        { header: 'Client Account', key: 'clientId', format: v => getClient(v)?.name || v },
+        { header: 'Monthly Value (INR)', key: 'monthlyAmount', align: 'right', format: v => `₹${Number(v).toLocaleString('en-IN')}` },
+        { header: 'Total Value (INR)', key: 'totalValue', align: 'right', format: v => `₹${Number(v).toLocaleString('en-IN')}` },
+        { header: 'Billing Cycle', key: 'billingFrequency', align: 'center' },
+        { header: 'Start Date', key: 'startDate', align: 'center' },
+        { header: 'End Date', key: 'endDate', align: 'center' },
+        { header: 'Contract Status', key: 'status', align: 'center' },
+        { header: 'Last Invoice Status', key: 'lastInvoiceStatus', align: 'center' },
+      ],
+      data: contracts,
+      filename: `SilverStar_Ops_Billing_Ledger_${new Date().toISOString().split('T')[0]}`,
+      notes: 'GST applicable at 18% under SAC Code 9985.',
+    })
+
+    setFeedback('Operations Billing Ledger exported and downloaded in Excel CSV format!')
+    setTimeout(() => setFeedback(null), 4000)
+  }
+
+  const handleDownloadInvoice = (contract: any) => {
+    const client = getClient(contract.clientId)
+    generateTaxInvoicePdf({
+      invoiceNumber: `SS-OPS-INV-${contract.contractNumber.replace(/[^a-zA-Z0-9]/g, '')}`,
+      invoiceDate: contract.lastInvoiceDate || new Date().toISOString().split('T')[0],
+      dueDate: contract.endDate,
+      clientName: client?.name || 'Corporate Enterprise Client',
+      clientAddress: client?.address || 'Bengaluru Corporate Park',
+      subtotal: Number(contract.monthlyAmount) || 0,
+      serviceDescription: `Integrated Facility Security & Electro-Mechanical Shift Coverage (${contract.contractNumber})`,
+    })
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -80,10 +130,7 @@ export default function OpsBilling() {
             <Upload size={14} className="text-[#26BCEE]" /> Upload GST Bill / Invoice
           </button>
           <button
-            onClick={() => {
-              setFeedback('Exporting unified billing ledger in Excel format...')
-              setTimeout(() => setFeedback(null), 3000)
-            }}
+            onClick={handleExportBillingLedger}
             className="flex items-center gap-1.5 px-3 py-2 bg-emerald-700 text-white rounded-lg text-xs font-semibold hover:bg-emerald-800 shadow-sm transition-all"
           >
             <FileSpreadsheet size={14} /> Export Billing Ledger
@@ -151,7 +198,7 @@ export default function OpsBilling() {
                   <span className="text-gray-600 font-medium">Status: <strong>{contract.lastInvoiceStatus}</strong></span>
                 </div>
                 <button
-                  onClick={() => alert(`Demo: Downloading GST-Compliant Tax Invoice for ${contract.contractNumber}`)}
+                  onClick={() => handleDownloadInvoice(contract)}
                   className="flex items-center gap-1 text-[11px] text-[#26BCEE] hover:underline font-bold"
                 >
                   <Download size={12} /> Tax Invoice PDF
@@ -196,7 +243,15 @@ export default function OpsBilling() {
                 <td className="px-4 py-3 font-bold text-[#202B75] text-sm">₹4,48,400</td>
                 <td className="px-4 py-3">
                   <button
-                    onClick={() => alert('Demo: Downloading GST Tax Invoice for InfoSys...')}
+                    onClick={() => {
+                      generateTaxInvoicePdf({
+                        invoiceNumber: 'SS-INV-INFOSYS-2026',
+                        clientName: 'InfoSys Tech Park',
+                        clientAddress: 'Hosur Road, Electronic City Phase 1, Bengaluru',
+                        subtotal: 380000,
+                        serviceDescription: 'Physical Security & Housekeeping Coverage (596 Delivered Shifts)',
+                      })
+                    }}
                     className="text-[#202B75] hover:underline font-bold flex items-center gap-1"
                   >
                     <Download size={12} /> Invoice
@@ -213,7 +268,15 @@ export default function OpsBilling() {
                 <td className="px-4 py-3 font-bold text-[#202B75] text-sm">₹2,42,844</td>
                 <td className="px-4 py-3">
                   <button
-                    onClick={() => alert('Demo: Downloading GST Tax Invoice for MedPlus...')}
+                    onClick={() => {
+                      generateTaxInvoicePdf({
+                        invoiceNumber: 'SS-INV-MEDPLUS-2026',
+                        clientName: 'MedPlus Pharma Campus',
+                        clientAddress: 'Main Campus, Peenya Industrial Area, Bengaluru',
+                        subtotal: 205800,
+                        serviceDescription: 'Corporate Security & Sanitization Services (288 Shifts)',
+                      })
+                    }}
                     className="text-[#202B75] hover:underline font-bold flex items-center gap-1"
                   >
                     <Download size={12} /> Invoice
@@ -230,7 +293,15 @@ export default function OpsBilling() {
                 <td className="px-4 py-3 font-bold text-[#202B75] text-sm">₹2,30,100</td>
                 <td className="px-4 py-3">
                   <button
-                    onClick={() => alert('Demo: Downloading GST Tax Invoice for DLF...')}
+                    onClick={() => {
+                      generateTaxInvoicePdf({
+                        invoiceNumber: 'SS-INV-DLF-2026',
+                        clientName: 'DLF Corporate Tower',
+                        clientAddress: 'Zone 1 Commercial Tower, MG Road, Bengaluru',
+                        subtotal: 195000,
+                        serviceDescription: 'BMS Electro-Mechanical & Facade Maintenance (180 Shifts)',
+                      })
+                    }}
                     className="text-[#202B75] hover:underline font-bold flex items-center gap-1"
                   >
                     <Download size={12} /> Invoice

@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
-import { CONTRACT_BILLINGS, CLIENTS, api } from '@mock/mockData'
+import {
+  CONTRACT_BILLINGS, CLIENTS, api,
+  exportToCorporateExcel, generateTaxInvoicePdf
+} from '@mock/mockData'
 import {
   Receipt, CheckCircle2, Clock, AlertTriangle, FileText, Download,
   Upload, Plus, Building2, Calendar, FileSpreadsheet, X, Check, ShieldCheck
@@ -48,6 +51,53 @@ export default function Billing() {
 
   const getClient = (clientId: string) => clients.find(c => c.id === clientId) || CLIENTS.find(c => c.id === clientId)
 
+  const handleExportBillingLedger = () => {
+    const totalAnnual = contracts.reduce((sum, c) => sum + (Number(c.totalValue) || 0), 0)
+    const totalMonthly = contracts.reduce((sum, c) => sum + (Number(c.monthlyAmount) || 0), 0)
+
+    exportToCorporateExcel({
+      title: 'Unified Corporate Client Billing Ledger & GST Schedule',
+      subtitle: 'Active facility management service contracts, monthly billing commitments, and GST invoice logs',
+      category: 'COMMERCIAL BILLING AUDIT',
+      kpis: [
+        { label: 'Active Contracts', value: contracts.length },
+        { label: 'Monthly Manpower Billing', value: `₹${totalMonthly.toLocaleString('en-IN')}` },
+        { label: 'Total Annual Contract Value', value: `₹${totalAnnual.toLocaleString('en-IN')}` },
+      ],
+      columns: [
+        { header: 'Sl No', key: 'sl_no', align: 'center' },
+        { header: 'Contract Number', key: 'contractNumber' },
+        { header: 'Client Account', key: 'clientId', format: v => getClient(v)?.name || v },
+        { header: 'Monthly Billing (INR)', key: 'monthlyAmount', align: 'right', format: v => `₹${Number(v).toLocaleString('en-IN')}` },
+        { header: 'Total Value (INR)', key: 'totalValue', align: 'right', format: v => `₹${Number(v).toLocaleString('en-IN')}` },
+        { header: 'Frequency', key: 'billingFrequency', align: 'center' },
+        { header: 'Start Date', key: 'startDate', align: 'center' },
+        { header: 'End Date', key: 'endDate', align: 'center' },
+        { header: 'Contract Status', key: 'status', align: 'center' },
+        { header: 'Last Invoice Status', key: 'lastInvoiceStatus', align: 'center' },
+      ],
+      data: contracts,
+      filename: `SilverStar_Billing_Ledger_${new Date().toISOString().split('T')[0]}`,
+      notes: 'GST applicable at 18% (CGST 9% + SGST 9%) under SAC Code 99853.',
+    })
+
+    setFeedback('Corporate Billing Ledger exported and downloaded in Excel CSV format!')
+    setTimeout(() => setFeedback(null), 4000)
+  }
+
+  const handleDownloadInvoice = (contract: any) => {
+    const client = getClient(contract.clientId)
+    generateTaxInvoicePdf({
+      invoiceNumber: `SS-INV-${contract.contractNumber.replace(/[^a-zA-Z0-9]/g, '')}`,
+      invoiceDate: contract.lastInvoiceDate || new Date().toISOString().split('T')[0],
+      dueDate: contract.endDate,
+      clientName: client?.name || 'Corporate Enterprise Client',
+      clientAddress: client?.address || 'Corporate Facility Campus, Bengaluru',
+      subtotal: Number(contract.monthlyAmount) || 0,
+      serviceDescription: `Integrated Facility Management, Security & Housekeeping Services - ${contract.contractNumber}`,
+    })
+  }
+
   const handleUploadGST = async (e: React.FormEvent) => {
     e.preventDefault()
     const client = getClient(selectedClient)
@@ -90,10 +140,7 @@ export default function Billing() {
             <Upload size={14} className="text-[#26BCEE]" /> Upload GST Bill
           </button>
           <button
-            onClick={() => {
-              setFeedback('Exporting unified GST & attendance billing ledger to Excel...')
-              setTimeout(() => setFeedback(null), 3000)
-            }}
+            onClick={handleExportBillingLedger}
             className="flex items-center gap-1.5 px-3 py-2 bg-emerald-700 text-white rounded-lg text-xs font-semibold hover:bg-emerald-800 shadow-sm transition-all"
           >
             <FileSpreadsheet size={14} /> Export Billing Ledger
@@ -161,7 +208,7 @@ export default function Billing() {
                   <span className="text-gray-600 font-medium">Last Invoice: <strong>{contract.lastInvoiceStatus}</strong></span>
                 </div>
                 <button
-                  onClick={() => alert(`Demo: Downloading Tax Invoice PDF for ${contract.contractNumber}`)}
+                  onClick={() => handleDownloadInvoice(contract)}
                   className="flex items-center gap-1 text-[11px] text-[#26BCEE] hover:underline font-bold"
                 >
                   <Download size={12} /> Tax Invoice PDF
@@ -234,7 +281,17 @@ export default function Billing() {
                     </td>
                     <td className="px-4 py-3">
                       <button
-                        onClick={() => alert(`Demo: Downloading verified GST e-invoice for ${bill.invoiceNo}`)}
+                        onClick={() => {
+                          const client = getClient(bill.clientId)
+                          generateTaxInvoicePdf({
+                            invoiceNumber: bill.invoiceNo,
+                            invoiceDate: bill.date,
+                            clientName: client?.name || 'Corporate Client',
+                            clientAddress: client?.address || 'Bengaluru Facility',
+                            subtotal: Number(bill.subtotal) || 350000,
+                            serviceDescription: 'Physical Security & Facility Maintenance Services (GST Compliance)',
+                          })
+                        }}
                         className="text-[#202B75] hover:underline font-bold flex items-center gap-1 text-[11px]"
                       >
                         <Download size={12} /> GST PDF
