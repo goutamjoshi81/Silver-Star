@@ -49,6 +49,8 @@ export const api = {
     }),
   getUsers: () => request<any[]>('/auth/users'),
   createUser: (data: any) => request<any>('/auth/users', { method: 'POST', body: JSON.stringify(data) }),
+  updateUser: (id: string, data: any) => request<any>(`/auth/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteUser: (id: string) => request<any>(`/auth/users/${id}`, { method: 'DELETE' }),
 
   // Employees & Onboarding
   getEmployees: (params?: { departmentId?: string; status?: string; onboardingStatus?: string; search?: string }) => {
