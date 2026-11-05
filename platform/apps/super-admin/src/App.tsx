@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import Login from './pages/Login'
 import Layout from './components/Layout'
@@ -16,9 +16,28 @@ import Billing from './pages/Billing'
 import UserRoles from './pages/UserRoles'
 import Notifications from './pages/Notifications'
 import Settings from './pages/Settings'
+import EmployeeVerificationPage from './pages/EmployeeVerificationPage'
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const location = useLocation()
+
+  // Allow public access to employee verification pages without login
+  const isPublicVerification =
+    location.pathname.startsWith('/verify') ||
+    location.pathname.startsWith('/emp');
+
+  if (isPublicVerification) {
+    return (
+      <Routes>
+        <Route path="/verify/:id" element={<EmployeeVerificationPage />} />
+        <Route path="/verify" element={<EmployeeVerificationPage />} />
+        <Route path="/emp/:id" element={<EmployeeVerificationPage />} />
+        <Route path="/emp" element={<EmployeeVerificationPage />} />
+        <Route path="*" element={<EmployeeVerificationPage />} />
+      </Routes>
+    )
+  }
 
   if (!isAuthenticated) {
     return <Login onLogin={() => setIsAuthenticated(true)} />
@@ -42,6 +61,8 @@ export default function App() {
         <Route path="/user-roles" element={<UserRoles />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/verify/:id" element={<EmployeeVerificationPage />} />
+        <Route path="/emp/:id" element={<EmployeeVerificationPage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Layout>

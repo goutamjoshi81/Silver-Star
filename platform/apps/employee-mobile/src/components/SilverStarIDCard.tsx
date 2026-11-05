@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { QrCode, RotateCw, Download, Phone } from 'lucide-react'
-import { COMPANY } from '@mock/mockData'
+import { useState, useEffect } from 'react'
+import { RotateCw, Download, Phone, ExternalLink } from 'lucide-react'
+import { COMPANY, generateQrCodeDataUrl, getEmployeeVerificationUrl, downloadVCard } from '@mock/mockData'
 
 interface IDCardProps {
   name?: string
@@ -22,6 +22,36 @@ export default function SilverStarIDCard({
   initialSide = 'front'
 }: IDCardProps) {
   const [side, setSide] = useState<'front' | 'back'>(initialSide)
+  const [qrDataUrl, setQrDataUrl] = useState<string>('')
+
+  const verificationUrl = getEmployeeVerificationUrl(employeeCode || 'SS-10001')
+
+  useEffect(() => {
+    let active = true
+    generateQrCodeDataUrl(verificationUrl, {
+      width: 240,
+      margin: 1,
+      color: {
+        dark: '#1A2B79',
+        light: '#FFFFFF'
+      }
+    })
+      .then(url => {
+        if (active) setQrDataUrl(url)
+      })
+      .catch(err => console.error('Failed to generate verification QR code:', err))
+
+    return () => { active = false }
+  }, [verificationUrl])
+
+  const handleDownloadVCard = () => {
+    downloadVCard({
+      name,
+      phone: phone1,
+      designation,
+      employeeCode
+    })
+  }
 
   return (
     <div className="flex flex-col items-center gap-3 select-none">
@@ -94,12 +124,37 @@ export default function SilverStarIDCard({
         ) : (
           <div className="h-full flex flex-col justify-between py-1">
             <div className="flex items-start justify-between pt-1">
-              <span className="text-[8px] font-medium text-slate-400 [writing-mode:vertical-lr] rotate-180 self-center">
-                Scan & click Add to Contact
-              </span>
-              <div className="w-20 h-20 bg-white p-1 border border-slate-200 rounded-xl shadow-sm flex items-center justify-center">
-                <QrCode size={72} className="text-slate-900" />
-              </div>
+              <button
+                type="button"
+                onClick={handleDownloadVCard}
+                className="text-[8px] font-medium text-slate-500 hover:text-[#1A2B79] [writing-mode:vertical-lr] rotate-180 self-center cursor-pointer p-0.5"
+                title="Click to Save Contact (.vcf)"
+              >
+                Scan or Click to Add Contact
+              </button>
+
+              <a
+                href={verificationUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="w-20 h-20 bg-white p-1 border-2 border-slate-200 hover:border-[#1A2B79] rounded-xl shadow-sm flex items-center justify-center relative group transition-all"
+                title="Scan with phone or click to verify online"
+              >
+                {qrDataUrl ? (
+                  <img
+                    src={qrDataUrl}
+                    alt={`QR Verification code for ${employeeCode}`}
+                    className="w-full h-full object-contain rounded-lg"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-slate-100 rounded-lg flex items-center justify-center text-[8px] text-slate-400 font-mono">
+                    Generating...
+                  </div>
+                )}
+                <div className="absolute -bottom-1 -right-1 bg-[#1A2B79] text-white p-0.5 rounded-full shadow-sm text-[7px]">
+                  <ExternalLink size={8} />
+                </div>
+              </a>
             </div>
 
             <div className="space-y-2 py-1">
@@ -143,7 +198,23 @@ export default function SilverStarIDCard({
           </div>
         )}
       </div>
+
+      <div className="flex gap-2">
+        <a
+          href={verificationUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
+        >
+          <ExternalLink size={12} /> Verify Online
+        </a>
+        <button
+          onClick={handleDownloadVCard}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#26BCEE] hover:bg-[#1ea8d6] text-slate-900 rounded-lg text-xs font-semibold shadow-sm transition-colors"
+        >
+          <Download size={12} /> Save vCard
+        </button>
+      </div>
     </div>
   )
 }
-

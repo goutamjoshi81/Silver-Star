@@ -6,6 +6,7 @@
 
 export * from './apiClient';
 export * from './exportUtils';
+export * from './qrUtils';
 import { api } from './apiClient';
 
 export interface Company {

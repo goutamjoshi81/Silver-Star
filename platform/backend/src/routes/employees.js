@@ -88,9 +88,48 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET single employee
+// GET single employee by ID or Employee Code (Public & Authenticated)
 router.get('/:id', async (req, res) => {
   try {
+    const rawId = req.params.id;
+
+    // Special case for Founder & CEO credential
+    if (rawId === 'SS-FOUNDER-01' || rawId.toLowerCase() === 'founder') {
+      return res.json({
+        id: 'EMP-FOUNDER',
+        employeeCode: 'SS-FOUNDER-01',
+        name: 'Ashok Majjige',
+        photo: 'https://silverstarindia.net/wp-content/uploads/2024/08/sitelogo.png',
+        dob: '1978-04-12',
+        gender: 'Male',
+        maritalStatus: 'Married',
+        bloodGroup: 'O+',
+        phone: '+91 9620000494',
+        email: 'info@silverstarindia.net',
+        address: 'Electronic City Phase II, Bangalore - 560100',
+        emergencyContact: { name: 'Corporate Office', relation: 'HQ Desk', phone: '+91 80 4123 4567' },
+        departmentId: 'DEP005',
+        designationId: 'DES-EXEC',
+        employmentType: 'Permanent',
+        joiningDate: '2014-06-01',
+        onboardingStatus: 'Approved',
+        kycStatus: 'Verified',
+        kycMethod: 'Ministry of Corporate Affairs Verified (DIN/CIN)',
+        deployedSiteId: null,
+        deployedClientId: null,
+        branchId: 'BR001',
+        status: 'Active',
+        bankName: 'State Bank of India',
+        accountNumber: '389201948210',
+        ifsc: 'SBIN0004123',
+        pfNumber: 'KN/BNG/0075123/001',
+        departmentName: 'Executive Directorate',
+        designationName: 'CEO & Founder',
+        siteName: 'Silver Star Corporate HQ',
+        clientName: 'Silver Star Facility Management Pvt. Ltd.',
+      });
+    }
+
     const { rows } = await query(
       `SELECT e.*, d.name as dept_name, des.name as desig_name, s.name as site_name, c.name as client_name
        FROM employees e
@@ -98,8 +137,8 @@ router.get('/:id', async (req, res) => {
        LEFT JOIN designations des ON e.designation_id = des.id
        LEFT JOIN sites s ON e.deployed_site_id = s.id
        LEFT JOIN clients c ON e.deployed_client_id = c.id
-       WHERE e.id = $1`,
-      [req.params.id]
+       WHERE e.id = $1 OR e.employee_code ILIKE $1`,
+      [rawId]
     );
 
     if (rows.length === 0) {

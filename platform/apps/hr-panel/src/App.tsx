@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import Login from './pages/Login'
 import Layout from './components/Layout'
@@ -10,9 +10,28 @@ import DocumentReview from './pages/DocumentReview'
 import EmployeeDirectory from './pages/EmployeeDirectory'
 import IDCardGeneration from './pages/IDCardGeneration'
 import HRReports from './pages/HRReports'
+import EmployeeVerificationPage from './pages/EmployeeVerificationPage'
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const location = useLocation()
+
+  // Allow public access to employee verification pages without login
+  const isPublicVerification =
+    location.pathname.startsWith('/verify') ||
+    location.pathname.startsWith('/emp');
+
+  if (isPublicVerification) {
+    return (
+      <Routes>
+        <Route path="/verify/:id" element={<EmployeeVerificationPage />} />
+        <Route path="/verify" element={<EmployeeVerificationPage />} />
+        <Route path="/emp/:id" element={<EmployeeVerificationPage />} />
+        <Route path="/emp" element={<EmployeeVerificationPage />} />
+        <Route path="*" element={<EmployeeVerificationPage />} />
+      </Routes>
+    )
+  }
 
   if (!isAuthenticated) {
     return <Login onLogin={() => setIsAuthenticated(true)} />
@@ -30,6 +49,8 @@ export default function App() {
         <Route path="/employees" element={<EmployeeDirectory />} />
         <Route path="/idcards" element={<IDCardGeneration />} />
         <Route path="/reports" element={<HRReports />} />
+        <Route path="/verify/:id" element={<EmployeeVerificationPage />} />
+        <Route path="/emp/:id" element={<EmployeeVerificationPage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Layout>

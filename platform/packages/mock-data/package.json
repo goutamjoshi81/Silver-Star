@@ -5,6 +5,8 @@
   "types": "mockData.ts",
   "private": true,
   "dependencies": {
+    "@types/qrcode": "^1.5.6",
+    "qrcode": "^1.5.4",
     "xlsx": "^0.18.5"
   }
 }
