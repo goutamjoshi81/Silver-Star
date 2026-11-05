@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import {
   api,
   downloadClientTemplate,
-  parseCsvText,
+  downloadClientExcelTemplate,
+  parseSpreadsheetFile,
   mapClientCsvRows,
   exportToCorporateExcel,
   exportToCorporatePdf,
@@ -114,24 +115,21 @@ export default function OpsClients() {
     }
   }
 
-  // Handle CSV file selection for Bulk Upload
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle Spreadsheet (Excel .xlsx / CSV) file selection for Bulk Upload
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
     setBulkFile(file)
     setBulkResult(null)
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const text = event.target?.result as string
-      if (text) {
-        const { rows } = parseCsvText(text)
-        const mapped = mapClientCsvRows(rows)
-        setParsedRows(mapped)
-      }
+    try {
+      const { rows } = await parseSpreadsheetFile(file)
+      const mapped = mapClientCsvRows(rows)
+      setParsedRows(mapped)
+    } catch (err: any) {
+      alert(`Failed to parse file: ${err.message}`)
     }
-    reader.readAsText(file)
   }
 
   // Submit Bulk Upload
@@ -273,6 +271,66 @@ export default function OpsClients() {
         </div>
       </div>
 
+      {/* Enterprise Excel Bulk Onboarding Banner */}
+      <div className="bg-gradient-to-r from-[#202B75] via-[#1a2360] to-[#0f172a] rounded-2xl p-5 text-white shadow-md border border-[#202B75]/30 relative overflow-hidden">
+        <div className="absolute right-0 top-0 translate-x-8 -translate-y-6 w-56 h-56 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 relative z-10">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[11px] font-semibold tracking-wide">
+              <FileSpreadsheet size={13} className="text-emerald-400" />
+              <span>CORPORATE EXCEL TEMPLATE & BULK ONBOARDING ENGINE</span>
+            </div>
+            <h2 className="text-lg font-bold text-white tracking-tight">
+              Multi-Sheet Excel Template & Batch Client Provisioning
+            </h2>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Download the verified corporate Excel template with embedded validation guidelines and sample accounts. Import both native <span className="text-emerald-300 font-mono font-semibold">.xlsx</span> and <span className="text-emerald-300 font-mono font-semibold">.csv</span> workbooks directly into the live PostgreSQL database.
+            </p>
+            <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[10px] text-slate-300 font-mono">
+              <span className="text-slate-400">Supported Columns:</span>
+              <span className="px-1.5 py-0.5 rounded bg-white/10 text-white font-medium">Company Name *</span>
+              <span className="px-1.5 py-0.5 rounded bg-white/10 text-white font-medium">Contact Person *</span>
+              <span className="px-1.5 py-0.5 rounded bg-white/10 text-white font-medium">Email *</span>
+              <span className="px-1.5 py-0.5 rounded bg-white/10 text-white font-medium">Phone *</span>
+              <span className="px-1.5 py-0.5 rounded bg-white/10 text-white font-medium">Monthly Billing *</span>
+              <span className="px-1.5 py-0.5 rounded bg-white/10 text-white font-medium">Services</span>
+              <span className="px-1.5 py-0.5 rounded bg-white/10 text-white font-medium">Contract Dates</span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full lg:w-auto">
+            <button
+              onClick={() => downloadClientExcelTemplate()}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg transition-all transform active:scale-95 cursor-pointer"
+            >
+              <FileSpreadsheet size={16} />
+              <span>Download Excel (.xlsx)</span>
+            </button>
+
+            <button
+              onClick={() => downloadClientTemplate()}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold rounded-xl transition-all cursor-pointer"
+            >
+              <Download size={15} />
+              <span>Download CSV</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setBulkFile(null)
+                setParsedRows([])
+                setBulkResult(null)
+                setShowBulkModal(true)
+              }}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#26BCEE] hover:bg-[#1fa8d6] text-white text-xs font-bold rounded-xl shadow-lg transition-all transform active:scale-95 cursor-pointer"
+            >
+              <Upload size={15} />
+              <span>Upload Spreadsheet</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Action Controls & Filters */}
       <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
         <div className="flex flex-1 flex-col sm:flex-row gap-2">
@@ -306,11 +364,11 @@ export default function OpsClients() {
         {/* Buttons: Download Template, Bulk Upload, Add Client, Export */}
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => downloadClientTemplate()}
-            title="Download Bulk Upload Excel/CSV Template"
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors"
+            onClick={() => downloadClientExcelTemplate()}
+            title="Download Corporate Excel Template (.xlsx)"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors cursor-pointer"
           >
-            <Download size={14} /> Download Template
+            <FileSpreadsheet size={14} className="text-emerald-600" /> Excel Template (.xlsx)
           </button>
 
           <button
@@ -320,14 +378,14 @@ export default function OpsClients() {
               setBulkResult(null)
               setShowBulkModal(true)
             }}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#202B75] bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#202B75] bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors cursor-pointer"
           >
-            <Upload size={14} /> Bulk Upload Clients
+            <Upload size={14} /> Bulk Upload
           </button>
 
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#202B75] hover:bg-[#182159] rounded-lg shadow-sm transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#202B75] hover:bg-[#182159] rounded-lg shadow-sm transition-colors cursor-pointer"
           >
             <Plus size={14} /> Add Client
           </button>
@@ -664,34 +722,50 @@ export default function OpsClients() {
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-              {/* Step 1: Download Template */}
-              <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              {/* Step 1: Download Proper Excel / CSV Template */}
+              <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800">
-                    <FileSpreadsheet size={16} /> <span>Step 1: Download Standard Template</span>
+                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-900">
+                    <FileSpreadsheet size={16} className="text-emerald-700" />
+                    <span>Step 1: Download Pre-Formatted Template</span>
                   </div>
                   <p className="text-[11px] text-emerald-700">
-                    Use our verified template with predefined matching columns for seamless import into PostgreSQL.
+                    Choose between a styled multi-sheet Microsoft Excel workbook (<span className="font-mono font-semibold">.xlsx</span>) or lightweight (<span className="font-mono font-semibold">.csv</span>).
                   </p>
-                  <p className="text-[10px] text-emerald-600 font-mono">
-                    Columns: Company Name, Contact Person, Email, Phone, Address, Monthly Billing (INR), Services Provided, Contract Start, Contract End, Status
-                  </p>
+                  <div className="flex flex-wrap gap-1 text-[10px] text-emerald-800 pt-1">
+                    <span className="bg-emerald-100/70 px-1.5 py-0.5 rounded border border-emerald-300/40">Company Name *</span>
+                    <span className="bg-emerald-100/70 px-1.5 py-0.5 rounded border border-emerald-300/40">Contact Person *</span>
+                    <span className="bg-emerald-100/70 px-1.5 py-0.5 rounded border border-emerald-300/40">Email *</span>
+                    <span className="bg-emerald-100/70 px-1.5 py-0.5 rounded border border-emerald-300/40">Phone *</span>
+                    <span className="bg-emerald-100/70 px-1.5 py-0.5 rounded border border-emerald-300/40">Monthly Billing *</span>
+                    <span className="bg-emerald-100/70 px-1.5 py-0.5 rounded border border-emerald-300/40">Services</span>
+                    <span className="bg-emerald-100/70 px-1.5 py-0.5 rounded border border-emerald-300/40">Dates & Status</span>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => downloadClientTemplate()}
-                  className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs flex-shrink-0"
-                >
-                  <Download size={14} /> Download Template
-                </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => downloadClientExcelTemplate()}
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg shadow-sm cursor-pointer"
+                  >
+                    <FileSpreadsheet size={14} /> Excel (.xlsx)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => downloadClientTemplate()}
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-emerald-800 bg-white hover:bg-emerald-100 border border-emerald-300 rounded-lg cursor-pointer"
+                  >
+                    <Download size={14} /> CSV (.csv)
+                  </button>
+                </div>
               </div>
 
-              {/* Step 2: Upload CSV */}
+              {/* Step 2: Upload Excel / CSV */}
               <div className="border-2 border-dashed border-gray-300 hover:border-[#202B75] rounded-xl p-6 text-center transition-colors bg-gray-50/50">
                 <input
                   type="file"
                   id="clientBulkInput"
-                  accept=".csv,text/csv"
+                  accept=".csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
                   onChange={handleFileChange}
                   className="hidden"
                 />
@@ -700,13 +774,13 @@ export default function OpsClients() {
                     <Upload size={22} />
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-[#202B75] hover:underline">Click to browse</span>
-                    <span className="text-xs text-gray-500"> or drag and drop your completed CSV file</span>
+                    <span className="text-xs font-bold text-[#202B75] hover:underline">Click to browse file</span>
+                    <span className="text-xs text-gray-500"> or drag and drop your completed spreadsheet</span>
                   </div>
-                  <p className="text-[11px] text-gray-400">Accepted format: .csv (UTF-8)</p>
+                  <p className="text-[11px] text-gray-400">Supported formats: Microsoft Excel (.xlsx, .xls) and CSV (.csv)</p>
                   {bulkFile && (
-                    <div className="inline-flex items-center gap-2 mt-2 px-3 py-1 bg-blue-50 text-[#202B75] rounded-full text-xs font-medium border border-blue-200">
-                      <FileSpreadsheet size={14} />
+                    <div className="inline-flex items-center gap-2 mt-2 px-3 py-1 bg-emerald-50 text-emerald-800 rounded-full text-xs font-medium border border-emerald-200">
+                      <FileSpreadsheet size={14} className="text-emerald-600" />
                       <span>{bulkFile.name} ({(bulkFile.size / 1024).toFixed(1)} KB)</span>
                     </div>
                   )}
@@ -811,3 +885,4 @@ export default function OpsClients() {
     </div>
   )
 }
+

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { DEPARTMENTS, DESIGNATIONS, SITES, CLIENTS, api, downloadEmployeeTemplate, parseCsvText, mapEmployeeCsvRows } from '@mock/mockData'
+import { DEPARTMENTS, DESIGNATIONS, SITES, CLIENTS, api, downloadEmployeeTemplate, downloadEmployeeExcelTemplate, parseSpreadsheetFile, mapEmployeeCsvRows } from '@mock/mockData'
 import { Search, Eye, Edit2, Filter, X, User, Phone, Mail, MapPin, Briefcase, Trash2, Upload, Download, FileSpreadsheet, CheckCircle2, AlertCircle } from 'lucide-react'
 
 export default function Employees() {
@@ -17,23 +17,20 @@ export default function Employees() {
   const [bulkUploading, setBulkUploading] = useState(false)
   const [bulkResult, setBulkResult] = useState<{ success: boolean; count: number; message: string } | null>(null)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
     setBulkFile(file)
     setBulkResult(null)
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const text = event.target?.result as string
-      if (text) {
-        const { rows } = parseCsvText(text)
-        const mapped = mapEmployeeCsvRows(rows)
-        setParsedRows(mapped)
-      }
+    try {
+      const { rows } = await parseSpreadsheetFile(file)
+      const mapped = mapEmployeeCsvRows(rows)
+      setParsedRows(mapped)
+    } catch (err: any) {
+      alert(`Failed to parse file: ${err.message}`)
     }
-    reader.readAsText(file)
   }
 
   const handleConfirmBulkUpload = async () => {
@@ -118,10 +115,16 @@ export default function Employees() {
             <option value="On Leave">On Leave</option>
           </select>
           <button
-            onClick={() => downloadEmployeeTemplate()}
-            className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-3 py-2 rounded-lg hover:bg-emerald-100 transition-colors font-medium"
+            onClick={() => downloadEmployeeExcelTemplate()}
+            className="flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs px-3 py-2 rounded-lg hover:bg-emerald-100 transition-colors font-medium cursor-pointer"
           >
-            <Download size={14} /> Download Template
+            <FileSpreadsheet size={14} className="text-emerald-600" /> Excel Template (.xlsx)
+          </button>
+          <button
+            onClick={() => downloadEmployeeTemplate()}
+            className="flex items-center gap-1.5 bg-gray-50 text-gray-700 border border-gray-200 text-xs px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors font-medium cursor-pointer"
+          >
+            <Download size={14} /> CSV Template
           </button>
           <button
             onClick={() => {
@@ -130,7 +133,7 @@ export default function Employees() {
               setBulkResult(null)
               setShowBulkModal(true)
             }}
-            className="flex items-center gap-1.5 bg-[#202B75] text-white text-xs px-3.5 py-2 rounded-lg hover:bg-[#161f56] transition-colors font-medium shadow-sm"
+            className="flex items-center gap-1.5 bg-[#202B75] text-white text-xs px-3.5 py-2 rounded-lg hover:bg-[#161f56] transition-colors font-medium shadow-sm cursor-pointer"
           >
             <Upload size={14} /> Bulk Upload Staff
           </button>
@@ -294,24 +297,33 @@ export default function Employees() {
               <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800">
-                    <FileSpreadsheet size={16} /> <span>Download Employee Template</span>
+                    <FileSpreadsheet size={16} /> <span>Download Staff Bulk Template</span>
                   </div>
-                  <p className="text-[11px] text-emerald-700">Pre-formatted CSV template with exact column names.</p>
+                  <p className="text-[11px] text-emerald-700">Pre-formatted templates with exact column names and master data reference.</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => downloadEmployeeTemplate()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs"
-                >
-                  <Download size={14} /> Download Template
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => downloadEmployeeExcelTemplate()}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg shadow-xs cursor-pointer"
+                  >
+                    <FileSpreadsheet size={14} /> Excel (.xlsx)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => downloadEmployeeTemplate()}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-800 bg-white hover:bg-emerald-100 border border-emerald-300 rounded-lg cursor-pointer"
+                  >
+                    <Download size={14} /> CSV (.csv)
+                  </button>
+                </div>
               </div>
 
               <div className="border-2 border-dashed border-gray-300 hover:border-[#202B75] rounded-xl p-5 text-center transition-colors bg-gray-50/50">
                 <input
                   type="file"
                   id="saEmpBulkInput"
-                  accept=".csv,text/csv"
+                  accept=".csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
                   onChange={handleFileChange}
                   className="hidden"
                 />
@@ -320,12 +332,12 @@ export default function Employees() {
                     <Upload size={18} />
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-[#202B75] hover:underline">Choose CSV File</span>
+                    <span className="text-xs font-bold text-[#202B75] hover:underline">Choose Excel or CSV File</span>
                     <span className="text-xs text-gray-500"> or drag and drop</span>
                   </div>
                   {bulkFile && (
-                    <div className="inline-flex items-center gap-2 mt-2 px-3 py-1 bg-blue-50 text-[#202B75] rounded-full text-xs font-medium border border-blue-200">
-                      <FileSpreadsheet size={14} />
+                    <div className="inline-flex items-center gap-2 mt-2 px-3 py-1 bg-emerald-50 text-emerald-800 rounded-full text-xs font-medium border border-emerald-200">
+                      <FileSpreadsheet size={14} className="text-emerald-600" />
                       <span>{bulkFile.name}</span>
                     </div>
                   )}
