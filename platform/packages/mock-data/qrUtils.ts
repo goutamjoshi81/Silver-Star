@@ -90,3 +90,4 @@ export function downloadVCard(emp: {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+

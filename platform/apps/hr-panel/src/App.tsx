@@ -12,23 +12,45 @@ import IDCardGeneration from './pages/IDCardGeneration'
 import HRReports from './pages/HRReports'
 import EmployeeVerificationPage from './pages/EmployeeVerificationPage'
 
+const KNOWN_APP_ROUTES = [
+  '/dashboard',
+  '/onboarding',
+  '/kyc',
+  '/documents',
+  '/employees',
+  '/idcards',
+  '/reports',
+]
+
+function isEmployeeVerificationPath(pathname: string): boolean {
+  const lower = pathname.toLowerCase()
+  // Never intercept standard application routes
+  if (KNOWN_APP_ROUTES.some(route => lower === route || lower.startsWith(route + '/'))) {
+    return false
+  }
+
+  // Explicit verification paths: /verify/:id or /emp/:id
+  if (lower.startsWith('/verify/') || lower === '/verify') return true
+  if (lower.startsWith('/emp/')) return true
+
+  // Direct badge ID path (e.g. /SS-10001, /SS-90001, /SS-FOUNDER-01)
+  if (/^\/ss-[a-z0-9_-]+$/i.test(pathname)) return true
+
+  return false
+}
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const location = useLocation()
 
   // Allow public access to employee verification pages without login
-  const isPublicVerification =
-    location.pathname.startsWith('/verify') ||
-    location.pathname.startsWith('/emp');
-
-  if (isPublicVerification) {
+  if (isEmployeeVerificationPath(location.pathname)) {
     return (
       <Routes>
         <Route path="/verify/:id" element={<EmployeeVerificationPage />} />
         <Route path="/verify" element={<EmployeeVerificationPage />} />
         <Route path="/emp/:id" element={<EmployeeVerificationPage />} />
-        <Route path="/emp" element={<EmployeeVerificationPage />} />
-        <Route path="*" element={<EmployeeVerificationPage />} />
+        <Route path="/:id" element={<EmployeeVerificationPage />} />
       </Routes>
     )
   }
