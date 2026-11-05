@@ -210,6 +210,158 @@ router.post('/', async (req, res) => {
   }
 });
 
+// POST bulk upload employees
+router.post('/bulk', async (req, res) => {
+  try {
+    const rawEmployees = Array.isArray(req.body) ? req.body : (req.body.employees || []);
+    if (!rawEmployees || rawEmployees.length === 0) {
+      return res.status(400).json({ error: 'No employee records provided for bulk upload.' });
+    }
+
+    // Pre-fetch departments and designations for flexible name-to-id resolution
+    const deptRes = await query('SELECT id, name, code FROM departments');
+    const desigRes = await query('SELECT id, name, department_id FROM designations');
+    const departments = deptRes.rows;
+    const designations = desigRes.rows;
+
+    const inserted = [];
+    const errors = [];
+
+    // Current employee count for generating sequential codes
+    const countRes = await query('SELECT COUNT(*) FROM employees');
+    let runningCount = parseInt(countRes.rows[0].count, 10) + 10001;
+
+    for (let i = 0; i < rawEmployees.length; i++) {
+      const b = rawEmployees[i];
+      const name = b.name || b.fullName || b.employeeName;
+
+      if (!name || String(name).trim().length === 0) {
+        errors.push({ row: i + 1, error: 'Full Name is required.' });
+        continue;
+      }
+
+      try {
+        const id = b.id || `EMP${Date.now().toString().slice(-6)}${Math.floor(10 + Math.random() * 90)}`;
+
+        // Resolve Department
+        let deptId = b.departmentId;
+        const deptInput = String(b.department || b.dept || b.departmentId || '').trim().toLowerCase();
+        if (deptInput) {
+          const match = departments.find(d => 
+            d.id.toLowerCase() === deptInput || 
+            d.name.toLowerCase() === deptInput || 
+            d.code.toLowerCase() === deptInput ||
+            d.name.toLowerCase().includes(deptInput) ||
+            deptInput.includes(d.name.toLowerCase())
+          );
+          if (match) deptId = match.id;
+        }
+        if (!deptId && departments.length > 0) {
+          deptId = departments[0].id;
+        }
+
+        // Resolve Designation
+        let desigId = b.designationId;
+        const desigInput = String(b.designation || b.role || b.designationId || '').trim().toLowerCase();
+        if (desigInput) {
+          const match = designations.find(d => 
+            d.id.toLowerCase() === desigInput || 
+            d.name.toLowerCase() === desigInput ||
+            d.name.toLowerCase().includes(desigInput) ||
+            desigInput.includes(d.name.toLowerCase())
+          );
+          if (match) desigId = match.id;
+        }
+        if (!desigId && designations.length > 0) {
+          const deptDesig = designations.find(d => d.department_id === deptId);
+          desigId = deptDesig ? deptDesig.id : designations[0].id;
+        }
+
+        // Resolve Employee Code
+        let employeeCode = b.employeeCode || b.empCode;
+        if (employeeCode) {
+          const codeCheck = await query('SELECT id FROM employees WHERE employee_code = $1', [employeeCode]);
+          if (codeCheck.rows.length > 0) {
+            runningCount++;
+            employeeCode = `SS-${runningCount}`;
+          }
+        } else {
+          runningCount++;
+          employeeCode = `SS-${runningCount}`;
+        }
+
+        const sanitized = await sanitizeForeignKeys({
+          departmentId: deptId,
+          designationId: desigId,
+          branchId: b.branchId || 'BR001',
+          deployedSiteId: b.deployedSiteId || null,
+          deployedClientId: b.deployedClientId || null,
+        });
+
+        const phone = b.phone || '+91 98765 00000';
+        const email = b.email || `${employeeCode.toLowerCase()}@silverstarindia.net`;
+        const employmentType = ['Permanent', 'Contract', 'Probation'].includes(b.employmentType) ? b.employmentType : 'Permanent';
+        const gender = ['Male', 'Female', 'Other'].includes(b.gender) ? b.gender : 'Male';
+        const status = ['Active', 'On Leave', 'Suspended', 'Terminated', 'Inactive'].includes(b.status) ? b.status : 'Active';
+
+        const { rows } = await query(
+          `INSERT INTO employees (
+            id, employee_code, name, photo, dob, gender, marital_status, blood_group,
+            phone, email, address, emergency_contact, department_id, designation_id,
+            employment_type, joining_date, onboarding_status, kyc_status, kyc_method,
+            deployed_site_id, deployed_client_id, branch_id, status, bank_name,
+            account_number, ifsc, pf_number
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
+          RETURNING *`,
+          [
+            id,
+            employeeCode,
+            name,
+            b.photo || null,
+            b.dob || null,
+            gender,
+            b.maritalStatus || 'Single',
+            b.bloodGroup || 'B+',
+            phone,
+            email,
+            b.address || '',
+            JSON.stringify(b.emergencyContact || {}),
+            sanitized.departmentId,
+            sanitized.designationId,
+            employmentType,
+            b.joiningDate || new Date().toISOString().split('T')[0],
+            b.onboardingStatus || 'Approved',
+            b.kycStatus || 'Verified',
+            b.kycMethod || 'Aadhaar Secure QR',
+            sanitized.deployedSiteId,
+            sanitized.deployedClientId,
+            sanitized.branchId || 'BR001',
+            status,
+            b.bankName || '',
+            b.accountNumber || '',
+            b.ifsc || '',
+            b.pfNumber || null,
+          ]
+        );
+
+        inserted.push(formatEmployee(rows[0]));
+      } catch (rowErr) {
+        errors.push({ row: i + 1, name, error: rowErr.message });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      count: inserted.length,
+      inserted,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (err) {
+    console.error('Error bulk uploading employees:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // PUT update employee
 router.put('/:id', async (req, res) => {
   try {

@@ -798,3 +798,242 @@ export function generateTaxInvoicePdf(invoice: {
     alert('Please allow popups to download and print the Tax Invoice.');
   }
 }
+
+// ============================================================
+// 4. BULK UPLOAD TEMPLATES & CSV PARSER ENGINE
+// Matching columns for Clients and Employees bulk import
+// ============================================================
+
+export const CLIENT_BULK_TEMPLATE_CSV = `Company Name,Contact Person,Email,Phone,Address,Monthly Billing (INR),Services Provided,Contract Start,Contract End,Status
+Infosys Campus Electronic City,Rajesh Kumar,operations@infosys-ecity.com,+91 98860 12345,Electronic City Phase 1 Bangalore,450000,Security Services; Housekeeping,2026-01-01,2027-12-31,Active
+Wipro Sarjapur Facility,Priya Sharma,admin@wipro-campus.com,+91 99001 54321,Sarjapur Main Road Bangalore,320000,Security Services; Electro-Mechanical,2026-02-15,2027-02-14,Active
+Prestige Tech Cloud,Anil Deshmukh,facility@prestigegroup.com,+91 98450 98765,Hebbal Outer Ring Road Bangalore,280000,Housekeeping; Horticulture,2026-03-01,2027-02-28,Active`;
+
+export const EMPLOYEE_BULK_TEMPLATE_CSV = `Employee Code,Full Name,Phone,Email,Department,Designation,Employment Type,Gender,Date of Birth,Blood Group,Address,Joining Date,Bank Name,Account Number,IFSC Code,PF UAN,Status
+SS-10020,Suresh Gowda,+91 98765 11001,suresh.gowda@silverstarindia.net,Security Services,Security Guard,Permanent,Male,1992-05-14,O+,BTM 2nd Stage Bangalore,2025-06-01,State Bank of India,30291827364,SBIN0004051,100928374615,Active
+SS-10021,Manjula R,+91 98765 11002,manjula.r@silverstarindia.net,Housekeeping,Housekeeping Attendant,Permanent,Female,1995-08-22,B+,Bommanahalli Bangalore,2025-07-15,HDFC Bank,501004928371,HDFC0000128,100928374616,Active
+SS-10022,Karthik Nair,+91 98765 11003,karthik.nair@silverstarindia.net,Electro-Mechanical,Electrical Technician,Permanent,Male,1990-11-03,AB+,Koramangala 4th Block Bangalore,2025-08-01,ICICI Bank,000201584920,ICIC0000002,100928374617,Active`;
+
+/**
+ * Download Client Bulk Upload CSV Template
+ */
+export function downloadClientTemplate() {
+  const blob = new Blob(['\uFEFF' + CLIENT_BULK_TEMPLATE_CSV], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Client_Bulk_Upload_Template.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Download Employee Bulk Upload CSV Template
+ */
+export function downloadEmployeeTemplate() {
+  const blob = new Blob(['\uFEFF' + EMPLOYEE_BULK_TEMPLATE_CSV], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Employee_Bulk_Upload_Template.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Standard CSV Parser handling quotes, delimiters, newlines and commas
+ */
+export function parseCsvText(text: string): { headers: string[]; rows: Record<string, string>[] } {
+  const cleanText = text.replace(/^\uFEFF/, '').trim();
+  if (!cleanText) return { headers: [], rows: [] };
+
+  const lines: string[][] = [];
+  let currentLine: string[] = [];
+  let currentField = '';
+  let insideQuote = false;
+
+  for (let i = 0; i < cleanText.length; i++) {
+    const char = cleanText[i];
+    const nextChar = cleanText[i + 1];
+
+    if (insideQuote) {
+      if (char === '"') {
+        if (nextChar === '"') {
+          currentField += '"';
+          i++; // Skip escaped quote
+        } else {
+          insideQuote = false;
+        }
+      } else {
+        currentField += char;
+      }
+    } else {
+      if (char === '"') {
+        insideQuote = true;
+      } else if (char === ',') {
+        currentLine.push(currentField.trim());
+        currentField = '';
+      } else if (char === '\r') {
+        // Carriage return, check if \n follows
+        if (nextChar === '\n') i++;
+        currentLine.push(currentField.trim());
+        if (currentLine.some(f => f.length > 0)) {
+          lines.push(currentLine);
+        }
+        currentLine = [];
+        currentField = '';
+      } else if (char === '\n') {
+        currentLine.push(currentField.trim());
+        if (currentLine.some(f => f.length > 0)) {
+          lines.push(currentLine);
+        }
+        currentLine = [];
+        currentField = '';
+      } else {
+        currentField += char;
+      }
+    }
+  }
+
+  // Push last field & line
+  if (currentField.length > 0 || currentLine.length > 0) {
+    currentLine.push(currentField.trim());
+    if (currentLine.some(f => f.length > 0)) {
+      lines.push(currentLine);
+    }
+  }
+
+  if (lines.length === 0) return { headers: [], rows: [] };
+
+  const headers = lines[0].map(h => h.trim());
+  const dataRows: Record<string, string>[] = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const rowObj: Record<string, string> = {};
+    const cols = lines[i];
+    headers.forEach((hdr, idx) => {
+      rowObj[hdr] = cols[idx] !== undefined ? cols[idx] : '';
+    });
+    // Ignore completely empty rows
+    if (Object.values(rowObj).some(val => val.trim().length > 0)) {
+      dataRows.push(rowObj);
+    }
+  }
+
+  return { headers, rows: dataRows };
+}
+
+// Helper to find a value by flexible header names
+function getRowValue(row: Record<string, string>, possibleKeys: string[]): string {
+  const normKeys = Object.keys(row).map(k => ({
+    original: k,
+    normalized: k.toLowerCase().replace(/[^a-z0-9]/g, ''),
+  }));
+
+  for (const candidate of possibleKeys) {
+    const candNorm = candidate.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const found = normKeys.find(k => k.normalized === candNorm);
+    if (found && row[found.original] !== undefined && row[found.original] !== '') {
+      return row[found.original].trim();
+    }
+  }
+  return '';
+}
+
+/**
+ * Map CSV rows to Client entities
+ */
+export function mapClientCsvRows(rows: Record<string, string>[]) {
+  return rows.map((row, index) => {
+    const name = getRowValue(row, ['Company Name', 'Client Name', 'Name', 'Company', 'Organization']);
+    const contactPerson = getRowValue(row, ['Contact Person', 'Contact', 'Representative', 'Person']);
+    const email = getRowValue(row, ['Email', 'Email Address', 'Official Email']);
+    const phone = getRowValue(row, ['Phone', 'Phone Number', 'Mobile', 'Contact No']);
+    const address = getRowValue(row, ['Address', 'Location', 'Site Address', 'City']);
+    const billingStr = getRowValue(row, ['Monthly Billing (INR)', 'Monthly Billing', 'Billing', 'Amount']);
+    const servicesStr = getRowValue(row, ['Services Provided', 'Services', 'Service']);
+    const contractStart = getRowValue(row, ['Contract Start', 'Start Date', 'From']);
+    const contractEnd = getRowValue(row, ['Contract End', 'End Date', 'To', 'Expiry Date']);
+    const status = getRowValue(row, ['Status', 'Account Status']) || 'Active';
+
+    const monthlyBilling = parseFloat(billingStr.replace(/[^0-9.]/g, '')) || 0;
+    const servicesProvided = servicesStr
+      ? servicesStr.split(/[;,|]/).map(s => s.trim()).filter(Boolean)
+      : ['Security Services'];
+
+    return {
+      _rowIndex: index + 1,
+      name,
+      contactPerson: contactPerson || 'Facility Manager',
+      email: email || (name ? `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}@client.silverstarindia.net` : ''),
+      phone: phone || '+91 98765 00000',
+      address,
+      monthlyBilling,
+      servicesProvided,
+      contractStart: contractStart || new Date().toISOString().split('T')[0],
+      contractEnd: contractEnd || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      status: ['Active', 'Pending', 'Expired', 'Terminated'].includes(status) ? status : 'Active',
+      isValid: Boolean(name && name.trim().length > 1),
+      error: !name || name.trim().length <= 1 ? 'Company Name is required' : undefined,
+    };
+  });
+}
+
+/**
+ * Map CSV rows to Employee entities
+ */
+export function mapEmployeeCsvRows(rows: Record<string, string>[]) {
+  return rows.map((row, index) => {
+    const employeeCode = getRowValue(row, ['Employee Code', 'Emp Code', 'Code', 'Staff ID']);
+    const name = getRowValue(row, ['Full Name', 'Name', 'Employee Name', 'Staff Name']);
+    const phone = getRowValue(row, ['Phone', 'Phone Number', 'Mobile', 'Mobile Number']);
+    const email = getRowValue(row, ['Email', 'Email Address', 'Official Email']);
+    const department = getRowValue(row, ['Department', 'Dept', 'Division']);
+    const designation = getRowValue(row, ['Designation', 'Role', 'Title', 'Post']);
+    const employmentType = getRowValue(row, ['Employment Type', 'Type', 'Job Type']) || 'Permanent';
+    const gender = getRowValue(row, ['Gender', 'Sex']) || 'Male';
+    const dob = getRowValue(row, ['Date of Birth', 'DOB', 'Birth Date']);
+    const bloodGroup = getRowValue(row, ['Blood Group', 'Blood', 'BG']) || 'B+';
+    const address = getRowValue(row, ['Address', 'Residential Address', 'City']);
+    const joiningDate = getRowValue(row, ['Joining Date', 'Date of Joining', 'DOJ']) || new Date().toISOString().split('T')[0];
+    const bankName = getRowValue(row, ['Bank Name', 'Bank']);
+    const accountNumber = getRowValue(row, ['Account Number', 'A/C Number', 'Account No']);
+    const ifsc = getRowValue(row, ['IFSC Code', 'IFSC']);
+    const pfNumber = getRowValue(row, ['PF UAN', 'PF Number', 'UAN']);
+    const status = getRowValue(row, ['Status', 'Employment Status']) || 'Active';
+
+    const isValid = Boolean(name && name.trim().length > 1 && phone && phone.trim().length >= 8);
+    let error: string | undefined;
+    if (!name || name.trim().length <= 1) error = 'Full Name is required';
+    else if (!phone || phone.trim().length < 8) error = 'Valid Phone is required';
+
+    return {
+      _rowIndex: index + 1,
+      employeeCode: employeeCode || '',
+      name,
+      phone,
+      email: email || (name ? `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}@silverstarindia.net` : ''),
+      department: department || 'Security Services',
+      designation: designation || 'Security Guard',
+      employmentType: ['Permanent', 'Contract', 'Probation'].includes(employmentType) ? employmentType : 'Permanent',
+      gender: ['Male', 'Female', 'Other'].includes(gender) ? gender : 'Male',
+      dob: dob || '',
+      bloodGroup,
+      address,
+      joiningDate,
+      bankName,
+      accountNumber,
+      ifsc,
+      pfNumber,
+      status: ['Active', 'On Leave', 'Suspended', 'Terminated', 'Inactive'].includes(status) ? status : 'Active',
+      isValid,
+      error,
+    };
+  });
+}
+
+

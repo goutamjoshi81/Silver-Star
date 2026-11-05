@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
-import { SITES, CONTRACT_BILLINGS, api } from '@mock/mockData'
-import { Plus, Search, Eye, Edit2, X, Building2, Phone, Mail, Calendar, MapPin, Check } from 'lucide-react'
+import { SITES, CONTRACT_BILLINGS, api, downloadClientTemplate, parseCsvText, mapClientCsvRows } from '@mock/mockData'
+import { Plus, Search, Eye, Edit2, X, Building2, Phone, Mail, Calendar, MapPin, Check, Upload, Download, FileSpreadsheet, CheckCircle2, AlertCircle } from 'lucide-react'
 
 export default function Clients() {
   const [clients, setClients] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showBulkModal, setShowBulkModal] = useState(false)
   const [newClient, setNewClient] = useState({
     name: '',
     contactPerson: '',
@@ -17,6 +18,58 @@ export default function Clients() {
     servicesProvided: ['Security Services', 'Housekeeping'],
   })
   const [loading, setLoading] = useState(true)
+
+  // Bulk Upload State
+  const [bulkFile, setBulkFile] = useState<File | null>(null)
+  const [parsedRows, setParsedRows] = useState<any[]>([])
+  const [bulkUploading, setBulkUploading] = useState(false)
+  const [bulkResult, setBulkResult] = useState<{ success: boolean; count: number; message: string } | null>(null)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setBulkFile(file)
+    setBulkResult(null)
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const text = event.target?.result as string
+      if (text) {
+        const { rows } = parseCsvText(text)
+        const mapped = mapClientCsvRows(rows)
+        setParsedRows(mapped)
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  const handleConfirmBulkUpload = async () => {
+    const validRows = parsedRows.filter(r => r.isValid)
+    if (validRows.length === 0) {
+      alert('No valid client rows to upload. Please review errors.')
+      return
+    }
+
+    setBulkUploading(true)
+    try {
+      const res = await api.bulkCreateClients(validRows)
+      setBulkResult({
+        success: true,
+        count: res.count || validRows.length,
+        message: `Successfully imported ${res.count || validRows.length} client accounts to database.`,
+      })
+      loadData()
+    } catch (err: any) {
+      setBulkResult({
+        success: false,
+        count: 0,
+        message: `Bulk upload failed: ${err.message}`,
+      })
+    } finally {
+      setBulkUploading(false)
+    }
+  }
 
   const loadData = () => {
     api.getClients()
@@ -60,12 +113,31 @@ export default function Clients() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-500">{clients.length} client accounts</p>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 bg-[#202B75] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#161f56] transition-colors font-medium shadow-sm"
-        >
-          <Plus size={14} /> Add Client
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => downloadClientTemplate()}
+            className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-3 py-2 rounded-lg hover:bg-emerald-100 transition-colors font-medium"
+          >
+            <Download size={14} /> Download Template
+          </button>
+          <button
+            onClick={() => {
+              setBulkFile(null)
+              setParsedRows([])
+              setBulkResult(null)
+              setShowBulkModal(true)
+            }}
+            className="flex items-center gap-1.5 bg-blue-50 text-[#202B75] border border-blue-200 text-xs px-3 py-2 rounded-lg hover:bg-blue-100 transition-colors font-medium"
+          >
+            <Upload size={14} /> Bulk Upload
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 bg-[#202B75] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#161f56] transition-colors font-medium shadow-sm"
+          >
+            <Plus size={14} /> Add Client
+          </button>
+        </div>
       </div>
 
       {showAddModal && (
@@ -251,6 +323,141 @@ export default function Clients() {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BULK UPLOAD MODAL */}
+      {showBulkModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-gray-100 space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b pb-3 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-blue-50 text-[#202B75] rounded-lg">
+                  <Upload size={18} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-[#202B75]">Bulk Upload Client Accounts</h3>
+                  <p className="text-xs text-gray-400">Import clients from Excel / CSV matching system columns</p>
+                </div>
+              </div>
+              <button onClick={() => setShowBulkModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800">
+                    <FileSpreadsheet size={16} /> <span>Download Bulk Upload Template</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-700">Pre-formatted template with exact column names.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => downloadClientTemplate()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs"
+                >
+                  <Download size={14} /> Download Template
+                </button>
+              </div>
+
+              <div className="border-2 border-dashed border-gray-300 hover:border-[#202B75] rounded-xl p-5 text-center transition-colors bg-gray-50/50">
+                <input
+                  type="file"
+                  id="saClientBulkInput"
+                  accept=".csv,text/csv"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <label htmlFor="saClientBulkInput" className="cursor-pointer space-y-2 block">
+                  <div className="w-10 h-10 mx-auto bg-blue-100 text-[#202B75] rounded-full flex items-center justify-center">
+                    <Upload size={18} />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-[#202B75] hover:underline">Choose CSV File</span>
+                    <span className="text-xs text-gray-500"> or drag and drop</span>
+                  </div>
+                  {bulkFile && (
+                    <div className="inline-flex items-center gap-2 mt-2 px-3 py-1 bg-blue-50 text-[#202B75] rounded-full text-xs font-medium border border-blue-200">
+                      <FileSpreadsheet size={14} />
+                      <span>{bulkFile.name}</span>
+                    </div>
+                  )}
+                </label>
+              </div>
+
+              {parsedRows.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-gray-700">Preview ({parsedRows.filter(r => r.isValid).length} ready of {parsedRows.length})</span>
+                  </div>
+                  <div className="max-h-48 overflow-auto border border-gray-200 rounded-lg text-xs">
+                    <table className="w-full text-left border-collapse text-[11px]">
+                      <thead className="bg-gray-100 text-gray-600 sticky top-0 font-semibold">
+                        <tr>
+                          <th className="p-2">Row</th>
+                          <th className="p-2">Company</th>
+                          <th className="p-2">Contact</th>
+                          <th className="p-2">Phone</th>
+                          <th className="p-2">Billing</th>
+                          <th className="p-2">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {parsedRows.map((r, i) => (
+                          <tr key={i} className={r.isValid ? 'hover:bg-gray-50' : 'bg-red-50/50'}>
+                            <td className="p-2 font-mono text-gray-500">#{r._rowIndex}</td>
+                            <td className="p-2 font-semibold text-gray-800">{r.name || 'Missing Name'}</td>
+                            <td className="p-2 text-gray-600">{r.contactPerson}</td>
+                            <td className="p-2 text-gray-600 font-mono">{r.phone}</td>
+                            <td className="p-2 font-mono">₹{r.monthlyBilling.toLocaleString('en-IN')}</td>
+                            <td className="p-2">
+                              {r.isValid ? (
+                                <span className="text-emerald-600 font-semibold">Ready</span>
+                              ) : (
+                                <span className="text-red-600 font-semibold">{r.error}</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {bulkResult && (
+                <div
+                  className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
+                    bulkResult.success ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-red-50 text-red-800 border-red-200'
+                  }`}
+                >
+                  {bulkResult.success ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                  <span className="font-medium">{bulkResult.message}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowBulkModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-xs text-gray-700 hover:bg-gray-50"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmBulkUpload}
+                disabled={bulkUploading || parsedRows.filter(r => r.isValid).length === 0}
+                className="flex items-center gap-1.5 px-5 py-2 bg-[#202B75] text-white rounded-lg text-xs font-semibold hover:bg-[#182159] disabled:opacity-50"
+              >
+                <Upload size={14} />
+                {bulkUploading ? 'Uploading...' : `Import ${parsedRows.filter(r => r.isValid).length} Clients`}
+              </button>
             </div>
           </div>
         </div>

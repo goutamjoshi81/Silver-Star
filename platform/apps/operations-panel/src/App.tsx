@@ -3,6 +3,8 @@ import { useState } from 'react'
 import Login from './pages/Login'
 import Layout from './components/Layout'
 import OpsDashboard from './pages/OpsDashboard'
+import OpsClients from './pages/OpsClients'
+import OpsEmployees from './pages/OpsEmployees'
 import SiteRosters from './pages/SiteRosters'
 import AttendanceMonitor from './pages/AttendanceMonitor'
 import GeofenceAlerts from './pages/GeofenceAlerts'
@@ -19,6 +21,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<OpsDashboard />} />
+        <Route path="/clients" element={<OpsClients />} />
+        <Route path="/employees" element={<OpsEmployees />} />
         <Route path="/rosters" element={<SiteRosters />} />
         <Route path="/attendance" element={<AttendanceMonitor />} />
         <Route path="/geofence-alerts" element={<GeofenceAlerts />} />

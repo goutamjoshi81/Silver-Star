@@ -60,6 +60,11 @@ export const api = {
   getEmployee: (id: string) => request<any>(`/employees/${id}`),
   createEmployee: (employeeData: any) =>
     request<any>('/employees', { method: 'POST', body: JSON.stringify(employeeData) }),
+  bulkCreateEmployees: (employees: any[]) =>
+    request<{ success: boolean; count: number; inserted: any[]; errors?: any[] }>('/employees/bulk', {
+      method: 'POST',
+      body: JSON.stringify(employees),
+    }),
   updateEmployee: (id: string, employeeData: any) =>
     request<any>(`/employees/${id}`, { method: 'PUT', body: JSON.stringify(employeeData) }),
   deleteEmployee: (id: string) => request<any>(`/employees/${id}`, { method: 'DELETE' }),
@@ -68,6 +73,11 @@ export const api = {
   getClients: () => request<any[]>('/clients'),
   createClient: (clientData: any) =>
     request<any>('/clients', { method: 'POST', body: JSON.stringify(clientData) }),
+  bulkCreateClients: (clients: any[]) =>
+    request<{ success: boolean; count: number; inserted: any[]; errors?: any[] }>('/clients/bulk', {
+      method: 'POST',
+      body: JSON.stringify(clients),
+    }),
   getSites: (clientId?: string) =>
     request<any[]>(`/sites${clientId ? `?clientId=${clientId}` : ''}`),
   createSite: (siteData: any) =>
