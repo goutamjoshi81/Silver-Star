@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Silver Star</string>
+    <string name="title_activity_main">Silver Star</string>
+    <string name="package_name">net.silverstarindia.app</string>
+    <string name="custom_url_scheme">net.silverstarindia.app</string>
+</resources>
