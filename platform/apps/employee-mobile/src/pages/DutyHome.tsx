@@ -240,7 +240,72 @@ export default function DutyHome({ currentUser, onNavigateTab }: DutyHomeProps) 
         </div>
       </div>
 
-      {/* Assigned Site & GPS Geofence Map Card */}
+      {/* Main Biometric-Style Punch In / Out Button (in middle) */}
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-md text-center space-y-4">
+        {/* Verification Step Indicator when punching */}
+        {isVerifying ? (
+          <div className="py-8 space-y-3 animate-in fade-in">
+            <div className="w-16 h-16 rounded-full bg-[#1A2B79]/10 border-4 border-[#1A2B79] border-t-transparent animate-spin mx-auto" />
+            <div className="space-y-1">
+              <p className="text-xs sm:text-sm font-black text-[#1A2B79]">
+                {currentStep === 1 && 'Acquiring GPS Satellite Signal...'}
+                {currentStep === 2 && 'Executing Anti-Spoofing & Geofence Math...'}
+                {currentStep === 3 && 'Validating with Central PostgreSQL Database...'}
+                {currentStep >= 4 && 'Registering Verified Attendance Event...'}
+              </p>
+              <p className="text-[10px] text-slate-400 font-mono">Step {currentStep} of 4</p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-slate-700 text-xs sm:text-sm">Attendance Action</span>
+              <button
+                type="button"
+                onClick={() => setShowSelfieModal(true)}
+                className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-[#1A2B79] bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors"
+              >
+                <Camera size={14} />
+                <span>{selfieData ? 'Selfie Added ✓' : 'Take Duty Selfie'}</span>
+              </button>
+            </div>
+
+            {/* The Big Touch Punch Button in the middle */}
+            <div className="flex justify-center w-full py-1">
+              <button
+                type="button"
+                onClick={handlePunchAction}
+                disabled={isVerifying}
+                className={`w-full py-5 sm:py-6 px-6 rounded-3xl font-black text-base sm:text-lg uppercase tracking-wider shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 relative overflow-hidden group ${
+                  punchedIn
+                    ? 'bg-gradient-to-r from-amber-600 via-rose-600 to-rose-700 hover:from-amber-700 hover:to-rose-800 text-white shadow-rose-500/30'
+                    : 'bg-gradient-to-r from-[#1A2B79] via-[#162363] to-[#26BCEE] hover:from-[#14215e] hover:to-[#1da5d4] text-white shadow-blue-500/30'
+                }`}
+              >
+                <div className={`p-2 rounded-2xl ${punchedIn ? 'bg-white/20' : 'bg-white/15'}`}>
+                  <Navigation size={24} className={`transition-transform ${punchedIn ? 'rotate-180' : ''}`} />
+                </div>
+                <div className="text-left">
+                  <div className="text-base sm:text-lg font-black leading-tight tracking-wide">
+                    {punchedIn ? 'PUNCH OUT (CHECKOUT)' : 'PUNCH IN (CHECK-IN)'}
+                  </div>
+                  <div className="text-[11px] font-normal normal-case opacity-90 tracking-normal">
+                    {punchedIn ? 'Duty Checkout & Close Shift' : 'Biometric GPS Duty Check-In'}
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <p className="text-[11px] font-medium text-slate-500">
+              {isInside
+                ? '✓ Geofence criteria met. Ready for biometric GPS punch.'
+                : '⚠️ Outside geofence radius. Move within 150m of site boundary.'}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Followed by GPS Geofence Map Card */}
       <div className="bg-white rounded-3xl p-4 border border-slate-200 shadow-sm space-y-3">
         <div className="flex items-start justify-between">
           <div className="space-y-0.5">
@@ -313,61 +378,6 @@ export default function DutyHome({ currentUser, onNavigateTab }: DutyHomeProps) 
             </button>
           </div>
         </div>
-      </div>
-
-      {/* Main Biometric-Style Punch In / Out Button */}
-      <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm text-center space-y-4">
-        
-        {/* Verification Step Indicator when punching */}
-        {isVerifying ? (
-          <div className="py-6 space-y-3 animate-in fade-in">
-            <div className="w-16 h-16 rounded-full bg-[#1A2B79]/10 border-4 border-[#1A2B79] border-t-transparent animate-spin mx-auto" />
-            <div className="space-y-1">
-              <p className="text-xs font-black text-[#1A2B79]">
-                {currentStep === 1 && 'Acquiring GPS Satellite Signal...'}
-                {currentStep === 2 && 'Executing Anti-Spoofing & Geofence Math...'}
-                {currentStep === 3 && 'Validating with Central PostgreSQL Database...'}
-                {currentStep >= 4 && 'Registering Verified Attendance Event...'}
-              </p>
-              <p className="text-[10px] text-slate-400 font-mono">Step {currentStep} of 4</p>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-700">Attendance Action</span>
-              <button
-                type="button"
-                onClick={() => setShowSelfieModal(true)}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1A2B79] bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg transition-colors"
-              >
-                <Camera size={13} />
-                <span>{selfieData ? 'Selfie Added ✓' : 'Take Duty Selfie'}</span>
-              </button>
-            </div>
-
-            {/* The Big Touch Punch Button */}
-            <button
-              type="button"
-              onClick={handlePunchAction}
-              disabled={isVerifying}
-              className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2.5 ${
-                punchedIn
-                  ? 'bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-700 hover:to-rose-700 text-white shadow-amber-500/20'
-                  : 'bg-gradient-to-r from-[#1A2B79] to-[#26BCEE] hover:from-[#14215e] hover:to-[#1da5d4] text-white shadow-blue-500/20'
-              }`}
-            >
-              <Navigation size={18} />
-              <span>{punchedIn ? 'PUNCH OUT (DUTY CHECKOUT)' : 'PUNCH IN (DUTY CHECK-IN)'}</span>
-            </button>
-
-            <p className="text-[10px] text-slate-400">
-              {isInside
-                ? '✓ Geofence criteria met. Ready for biometric GPS punch.'
-                : '⚠️ Outside geofence radius. Move within 150m of site boundary.'}
-            </p>
-          </>
-        )}
       </div>
 
       {/* Emergency SOS & Quick Support */}
