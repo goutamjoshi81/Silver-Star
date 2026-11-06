@@ -99,3 +99,4 @@ export default function IntegrationsDrawer({ isOpen, onClose }: IntegrationsDraw
     </div>
   );
 }
+

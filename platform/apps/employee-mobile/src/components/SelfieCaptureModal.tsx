@@ -157,3 +157,4 @@ export default function SelfieCaptureModal({ isOpen, onClose, onCapture }: Selfi
     </div>
   );
 }
+

@@ -178,3 +178,4 @@ export default function OpsMobileHome({ onNavigateTab, currentUser }: OpsMobileH
     </div>
   );
 }
+

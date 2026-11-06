@@ -127,3 +127,4 @@ export default function ClientMobileAttendance({ currentUser }: ClientMobileAtte
     </div>
   );
 }
+

@@ -86,3 +86,4 @@ if (process.argv[1] && process.argv[1].endsWith('mobile_migrations.js')) {
       process.exit(1);
     });
 }
+

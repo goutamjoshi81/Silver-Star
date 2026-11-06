@@ -3,7 +3,14 @@
 // Connects frontend apps to backend PostgreSQL endpoints
 // ============================================================
 
-const API_BASE_URL = (typeof window !== 'undefined' && (window as any).__API_BASE_URL__) || (typeof window !== 'undefined' && window.location.port !== '5000' ? 'http://localhost:5000/api' : '/api');
+const getApiBase = () => {
+  if (typeof window === 'undefined') return 'http://localhost:5000/api';
+  if ((window as any).__API_BASE_URL__) return (window as any).__API_BASE_URL__;
+  const host = window.location.hostname || 'localhost';
+  return `http://${host}:5000/api`;
+};
+
+const API_BASE_URL = getApiBase();
 
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {

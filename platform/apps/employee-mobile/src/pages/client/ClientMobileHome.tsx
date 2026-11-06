@@ -176,3 +176,4 @@ export default function ClientMobileHome({ currentUser, onNavigateTab }: ClientM
     </div>
   );
 }
+
