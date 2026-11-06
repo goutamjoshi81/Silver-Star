@@ -9,7 +9,13 @@
     "dev:ops": "npm --prefix platform/apps/operations-panel run dev",
     "dev:client": "npm --prefix platform/apps/client-mobile run dev",
     "dev:employee": "npm --prefix platform/apps/employee-mobile run dev",
-    "build:all": "npm --prefix platform/apps/super-admin run build && npm --prefix platform/apps/hr-panel run build && npm --prefix platform/apps/operations-panel run build && npm --prefix platform/apps/client-mobile run build && npm --prefix platform/apps/employee-mobile run build"
+    "build:all": "npm --prefix platform/apps/super-admin run build && npm --prefix platform/apps/hr-panel run build && npm --prefix platform/apps/operations-panel run build && npm --prefix platform/apps/client-mobile run build && npm --prefix platform/apps/employee-mobile run build",
+    "git:pull": "./scripts/git-sync.sh",
+    "git:sync": "./scripts/git-sync.sh",
+    "git:push": "./scripts/git-push.sh",
+    "ios:build": "./scripts/build-ios.sh",
+    "ios:open": "open platform/apps/employee-mobile/ios/App/App.xcodeproj",
+    "ios:sync": "cd platform/apps/employee-mobile && npm run build && npx cap sync ios"
   }
 }
 
