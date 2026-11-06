@@ -64,7 +64,7 @@ export default function OnboardingWizard({ onClose, onSuccess }: WizardProps) {
   })
 
   // Step 4: eKYC State
-  const [kycMethod, setKycMethod] = useState<'Aadhaar Secure QR' | 'DigiLocker' | 'Physical'>('Aadhaar Secure QR')
+  const [kycMethod, setKycMethod] = useState<'Aadhaar Secure QR' | 'DigiLocker' | 'Manual Physical'>('Aadhaar Secure QR')
   const [kycScanning, setKycScanning] = useState(false)
   const [kycVerified, setKycVerified] = useState(false)
   const [kycRef, setKycRef] = useState('UIDAI-QR-2026-99214A')
@@ -682,7 +682,7 @@ export default function OnboardingWizard({ onClose, onSuccess }: WizardProps) {
                 {[
                   { id: 'Aadhaar Secure QR' as const, title: 'Aadhaar Secure QR (Offline)', cost: '₹0 Net Cost', desc: 'Fast, secure offline cryptographic QR scan from mAadhaar app. Zero number storage.' },
                   { id: 'DigiLocker' as const, title: 'DigiLocker Institutional Vault', cost: '₹0 Net Cost', desc: 'Candidate authorizes institutional pull of verified identity from government vault.' },
-                  { id: 'Physical' as const, title: 'Manual Physical Attestation', cost: 'Fallback Mode', desc: 'HR officer physically stamps original documents with gazetted verification notes.' },
+                  { id: 'Manual Physical' as const, title: 'Manual Physical Attestation', cost: 'Fallback Mode', desc: 'HR officer physically stamps original documents with gazetted verification notes.' },
                 ].map((m) => (
                   <div
                     key={m.id}

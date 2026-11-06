@@ -179,6 +179,73 @@ async function sanitizeForeignKeys(b) {
   return { departmentId, designationId, branchId, deployedSiteId, deployedClientId };
 }
 
+// Helper to normalize enum fields for database constraints
+function normalizeEmployeeFields(b) {
+  let gender = 'Male';
+  if (b.gender) {
+    const g = String(b.gender).trim().toLowerCase();
+    if (g === 'female' || g === 'f') gender = 'Female';
+    else if (g === 'other' || g === 'o') gender = 'Other';
+    else gender = 'Male';
+  }
+
+  let maritalStatus = 'Single';
+  if (b.maritalStatus) {
+    const m = String(b.maritalStatus).trim().toLowerCase();
+    if (m.includes('marr')) maritalStatus = 'Married';
+    else if (m.includes('divorc')) maritalStatus = 'Divorced';
+    else maritalStatus = 'Single';
+  }
+
+  let employmentType = 'Permanent';
+  if (b.employmentType) {
+    const e = String(b.employmentType).trim().toLowerCase();
+    if (e.includes('contract')) employmentType = 'Contract';
+    else if (e.includes('probat')) employmentType = 'Probation';
+    else employmentType = 'Permanent';
+  }
+
+  let onboardingStatus = 'Approved';
+  if (b.onboardingStatus) {
+    const o = String(b.onboardingStatus).trim().toLowerCase();
+    if (o.includes('pend')) onboardingStatus = 'Pending';
+    else if (o.includes('reject')) onboardingStatus = 'Rejected';
+    else onboardingStatus = 'Approved';
+  }
+
+  let kycStatus = 'Verified';
+  if (b.kycStatus) {
+    const k = String(b.kycStatus).trim().toLowerCase();
+    if (k.includes('pend')) kycStatus = 'Pending';
+    else if (k.includes('reject')) kycStatus = 'Rejected';
+    else kycStatus = 'Verified';
+  }
+
+  let kycMethod = 'Aadhaar Secure QR';
+  if (b.kycMethod) {
+    const km = String(b.kycMethod).trim().toLowerCase();
+    if (km.includes('digi')) kycMethod = 'DigiLocker';
+    else if (km.includes('phys') || km.includes('manual')) kycMethod = 'Manual Physical';
+    else kycMethod = 'Aadhaar Secure QR';
+  }
+
+  let status = 'Active';
+  if (b.status) {
+    const s = String(b.status).trim().toLowerCase();
+    if (s.includes('inact')) status = 'Inactive';
+    else if (s.includes('leave')) status = 'On Leave';
+    else status = 'Active';
+  }
+
+  // Sanitize Date
+  const dob = (b.dob && String(b.dob).trim().length > 0) ? String(b.dob).split('T')[0] : null;
+  const joiningDate = (b.joiningDate && String(b.joiningDate).trim().length > 0) 
+    ? String(b.joiningDate).split('T')[0] 
+    : new Date().toISOString().split('T')[0];
+
+  return { gender, maritalStatus, employmentType, onboardingStatus, kycStatus, kycMethod, status, dob, joiningDate };
+}
+
 // POST onboard new employee
 router.post('/', async (req, res) => {
   try {
@@ -201,6 +268,7 @@ router.post('/', async (req, res) => {
     }
 
     const sanitized = await sanitizeForeignKeys(b);
+    const norm = normalizeEmployeeFields(b);
 
     const { rows } = await query(
       `INSERT INTO employees (
@@ -214,27 +282,27 @@ router.post('/', async (req, res) => {
       [
         id,
         employeeCode,
-        b.name,
+        b.name || 'New Staff Member',
         b.photo || null,
-        b.dob || null,
-        b.gender || 'Male',
-        b.maritalStatus || 'Single',
+        norm.dob,
+        norm.gender,
+        norm.maritalStatus,
         b.bloodGroup || 'B+',
-        b.phone,
+        b.phone || '+91 99999 99999',
         b.email || `${employeeCode.toLowerCase()}@silverstarindia.net`,
         b.address || '',
         JSON.stringify(b.emergencyContact || {}),
         sanitized.departmentId,
         sanitized.designationId,
-        b.employmentType || 'Permanent',
-        b.joiningDate || new Date().toISOString().split('T')[0],
-        b.onboardingStatus || 'Approved',
-        b.kycStatus || 'Verified',
-        b.kycMethod || 'Aadhaar Secure QR',
+        norm.employmentType,
+        norm.joiningDate,
+        norm.onboardingStatus,
+        norm.kycStatus,
+        norm.kycMethod,
         sanitized.deployedSiteId,
         sanitized.deployedClientId,
         sanitized.branchId || 'BR001',
-        b.status || 'Active',
+        norm.status,
         b.bankName || '',
         b.accountNumber || '',
         b.ifsc || '',

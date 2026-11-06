@@ -95,12 +95,34 @@ export const api = {
   relieveDeployment: (id: string) => request<any>(`/deployments/${id}`, { method: 'DELETE' }),
 
   // Attendance & GPS
-  getAttendance: (params?: { date?: string; startDate?: string; endDate?: string; employeeId?: string; siteId?: string }) => {
+  getAttendance: (params?: { date?: string; startDate?: string; endDate?: string; employeeId?: string; siteId?: string; clientId?: string }) => {
     const q = new URLSearchParams(params as any).toString();
     return request<any[]>(`/attendance${q ? `?${q}` : ''}`);
   },
-  punchAttendance: (data: { employeeId: string; siteId?: string; latitude?: number; longitude?: number }) =>
-    request<{ success: boolean; gpsVerified: boolean; record: any }>('/attendance/punch', {
+  getTodayAttendance: (employeeId: string) =>
+    request<{ hasPunchedIn: boolean; hasPunchedOut: boolean; punchIn: string | null; punchOut: string | null; date: string; status?: string; gpsVerified?: boolean; siteName?: string; record?: any }>(
+      `/attendance/today/${encodeURIComponent(employeeId)}`
+    ),
+  punchAttendance: (data: {
+    employeeId?: string;
+    employeeCode?: string;
+    siteId?: string;
+    latitude?: number;
+    longitude?: number;
+    punchType?: 'IN' | 'OUT';
+    accuracy?: number;
+    selfieUrl?: string;
+  }) =>
+    request<{
+      success: boolean;
+      action?: string;
+      time?: string;
+      gpsVerified: boolean;
+      distanceMeters?: number;
+      geofenceRadius?: number;
+      siteName?: string;
+      record: any;
+    }>('/attendance/punch', {
       method: 'POST',
       body: JSON.stringify(data),
     }),

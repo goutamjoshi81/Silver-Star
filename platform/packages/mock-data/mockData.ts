@@ -7,6 +7,7 @@
 export * from './apiClient';
 export * from './exportUtils';
 export * from './qrUtils';
+export * from './mobileConfig';
 import { api } from './apiClient';
 
 export interface Company {

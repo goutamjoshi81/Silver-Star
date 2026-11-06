@@ -21,9 +21,14 @@ import { api, COMPANY, downloadVCard } from '@mock/mockData';
 
 export default function EmployeeVerificationPage() {
   const { id } = useParams<{ id: string }>();
-  // If id is not in params, extract from location pathname
-  const targetId = id || (typeof window !== 'undefined' ? window.location.pathname.split('/').pop() || 'SS-10001' : 'SS-10001');
+  // Sanitize path parameter to prevent route collision keywords from being treated as badge IDs
+  const rawTarget = id || (typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean).pop() : null);
+  const initialId = (rawTarget && !['employees', 'verify', 'emp', 'dashboard', 'onboarding'].includes(rawTarget.toLowerCase()))
+    ? rawTarget
+    : 'SS-10001';
 
+  const [targetId, setTargetId] = useState(initialId);
+  const [searchInput, setSearchInput] = useState('');
   const [employee, setEmployee] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +38,13 @@ export default function EmployeeVerificationPage() {
     timeStyle: 'short',
     timeZone: 'Asia/Kolkata',
   }));
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchInput.trim()) {
+      setTargetId(searchInput.trim());
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -155,6 +167,49 @@ export default function EmployeeVerificationPage() {
               {error || `The requested employee code "${targetId}" was not found in the active Silver Star registry.`}
             </p>
           </div>
+
+          {/* Quick Lookup Search Form */}
+          <form onSubmit={handleSearchSubmit} className="pt-2">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Enter Employee Code (e.g. SS-10001)"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#1A2B79]"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 bg-[#1A2B79] hover:bg-[#14215e] text-white rounded-xl text-xs font-semibold transition-colors"
+              >
+                Verify
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-1.5 mt-2.5">
+              <span className="text-[10px] text-slate-400">Sample verified badges:</span>
+              <button
+                type="button"
+                onClick={() => setTargetId('SS-10001')}
+                className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-mono font-medium transition-colors"
+              >
+                SS-10001 (Ramesh Kumar)
+              </button>
+              <button
+                type="button"
+                onClick={() => setTargetId('SS-90001')}
+                className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-mono font-medium transition-colors"
+              >
+                SS-90001 (Ramesh Gowda)
+              </button>
+              <button
+                type="button"
+                onClick={() => setTargetId('SS-FOUNDER-01')}
+                className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-mono font-medium transition-colors"
+              >
+                SS-FOUNDER-01
+              </button>
+            </div>
+          </form>
 
           <div className="bg-slate-50 p-4 rounded-xl text-left text-xs text-slate-600 space-y-2 border border-slate-200">
             <div className="flex items-center gap-2 font-semibold text-slate-800">

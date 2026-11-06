@@ -1,93 +1,147 @@
-import { EMPLOYEES, DESIGNATIONS, DEPARTMENTS, SITES } from '@mock/mockData'
-import { User, Phone, Mail, MapPin, ShieldCheck, Heart, LogOut } from 'lucide-react'
+import { COMPANY } from '@mock/mockData';
+import { User, Phone, Mail, MapPin, ShieldCheck, Heart, LogOut, Key, Building, CheckCircle2 } from 'lucide-react';
 
-export default function Profile({ onLogout }: { onLogout: () => void }) {
-  const emp = EMPLOYEES.find(e => e.id === 'EMP001')!
-  const desig = DESIGNATIONS.find(d => d.id === emp.designationId)
-  const dept = DEPARTMENTS.find(d => d.id === emp.departmentId)
-  const site = SITES.find(s => s.id === emp.deployedSiteId)
+interface ProfileProps {
+  onLogout: () => void;
+  currentUser?: any;
+  onOpenIntegrations?: () => void;
+}
+
+export default function Profile({ onLogout, currentUser, onOpenIntegrations }: ProfileProps) {
+  const user = currentUser || {
+    name: 'Ramesh Kumar',
+    employeeCode: 'SS-10001',
+    role: 'Field Employee',
+    persona: 'field',
+    phone: '+91 98765 43210',
+    email: 'info@silverstarindia.net',
+    bloodGroup: 'B+',
+    siteName: 'Infosys - Electronic City Campus Phase 1',
+    designationName: 'Security Guard',
+  };
+
+  const initials = (user.name || 'SS')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n: string) => n[0].toUpperCase())
+    .join('');
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-3.5 sm:p-4 space-y-4 max-w-md mx-auto">
       {/* Header Profile Card */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm text-center">
-        <div className="w-16 h-16 rounded-2xl bg-[#202B75] text-white flex items-center justify-center font-bold text-xl mx-auto mb-2 shadow-md">
-          {emp.name.split(' ').map(n => n[0]).join('')}
+      <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm text-center relative overflow-hidden">
+        <div className="w-18 h-18 rounded-2xl bg-gradient-to-br from-[#1A2B79] to-[#26BCEE] text-white flex items-center justify-center font-bold text-2xl mx-auto mb-2.5 shadow-md border-2 border-white ring-4 ring-[#1A2B79]/10">
+          {initials}
         </div>
-        <h3 className="font-bold text-sm text-slate-900">{emp.name}</h3>
-        <p className="text-[11px] text-[#26BCEE] font-medium">{desig?.name}</p>
-        <span className="inline-block mt-2 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
-          eKYC Verified Staff
-        </span>
-      </div>
-
-      {/* Employment Details */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm space-y-2 text-xs">
-        <h4 className="font-bold text-xs text-slate-900 mb-1">Employment Information</h4>
-        <div className="flex justify-between py-1 border-b border-slate-50">
-          <span className="text-slate-400">Employee ID:</span>
-          <span className="font-mono font-bold text-slate-800">{emp.employeeCode}</span>
-        </div>
-        <div className="flex justify-between py-1 border-b border-slate-50">
-          <span className="text-slate-400">Department:</span>
-          <span className="font-semibold text-slate-700">{dept?.name}</span>
-        </div>
-        <div className="flex justify-between py-1 border-b border-slate-50">
-          <span className="text-slate-400">Site Assignment:</span>
-          <span className="font-semibold text-slate-700">{site?.name}</span>
-        </div>
-        <div className="flex justify-between py-1 border-b border-slate-50">
-          <span className="text-slate-400">Employment Type:</span>
-          <span className="text-slate-700">{emp.employmentType}</span>
-        </div>
-        <div className="flex justify-between py-1">
-          <span className="text-slate-400">Joining Date:</span>
-          <span className="text-slate-700">{emp.joiningDate}</span>
+        <h3 className="font-black text-base text-slate-900">{user.name}</h3>
+        <p className="text-xs text-[#1A2B79] font-bold mt-0.5">
+          {user.designationName || user.role}
+        </p>
+        <div className="flex items-center justify-center gap-2 mt-2">
+          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-200">
+            <CheckCircle2 size={11} /> PSARA Certified & Verified
+          </span>
         </div>
       </div>
 
-      {/* Emergency Contact */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm space-y-1.5 text-xs">
-        <div className="flex items-center gap-1.5 font-bold text-slate-900 mb-1">
-          <Heart size={13} className="text-rose-500" />
-          <span>Emergency Contact</span>
+      {/* Account & Assignment Info */}
+      <div className="bg-white rounded-3xl p-4 border border-slate-200 shadow-sm space-y-2.5 text-xs">
+        <h4 className="font-black text-xs text-slate-900 mb-1">Account & Role Information</h4>
+        
+        <div className="flex justify-between py-1 border-b border-slate-100">
+          <span className="text-slate-400">Account Type:</span>
+          <span className="font-bold text-[#1A2B79] capitalize">
+            {user.persona === 'field' && 'Field Staff (Guard / Housekeeping)'}
+            {user.persona === 'operations' && 'Operations Management'}
+            {user.persona === 'client' && 'Corporate Client Facility Partner'}
+          </span>
         </div>
-        <div className="flex justify-between text-slate-600">
-          <span>Name:</span>
-          <span className="font-semibold text-slate-800">{emp.emergencyContact.name} ({emp.emergencyContact.relation})</span>
+
+        {user.employeeCode && (
+          <div className="flex justify-between py-1 border-b border-slate-100">
+            <span className="text-slate-400">Employee Code:</span>
+            <span className="font-mono font-bold text-slate-900">{user.employeeCode}</span>
+          </div>
+        )}
+
+        {user.phone && (
+          <div className="flex justify-between py-1 border-b border-slate-100">
+            <span className="text-slate-400">Phone Number:</span>
+            <a href={`tel:${user.phone}`} className="font-mono font-semibold text-slate-900 hover:text-[#1A2B79]">
+              {user.phone}
+            </a>
+          </div>
+        )}
+
+        {user.email && (
+          <div className="flex justify-between py-1 border-b border-slate-100">
+            <span className="text-slate-400">Email Address:</span>
+            <span className="font-semibold text-slate-900">{user.email}</span>
+          </div>
+        )}
+
+        {user.siteName && (
+          <div className="flex justify-between py-1 border-b border-slate-100">
+            <span className="text-slate-400">Assigned Facility:</span>
+            <span className="font-semibold text-slate-900 truncate max-w-[200px] text-right">
+              {user.siteName}
+            </span>
+          </div>
+        )}
+
+        {user.bloodGroup && (
+          <div className="flex justify-between py-1">
+            <span className="text-slate-400">Blood Group:</span>
+            <span className="font-bold text-rose-600">{user.bloodGroup}</span>
+          </div>
+        )}
+      </div>
+
+      {/* 3rd-Party Keys Diagnostic Launcher */}
+      {onOpenIntegrations && (
+        <button
+          onClick={onOpenIntegrations}
+          className="w-full p-3.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 flex items-center justify-between transition-colors shadow-sm"
+        >
+          <div className="flex items-center gap-2">
+            <Key size={15} className="text-[#1A2B79]" />
+            <span>3rd-Party Integrations & API Keys</span>
+          </div>
+          <span className="text-[10px] text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded-full border border-cyan-200">
+            Configure Keys
+          </span>
+        </button>
+      )}
+
+      {/* Emergency Contact & Helpline */}
+      <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 text-xs space-y-2">
+        <div className="flex items-center gap-1.5 font-bold text-slate-900">
+          <Heart size={14} className="text-rose-500" />
+          <span>24/7 Security Control Room</span>
         </div>
-        <div className="flex justify-between text-slate-600">
-          <span>Phone:</span>
-          <a href={`tel:${emp.emergencyContact.phone}`} className="font-mono text-[#202B75] font-semibold">
-            {emp.emergencyContact.phone}
+        <p className="text-[11px] text-slate-500 leading-tight">
+          In case of field distress, geofence mismatch, or emergency, contact HQ immediately:
+        </p>
+        <div className="pt-1 flex items-center justify-between text-[11px]">
+          <span className="font-mono font-bold text-slate-900">{COMPANY.phone}</span>
+          <a
+            href={`tel:${COMPANY.phone}`}
+            className="px-3 py-1 bg-white hover:bg-slate-100 border border-slate-200 font-bold text-[#1A2B79] rounded-lg shadow-sm"
+          >
+            Call Desk
           </a>
-        </div>
-      </div>
-
-      {/* Bank & Compliance */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm space-y-1.5 text-xs">
-        <div className="flex items-center gap-1.5 font-bold text-slate-900 mb-1">
-          <ShieldCheck size={13} className="text-emerald-600" />
-          <span>PF & Bank Details</span>
-        </div>
-        <div className="flex justify-between text-slate-600">
-          <span>Bank:</span>
-          <span className="text-slate-800">{emp.bankName}</span>
-        </div>
-        <div className="flex justify-between text-slate-600">
-          <span>PF Account:</span>
-          <span className="font-mono text-slate-800">{emp.pfNumber || 'Enrolled'}</span>
         </div>
       </div>
 
       {/* Logout */}
       <button
         onClick={onLogout}
-        className="w-full flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-rose-50 border border-rose-100 text-xs font-semibold text-rose-600 hover:bg-rose-100 transition-colors"
+        className="w-full py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
       >
-        <LogOut size={14} /> Log Out of Staff App
+        <LogOut size={14} />
+        <span>Sign Out of Silver Star Mobile</span>
       </button>
     </div>
-  )
+  );
 }
-

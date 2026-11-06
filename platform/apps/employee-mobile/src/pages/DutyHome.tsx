@@ -1,261 +1,435 @@
-import { useState, useEffect } from 'react'
-import { EMPLOYEES, SITES, SHIFTS, ATTENDANCE_TODAY, api } from '@mock/mockData'
+import { useState, useEffect } from 'react';
+import { api, COMPANY } from '@mock/mockData';
 import {
   MapPin, ShieldCheck, Clock, AlertTriangle, CheckCircle2,
-  Navigation, RefreshCw, XCircle, ChevronRight, Radio
-} from 'lucide-react'
+  Navigation, RefreshCw, XCircle, Camera, AlertOctagon, Phone, User
+} from 'lucide-react';
+import GeofenceMapWidget from '../components/GeofenceMapWidget';
+import SelfieCaptureModal from '../components/SelfieCaptureModal';
 
-export default function DutyHome() {
-  const [employees, setEmployees] = useState<any[]>(EMPLOYEES)
-  const [sites, setSites] = useState<any[]>(SITES)
-  const [punchedIn, setPunchedIn] = useState(false)
-  const [punchTime, setPunchTime] = useState('--:--')
-  const [isVerifying, setIsVerifying] = useState(false)
-  const [currentStep, setCurrentStep] = useState(0)
-  const [simulateOutside, setSimulateOutside] = useState(false)
-  const [showResultModal, setShowResultModal] = useState(false)
-  const [resultSuccess, setResultSuccess] = useState(true)
+interface DutyHomeProps {
+  currentUser?: any;
+  onNavigateTab?: (tab: string) => void;
+}
 
+export default function DutyHome({ currentUser, onNavigateTab }: DutyHomeProps) {
+  const [emp, setEmp] = useState<any>(currentUser || null);
+  const [site, setSite] = useState<any>(null);
+  const [punchedIn, setPunchedIn] = useState(false);
+  const [punchTime, setPunchTime] = useState('--:--');
+  const [punchDate, setPunchDate] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+
+  // Real GPS & Geofence Simulation Controls
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+  const [gpsSimMode, setGpsSimMode] = useState<'inside' | 'outside' | 'device'>('inside');
+  const [distanceMeters, setDistanceMeters] = useState<number | null>(18);
+  const [isInside, setIsInside] = useState(true);
+
+  // Modals
+  const [showSelfieModal, setShowSelfieModal] = useState(false);
+  const [selfieData, setSelfieData] = useState<string | null>(null);
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [resultMessage, setResultMessage] = useState('');
+  const [resultSuccess, setResultSuccess] = useState(true);
+  const [sosSent, setSosSent] = useState(false);
+
+  // Load employee, site & today's attendance status from DB
   useEffect(() => {
+    let isMounted = true;
+    const targetEmpId = currentUser?.employeeId || currentUser?.id || 'SS-10001';
+
     Promise.all([
-      api.getEmployees().catch(() => []),
+      api.getEmployee(targetEmpId).catch(() => currentUser),
       api.getSites().catch(() => []),
-    ]).then(([emps, sts]) => {
-      if (emps && emps.length > 0) setEmployees(emps)
-      if (sts && sts.length > 0) setSites(sts)
-    })
-  }, [])
+      api.getTodayAttendance(targetEmpId).catch(() => null),
+    ]).then(([empData, sitesData, todayAtt]) => {
+      if (!isMounted) return;
+      const resolvedEmp = empData || currentUser;
+      setEmp(resolvedEmp);
 
-  const emp = employees[0] || EMPLOYEES[0] || {
-    id: 'EMP001',
-    name: 'Staff Member',
-    employeeCode: 'SS-10001',
-    deployedSiteId: 'SITE001',
+      // Find site
+      if (sitesData && sitesData.length > 0) {
+        const foundSite =
+          sitesData.find((s: any) => s.id === resolvedEmp?.deployedSiteId) ||
+          sitesData[0];
+        setSite(foundSite);
+      }
+
+      // Check today's punch state
+      if (todayAtt && todayAtt.hasPunchedIn) {
+        setPunchedIn(true);
+        setPunchTime(todayAtt.punchIn || '--:--');
+        setPunchDate(todayAtt.date || '');
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser]);
+
+  // Real HTML5 Geolocation Watcher
+  useEffect(() => {
+    if (gpsSimMode === 'device' && typeof navigator !== 'undefined' && navigator.geolocation) {
+      const watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setUserCoords({ lat, lng });
+          setGpsAccuracy(Math.round(pos.coords.accuracy));
+
+          if (site) {
+            const dist = calculateDistanceMeters(lat, lng, site.latitude, site.longitude);
+            setDistanceMeters(Math.round(dist));
+            setIsInside(dist <= (site.geofenceRadius || 150));
+          }
+        },
+        (err) => {
+          console.warn('Device GPS unavailable, defaulting to simulation:', err);
+          setGpsSimMode('inside');
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+      );
+
+      return () => navigator.geolocation.clearWatch(watchId);
+    } else if (gpsSimMode === 'inside') {
+      // Simulate directly inside gate (18m from site center)
+      const lat = (site?.latitude || 12.845214) + 0.00012;
+      const lng = (site?.longitude || 77.660168) + 0.00008;
+      setUserCoords({ lat, lng });
+      setDistanceMeters(18);
+      setIsInside(true);
+      setGpsAccuracy(8);
+    } else if (gpsSimMode === 'outside') {
+      // Simulate 450m outside geofence
+      const lat = (site?.latitude || 12.845214) + 0.0042;
+      const lng = (site?.longitude || 77.660168) + 0.0038;
+      setUserCoords({ lat, lng });
+      setDistanceMeters(480);
+      setIsInside(false);
+      setGpsAccuracy(18);
+    }
+  }, [gpsSimMode, site]);
+
+  function calculateDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371e3;
+    const phi1 = (lat1 * Math.PI) / 180;
+    const phi2 = (lat2 * Math.PI) / 180;
+    const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+    const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+      Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   }
-  const site = sites.find(s => s.id === emp.deployedSiteId) || sites[0] || SITES[0]
-  const supervisor = employees.find(e => e.id === site?.supervisorId)
-  const shift = SHIFTS[0] // Morning shift
 
+  // Handle Punch In / Punch Out
   const handlePunchAction = async () => {
-    setIsVerifying(true)
-    setCurrentStep(1)
+    setIsVerifying(true);
+    setCurrentStep(1);
 
-    // Step 1: GPS Acquisition (500ms)
+    // Step 1: GPS Ping
     setTimeout(() => {
-      setCurrentStep(2)
-      // Step 2: Anti-Spoofing (500ms)
+      setCurrentStep(2);
+      // Step 2: Geofence Math
       setTimeout(() => {
-        setCurrentStep(3)
-        // Step 3: Distance Calc (500ms)
+        setCurrentStep(3);
+        // Step 3: Backend Submission
         setTimeout(async () => {
-          setCurrentStep(4)
+          setCurrentStep(4);
           try {
-            if (!simulateOutside && emp?.id) {
-              await api.punchAttendance({
-                employeeId: emp.id,
-                siteId: site?.id || 'SITE001',
-                latitude: simulateOutside ? 0 : (site?.latitude || 12.8456),
-                longitude: simulateOutside ? 0 : (site?.longitude || 77.6603),
-              })
-            }
-          } catch (err) {
-            console.warn('Punch attendance save error:', err)
-          }
+            const nextPunchType = punchedIn ? 'OUT' : 'IN';
+            const res = await api.punchAttendance({
+              employeeId: emp?.id,
+              employeeCode: emp?.employeeCode || 'SS-10001',
+              siteId: site?.id || 'SITE001',
+              latitude: userCoords?.lat || (site?.latitude || 12.845214),
+              longitude: userCoords?.lng || (site?.longitude || 77.660168),
+              punchType: nextPunchType,
+              accuracy: gpsAccuracy || 10,
+              selfieUrl: selfieData || undefined,
+            });
 
-          setIsVerifying(false)
-          if (simulateOutside) {
-            setResultSuccess(false)
-          } else {
-            setResultSuccess(true)
-            const now = new Date()
-            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            setPunchedIn(!punchedIn)
-            setPunchTime(timeStr)
+            setIsVerifying(false);
+
+            if (res.gpsVerified) {
+              setResultSuccess(true);
+              const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              if (nextPunchType === 'IN') {
+                setPunchedIn(true);
+                setPunchTime(now);
+                setResultMessage(`Punch-In Successful! Recorded at ${now}. Geofence verified (${res.distanceMeters || 18}m from site).`);
+              } else {
+                setPunchedIn(false);
+                setResultMessage(`Duty Checkout (Punch-Out) recorded successfully at ${now}. Have a safe rest!`);
+              }
+            } else {
+              setResultSuccess(false);
+              setResultMessage(
+                `Punch Rejected: You are ${res.distanceMeters || 480}m away from ${site?.name || 'Site'}. Permitted radius is ${res.geofenceRadius || 150}m.`
+              );
+            }
+            setShowResultModal(true);
+          } catch (err: any) {
+            console.error('Punch error:', err);
+            setIsVerifying(false);
+            setResultSuccess(false);
+            setResultMessage(err.message || 'Error recording attendance. Please retry.');
+            setShowResultModal(true);
           }
-          setShowResultModal(true)
-        }, 500)
-      }, 500)
-    }, 500)
-  }
+        }, 500);
+      }, 500);
+    }, 500);
+  };
+
+  const handleSos = async () => {
+    try {
+      await api.createIncident({
+        title: `EMERGENCY SOS: Triggered by ${emp?.name || 'Staff'}`,
+        siteId: site?.id || 'SITE001',
+        category: 'Safety',
+        priority: 'High',
+        reportedBy: emp?.id,
+        description: `Emergency distress signal sent by ${emp?.name} (${emp?.employeeCode}) at ${site?.name}. Immediate supervisor assistance required.`,
+      });
+      setSosSent(true);
+      setTimeout(() => setSosSent(false), 5000);
+    } catch (err) {
+      console.warn('SOS creation error:', err);
+      setSosSent(true);
+    }
+  };
+
+  const siteLat = site?.latitude || 12.845214;
+  const siteLng = site?.longitude || 77.660168;
+  const geofenceRadius = site?.geofenceRadius || site?.geofence_radius || 150;
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Shift Banner */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center justify-between">
-        <div>
-          <span className="text-[10px] uppercase font-bold tracking-wider text-[#26BCEE]">Current Shift</span>
-          <h2 className="text-sm font-bold text-slate-900 mt-0.5">{shift.name}</h2>
-          <p className="text-[11px] text-slate-500 font-mono mt-0.5">{shift.startTime} – {shift.endTime} (IST)</p>
-        </div>
-        <div className="text-right">
-          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
-            punchedIn ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'
-          }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${punchedIn ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-            {punchedIn ? 'ON DUTY' : 'OFF DUTY'}
+    <div className="p-3.5 sm:p-4 space-y-4 max-w-md mx-auto">
+      
+      {/* Shift & Duty Status Banner */}
+      <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-sm flex items-center justify-between">
+        <div className="space-y-0.5">
+          <span className="text-[10px] uppercase font-black tracking-wider text-[#26BCEE]">
+            {emp?.shiftName || 'Morning Shift'}
           </span>
-          <p className="text-[10px] text-slate-400 mt-1">Punch: {punchTime}</p>
-        </div>
-      </div>
-
-      {/* Assigned Site & Supervisor Card */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm space-y-2.5">
-        <div className="flex items-start gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#202B75] flex items-center justify-center flex-shrink-0 mt-0.5">
-            <MapPin size={16} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-xs text-slate-900">{site.name}</h3>
-            <p className="text-[11px] text-slate-500 mt-0.5 truncate">{site.address}</p>
-            <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
-              <span>Geofence: <strong className="text-slate-700">{site.geofenceRadius}m</strong></span>
-              <span>•</span>
-              <span>Supervisor: <strong className="text-slate-700">{supervisor?.name}</strong></span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Punch Action Button Box */}
-      <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm text-center space-y-4">
-        <div>
-          <p className="text-xs font-bold text-[#202B75] uppercase tracking-wider">Geofenced Attendance</p>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            {isVerifying ? 'Verifying coordinates with GPS satellites...' :
-             punchedIn ? 'Tap button below to record shift departure' : 'Tap button below to record shift arrival'}
+          <h2 className="text-sm font-black text-slate-900 tracking-tight">
+            {emp?.name || 'Ramesh Kumar'}
+          </h2>
+          <p className="text-[11px] text-slate-500 font-mono">
+            {emp?.employeeCode || 'SS-10001'} · {emp?.designationName || 'Security Guard'}
           </p>
         </div>
 
-        {/* Big Animated Punch Button */}
-        <div className="py-2 flex justify-center">
-          <button
-            onClick={handlePunchAction}
-            disabled={isVerifying}
-            className={`w-40 h-40 rounded-full flex flex-col items-center justify-center font-bold text-white transition-all transform active:scale-95 shadow-xl relative ${
-              isVerifying
-                ? 'bg-slate-400 cursor-not-allowed animate-pulse'
-                : punchedIn
-                ? 'bg-gradient-to-tr from-rose-600 to-rose-500 hover:from-rose-700 hover:to-rose-600 shadow-rose-500/30 ring-8 ring-rose-50'
-                : 'bg-gradient-to-tr from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-emerald-500/30 ring-8 ring-emerald-50'
+        <div className="text-right flex flex-col items-end">
+          <span
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+              punchedIn ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-100 text-slate-600'
             }`}
           >
-            {isVerifying ? (
-              <>
-                <RefreshCw size={32} className="animate-spin mb-1" />
-                <span className="text-xs uppercase tracking-wider">Verifying</span>
-                <span className="text-[10px] font-normal text-white/80">Step {currentStep}/4</span>
-              </>
-            ) : punchedIn ? (
-              <>
-                <Clock size={32} className="mb-1" />
-                <span className="text-sm uppercase tracking-wider">PUNCH OUT</span>
-                <span className="text-[10px] font-normal text-white/90">End Shift Duty</span>
-              </>
-            ) : (
-              <>
-                <Navigation size={32} className="mb-1" />
-                <span className="text-sm uppercase tracking-wider">PUNCH IN</span>
-                <span className="text-[10px] font-normal text-white/90">Begin Shift Duty</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* GPS Verification Multi-Step Pipeline Indicator */}
-        {isVerifying && (
-          <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-left space-y-2 text-xs">
-            <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${currentStep >= 1 ? 'bg-emerald-500 animate-ping' : 'bg-slate-300'}`} />
-              <span className={currentStep >= 1 ? 'font-semibold text-slate-800' : 'text-slate-400'}>
-                1. GPS Triangulation: Lat 12.8456, Lng 77.6603 (±4m)
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${currentStep >= 2 ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-              <span className={currentStep >= 2 ? 'font-semibold text-slate-800' : 'text-slate-400'}>
-                2. Anti-Spoofing Check: Mock Location = False
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${currentStep >= 3 ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-              <span className={currentStep >= 3 ? 'font-semibold text-slate-800' : 'text-slate-400'}>
-                3. Spherical Math: {simulateOutside ? '185m from center' : '38m from center'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${currentStep >= 4 ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-              <span className={currentStep >= 4 ? 'font-semibold text-slate-800' : 'text-slate-400'}>
-                4. Perimeter Evaluation: Boundary Limit {site.geofenceRadius}m
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Prototype Demo Toggle: Outside Geofence Test */}
-        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
-          <span className="flex items-center gap-1.5 font-medium">
-            <Radio size={12} className="text-[#202B75]" />
-            Test Boundary Breach Mode:
+            <span className={`w-2 h-2 rounded-full ${punchedIn ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+            {punchedIn ? 'ON DUTY' : 'OFF DUTY'}
           </span>
-          <button
-            onClick={() => setSimulateOutside(!simulateOutside)}
-            className={`px-2.5 py-1 rounded-full font-bold text-[10px] transition-all ${
-              simulateOutside
-                ? 'bg-rose-500 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            {simulateOutside ? 'Outside Site (185m)' : 'Inside Site (38m)'}
-          </button>
+          <span className="text-[10px] text-slate-400 font-mono mt-1">
+            {punchedIn ? `Punched: ${punchTime}` : 'Not punched today'}
+          </span>
         </div>
       </div>
 
-      {/* Outcome Modal */}
+      {/* Assigned Site & GPS Geofence Map Card */}
+      <div className="bg-white rounded-3xl p-4 border border-slate-200 shadow-sm space-y-3">
+        <div className="flex items-start justify-between">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              <MapPin size={12} className="text-rose-500" /> Assigned Deployment Site
+            </div>
+            <h3 className="text-sm font-black text-[#1A2B79]">
+              {site?.name || 'Infosys - Electronic City Campus Phase 1'}
+            </h3>
+            <p className="text-[10px] text-slate-400 truncate max-w-[240px]">
+              {site?.address || 'Hosur Road, Electronics City Phase 1, Bangalore'}
+            </p>
+          </div>
+
+          <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-xl border border-slate-200">
+            Radius: {geofenceRadius}m
+          </span>
+        </div>
+
+        {/* Real Interactive Geofence Map */}
+        <GeofenceMapWidget
+          siteLat={siteLat}
+          siteLng={siteLng}
+          radiusMeters={geofenceRadius}
+          userLat={userCoords?.lat || null}
+          userLng={userCoords?.lng || null}
+          distanceMeters={distanceMeters}
+          isInside={isInside}
+          siteName={site?.name || 'Site'}
+          accuracy={gpsAccuracy}
+          heightClass="h-52"
+        />
+
+        {/* GPS Testing & Simulation Selector */}
+        <div className="bg-slate-50 rounded-2xl p-2.5 border border-slate-200/80 flex items-center justify-between text-[10px]">
+          <span className="font-bold text-slate-600">GPS Mode:</span>
+          <div className="flex gap-1 font-bold">
+            <button
+              type="button"
+              onClick={() => setGpsSimMode('inside')}
+              className={`px-2 py-1 rounded-lg transition-colors ${
+                gpsSimMode === 'inside'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-white text-slate-600 border border-slate-200'
+              }`}
+            >
+              Inside (18m)
+            </button>
+            <button
+              type="button"
+              onClick={() => setGpsSimMode('outside')}
+              className={`px-2 py-1 rounded-lg transition-colors ${
+                gpsSimMode === 'outside'
+                  ? 'bg-rose-600 text-white shadow-sm'
+                  : 'bg-white text-slate-600 border border-slate-200'
+              }`}
+            >
+              Outside (480m)
+            </button>
+            <button
+              type="button"
+              onClick={() => setGpsSimMode('device')}
+              className={`px-2 py-1 rounded-lg transition-colors ${
+                gpsSimMode === 'device'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-white text-slate-600 border border-slate-200'
+              }`}
+            >
+              Device GPS
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Biometric-Style Punch In / Out Button */}
+      <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm text-center space-y-4">
+        
+        {/* Verification Step Indicator when punching */}
+        {isVerifying ? (
+          <div className="py-6 space-y-3 animate-in fade-in">
+            <div className="w-16 h-16 rounded-full bg-[#1A2B79]/10 border-4 border-[#1A2B79] border-t-transparent animate-spin mx-auto" />
+            <div className="space-y-1">
+              <p className="text-xs font-black text-[#1A2B79]">
+                {currentStep === 1 && 'Acquiring GPS Satellite Signal...'}
+                {currentStep === 2 && 'Executing Anti-Spoofing & Geofence Math...'}
+                {currentStep === 3 && 'Validating with Central PostgreSQL Database...'}
+                {currentStep >= 4 && 'Registering Verified Attendance Event...'}
+              </p>
+              <p className="text-[10px] text-slate-400 font-mono">Step {currentStep} of 4</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-slate-700">Attendance Action</span>
+              <button
+                type="button"
+                onClick={() => setShowSelfieModal(true)}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1A2B79] bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg transition-colors"
+              >
+                <Camera size={13} />
+                <span>{selfieData ? 'Selfie Added ✓' : 'Take Duty Selfie'}</span>
+              </button>
+            </div>
+
+            {/* The Big Touch Punch Button */}
+            <button
+              type="button"
+              onClick={handlePunchAction}
+              disabled={isVerifying}
+              className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2.5 ${
+                punchedIn
+                  ? 'bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-700 hover:to-rose-700 text-white shadow-amber-500/20'
+                  : 'bg-gradient-to-r from-[#1A2B79] to-[#26BCEE] hover:from-[#14215e] hover:to-[#1da5d4] text-white shadow-blue-500/20'
+              }`}
+            >
+              <Navigation size={18} />
+              <span>{punchedIn ? 'PUNCH OUT (DUTY CHECKOUT)' : 'PUNCH IN (DUTY CHECK-IN)'}</span>
+            </button>
+
+            <p className="text-[10px] text-slate-400">
+              {isInside
+                ? '✓ Geofence criteria met. Ready for biometric GPS punch.'
+                : '⚠️ Outside geofence radius. Move within 150m of site boundary.'}
+            </p>
+          </>
+        )}
+      </div>
+
+      {/* Emergency SOS & Quick Support */}
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={handleSos}
+          className={`p-3.5 rounded-2xl border font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+            sosSent
+              ? 'bg-rose-600 text-white border-rose-600 shadow-md animate-pulse'
+              : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
+          }`}
+        >
+          <AlertOctagon size={16} />
+          <span>{sosSent ? 'SOS SENT TO OPS!' : 'EMERGENCY SOS'}</span>
+        </button>
+
+        <a
+          href={`tel:${COMPANY.phone}`}
+          className="p-3.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 font-bold text-xs text-slate-700 flex items-center justify-center gap-2 transition-all"
+        >
+          <Phone size={15} className="text-[#1A2B79]" />
+          <span>24/7 Control Desk</span>
+        </a>
+      </div>
+
+      {/* Modals */}
+      <SelfieCaptureModal
+        isOpen={showSelfieModal}
+        onClose={() => setShowSelfieModal(false)}
+        onCapture={(img) => setSelfieData(img)}
+      />
+
+      {/* Result Modal */}
       {showResultModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-5 max-w-[340px] w-full text-center space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
-            <div className={`w-16 h-16 rounded-2xl mx-auto flex items-center justify-center ${
-              resultSuccess ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'
-            }`}>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl border border-slate-200">
+            <div
+              className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto ${
+                resultSuccess ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'
+              }`}
+            >
               {resultSuccess ? <CheckCircle2 size={36} /> : <XCircle size={36} />}
             </div>
 
             <div>
-              <h3 className={`text-base font-bold ${resultSuccess ? 'text-emerald-700' : 'text-rose-600'}`}>
-                {resultSuccess ? 'Attendance Verified & Logged' : 'Punch Blocked: Outside Geofence'}
+              <h3 className="text-base font-black text-slate-900">
+                {resultSuccess ? 'Attendance Verified' : 'Geofence Verification Failed'}
               </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                {resultSuccess
-                  ? `Recorded successfully at ${site.name} at ${punchTime}.`
-                  : `Your device is 185 meters from ${site.name}. Perimeter boundary is ${site.geofenceRadius}m. Please step inside the premises.`}
-              </p>
-            </div>
-
-            <div className="bg-slate-50 rounded-xl p-3 text-left text-[11px] space-y-1 font-mono text-slate-600">
-              <div className="flex justify-between">
-                <span>Coordinates:</span>
-                <span>12.8456° N, 77.6603° E</span>
-              </div>
-              <div className="flex justify-between">
-                <span>GPS Accuracy:</span>
-                <span className="text-emerald-600">±4.2 meters</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Mock Spoofing:</span>
-                <span>Detected: None (Pass)</span>
-              </div>
+              <p className="text-xs text-slate-600 mt-2 leading-relaxed">{resultMessage}</p>
             </div>
 
             <button
+              type="button"
               onClick={() => setShowResultModal(false)}
-              className="w-full py-2.5 rounded-xl bg-[#202B75] text-white text-xs font-semibold hover:bg-[#161f56]"
+              className="w-full py-2.5 bg-[#1A2B79] hover:bg-[#14215e] text-white rounded-xl text-xs font-bold transition-colors"
             >
-              Acknowledge & Continue
+              Continue
             </button>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }
-
