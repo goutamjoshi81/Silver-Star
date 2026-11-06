@@ -6,12 +6,14 @@
 const getApiBase = () => {
   if (typeof window === 'undefined') return 'http://localhost:5000/api';
   if ((window as any).__API_BASE_URL__) return (window as any).__API_BASE_URL__;
+  if (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) {
+    return (import.meta as any).env.VITE_API_URL;
+  }
   const host = window.location.hostname || 'localhost';
   return `http://${host}:5000/api`;
 };
 
-const API_BASE_URL = getApiBase();
-
+let API_BASE_URL = getApiBase();
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -31,6 +33,29 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 
     return await res.json();
   } catch (err: any) {
+    // If running in Capacitor/Android emulator and localhost:5000 failed to connect, try 10.0.2.2:5000 fallback
+    if (
+      API_BASE_URL.includes('localhost:5000') &&
+      typeof window !== 'undefined' &&
+      ((window as any).Capacitor || navigator.userAgent.includes('Android'))
+    ) {
+      const fallbackBase = API_BASE_URL.replace('localhost:5000', '10.0.2.2:5000');
+      try {
+        const fallbackRes = await fetch(`${fallbackBase}${endpoint}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(options?.headers || {}),
+          },
+          ...options,
+        });
+        if (fallbackRes.ok) {
+          API_BASE_URL = fallbackBase;
+          return await fallbackRes.json();
+        }
+      } catch (_) {
+        // Fall back to original error
+      }
+    }
     console.error(`[API Error] ${endpoint}:`, err);
     throw err;
   }
