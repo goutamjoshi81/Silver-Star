@@ -75,7 +75,7 @@ export default function App() {
               <DutyHome currentUser={currentUser} onNavigateTab={setActiveTab} />
             )}
             {activeTab === 'history' && <AttendanceHistory />}
-            {activeTab === 'idcard' && <DigitalID />}
+            {activeTab === 'idcard' && <DigitalID currentUser={currentUser} />}
             {activeTab === 'profile' && (
               <Profile
                 onLogout={handleLogout}
