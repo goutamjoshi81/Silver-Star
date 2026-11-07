@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Login, { type UserPersona } from './pages/Login';
 import EmployeeMobileLayout from './components/EmployeeMobileLayout';
 import IntegrationsDrawer from './components/IntegrationsDrawer';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Field Staff Pages
 import DutyHome from './pages/DutyHome';
@@ -50,17 +51,17 @@ export default function App() {
 
   if (!isAuthenticated) {
     return (
-      <>
+      <ErrorBoundary>
         <Login onLogin={handleLogin} onOpenIntegrations={() => setShowIntegrations(true)} />
         <IntegrationsDrawer isOpen={showIntegrations} onClose={() => setShowIntegrations(false)} />
-      </>
+      </ErrorBoundary>
     );
   }
 
   const persona: UserPersona = currentUser?.persona || 'field';
 
   return (
-    <>
+    <ErrorBoundary>
       <EmployeeMobileLayout
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -97,6 +98,7 @@ export default function App() {
             {activeTab === 'ops-attendance' && <OpsMobileAttendance />}
             {activeTab === 'ops-incidents' && <OpsMobileIncidents />}
             {activeTab === 'ops-dwr' && <OpsMobileDWR />}
+            {activeTab === 'idcard' && <DigitalID currentUser={currentUser} />}
             {activeTab === 'profile' && (
               <Profile
                 onLogout={handleLogout}
@@ -122,6 +124,7 @@ export default function App() {
             {activeTab === 'client-sites' && (
               <ClientMobileSites currentUser={currentUser} />
             )}
+            {activeTab === 'idcard' && <DigitalID currentUser={currentUser} />}
             {activeTab === 'profile' && (
               <Profile
                 onLogout={handleLogout}
@@ -135,6 +138,6 @@ export default function App() {
 
       {/* 3rd-Party Diagnostics & API Keys Modal */}
       <IntegrationsDrawer isOpen={showIntegrations} onClose={() => setShowIntegrations(false)} />
-    </>
+    </ErrorBoundary>
   );
 }

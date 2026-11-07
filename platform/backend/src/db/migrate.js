@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { pool } from './index.js';
+import { runMobileMigrations } from './mobile_migrations.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +18,8 @@ export async function runMigrations() {
     const seedsSql = fs.readFileSync(path.join(__dirname, 'seeds.sql'), 'utf-8');
     await client.query(seedsSql);
     console.log('[PostgreSQL] Foundational seeds verified.');
+
+    await runMobileMigrations();
   } catch (err) {
     console.error('[PostgreSQL] Migration error:', err);
     throw err;
@@ -36,4 +39,3 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       process.exit(1);
     });
 }
-

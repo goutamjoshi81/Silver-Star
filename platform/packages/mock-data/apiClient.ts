@@ -33,27 +33,28 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 
     return await res.json();
   } catch (err: any) {
-    // If running in Capacitor/Android emulator and localhost:5000 failed to connect, try 10.0.2.2:5000 fallback
-    if (
-      API_BASE_URL.includes('localhost:5000') &&
-      typeof window !== 'undefined' &&
-      ((window as any).Capacitor || navigator.userAgent.includes('Android'))
-    ) {
-      const fallbackBase = API_BASE_URL.replace('localhost:5000', '10.0.2.2:5000');
-      try {
-        const fallbackRes = await fetch(`${fallbackBase}${endpoint}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(options?.headers || {}),
-          },
-          ...options,
-        });
-        if (fallbackRes.ok) {
-          API_BASE_URL = fallbackBase;
-          return await fallbackRes.json();
-        }
-      } catch (_) {
-        // Fall back to original error
+    // If connection failed, test candidate endpoints (LAN hosted 10.93.223.85, localhost, or Android emulator)
+    if (typeof window !== 'undefined') {
+      const candidates = [
+        'http://10.93.223.85:5000/api',
+        'http://localhost:5000/api',
+        'http://10.0.2.2:5000/api'
+      ].filter(b => b !== API_BASE_URL);
+
+      for (const fallbackBase of candidates) {
+        try {
+          const fallbackRes = await fetch(`${fallbackBase}${endpoint}`, {
+            headers: {
+              'Content-Type': 'application/json',
+              ...(options?.headers || {}),
+            },
+            ...options,
+          });
+          if (fallbackRes.ok) {
+            API_BASE_URL = fallbackBase;
+            return await fallbackRes.json();
+          }
+        } catch (_) {}
       }
     }
     console.error(`[API Error] ${endpoint}:`, err);
