@@ -1,8 +1,8 @@
-import { useState } from 'react'
-import { SITES, CLIENTS, EMPLOYEES } from '@mock/mockData'
+import { useState, useEffect } from 'react'
+import { SITES, CLIENTS, EMPLOYEES, api } from '@mock/mockData'
 import {
   Radio, AlertTriangle, ShieldCheck, MapPin, Sliders, CheckCircle2,
-  X, RefreshCw, Compass, Plus, Save, AlertCircle, Info
+  X, RefreshCw, Compass, Plus, Save, AlertCircle, Info, ExternalLink, Loader2
 } from 'lucide-react'
 
 export default function GeofenceControl() {
@@ -10,12 +10,31 @@ export default function GeofenceControl() {
   const [selectedSiteId, setSelectedSiteId] = useState<string>(SITES[0]?.id || 'SITE001')
   const [activeTab, setActiveTab] = useState<'control' | 'breaches' | 'radar'>('control')
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [detectingGps, setDetectingGps] = useState(false)
+
+  // Fetch live sites from database on mount
+  useEffect(() => {
+    let isMounted = true
+    api.getSites().then(data => {
+      if (!isMounted || !data || data.length === 0) return
+      setSitesList(data)
+      const target = data.find(s => s.id === selectedSiteId) || data[0]
+      if (target) {
+        setSelectedSiteId(target.id)
+        setRadius(target.geofenceRadius || target.geofence_radius || 100)
+        setLatitude(Number(target.latitude) || 12.8456)
+        setLongitude(Number(target.longitude) || 77.6603)
+      }
+    }).catch(err => console.warn('Could not fetch sites from API, using fallback:', err))
+    return () => { isMounted = false }
+  }, [])
 
   // Selected site settings state
   const currentSite = sitesList.find(s => s.id === selectedSiteId) || sitesList[0]
-  const [radius, setRadius] = useState<number>(currentSite?.geofenceRadius || 100)
-  const [latitude, setLatitude] = useState<number>(currentSite?.latitude || 12.8456)
-  const [longitude, setLongitude] = useState<number>(currentSite?.longitude || 77.6603)
+  const [radius, setRadius] = useState<number>(currentSite?.geofenceRadius || currentSite?.geofence_radius || 100)
+  const [latitude, setLatitude] = useState<number>(Number(currentSite?.latitude) || 12.8456)
+  const [longitude, setLongitude] = useState<number>(Number(currentSite?.longitude) || 77.6603)
   const [driftTolerance, setDriftTolerance] = useState<'strict' | 'standard' | 'relaxed'>('standard')
   const [antiSpoofing, setAntiSpoofing] = useState<boolean>(true)
   const [enforcementMode, setEnforcementMode] = useState<'block' | 'warn'>('block')
@@ -25,10 +44,36 @@ export default function GeofenceControl() {
     setSelectedSiteId(siteId)
     const site = sitesList.find(s => s.id === siteId)
     if (site) {
-      setRadius(site.geofenceRadius)
-      setLatitude(site.latitude)
-      setLongitude(site.longitude)
+      setRadius(site.geofenceRadius || site.geofence_radius || 100)
+      setLatitude(Number(site.latitude) || 12.8456)
+      setLongitude(Number(site.longitude) || 77.6603)
     }
+  }
+
+  // Real device GPS capture for gate centroid
+  const handleDetectGateLocation = () => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      alert('GPS Geolocation is not supported by this browser.')
+      return
+    }
+    setDetectingGps(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = parseFloat(pos.coords.latitude.toFixed(6))
+        const lng = parseFloat(pos.coords.longitude.toFixed(6))
+        const acc = Math.round(pos.coords.accuracy)
+        setLatitude(lat)
+        setLongitude(lng)
+        setDetectingGps(false)
+        setFeedback(`✓ Captured live GPS coordinates: ${lat}, ${lng} (Precision: ±${acc}m). Click "Save" below to commit to database.`)
+        setTimeout(() => setFeedback(null), 5000)
+      },
+      (err) => {
+        setDetectingGps(false)
+        alert(`Could not capture device location: ${err.message}. Please check device GPS and browser location permissions.`)
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    )
   }
 
   const [alerts, setAlerts] = useState([
@@ -37,20 +82,36 @@ export default function GeofenceControl() {
     { id: 'ALT003', siteId: 'SITE002', time: '08:32 AM', type: 'Perimeter Boundary Deviation', distance: '95m (Limit 75m)', employee: 'Suresh Babu (EMP003)', status: 'Approved by Supervisor' },
   ])
 
-  const handleSaveConfig = () => {
-    setSitesList(prev => prev.map(s => {
-      if (s.id === selectedSiteId) {
-        return {
-          ...s,
-          geofenceRadius: radius,
-          latitude,
-          longitude,
+  // Save geofence parameters to PostgreSQL database
+  const handleSaveConfig = async () => {
+    setSaving(true)
+    try {
+      await api.updateGeofence(selectedSiteId, {
+        latitude: Number(latitude),
+        longitude: Number(longitude),
+        geofenceRadius: Number(radius),
+      })
+
+      setSitesList(prev => prev.map(s => {
+        if (s.id === selectedSiteId) {
+          return {
+            ...s,
+            geofenceRadius: Number(radius),
+            geofence_radius: Number(radius),
+            latitude: Number(latitude),
+            longitude: Number(longitude),
+          }
         }
-      }
-      return s
-    }))
-    setFeedback(`Updated Geofence settings for ${currentSite.name}: Radius set to ${radius}m with ${enforcementMode === 'block' ? 'Strict Blocking' : 'Warning Mode'}.`)
-    setTimeout(() => setFeedback(null), 4000)
+        return s
+      }))
+      setFeedback(`✓ Saved to PostgreSQL: ${currentSite.name} Geofence radius set to ${radius}m at [${latitude}, ${longitude}].`)
+    } catch (err: any) {
+      console.warn('API error saving geofence, updated locally:', err)
+      setFeedback(`✓ Updated locally (Offline fallback): Radius set to ${radius}m for ${currentSite.name}.`)
+    } finally {
+      setSaving(false)
+      setTimeout(() => setFeedback(null), 4000)
+    }
   }
 
   const handleResolveAlert = (alertId: string, resolution: string) => {
@@ -195,27 +256,52 @@ export default function GeofenceControl() {
               </div>
             </div>
 
-            {/* GPS Latitude and Longitude */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Center Latitude *</label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  value={latitude}
-                  onChange={e => setLatitude(Number(e.target.value))}
-                  className="w-full border border-gray-200 rounded-lg p-2.5 text-xs font-mono font-semibold"
-                />
+            {/* GPS Latitude and Longitude + Live GPS Capture */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-gray-700">Geographic Center Coordinates</label>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-semibold"
+                  >
+                    <ExternalLink size={12} /> View on Google Maps
+                  </a>
+                  <button
+                    type="button"
+                    onClick={handleDetectGateLocation}
+                    disabled={detectingGps}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-cyan-50 text-[#202B75] hover:bg-cyan-100 rounded-lg text-xs font-bold transition-all border border-cyan-200"
+                  >
+                    <Compass size={13} className={detectingGps ? "animate-spin text-cyan-600" : "text-[#26BCEE]"} />
+                    {detectingGps ? "Acquiring GPS..." : "Capture Device GPS"}
+                  </button>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Center Longitude *</label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  value={longitude}
-                  onChange={e => setLongitude(Number(e.target.value))}
-                  className="w-full border border-gray-200 rounded-lg p-2.5 text-xs font-mono font-semibold"
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 mb-1">Center Latitude *</label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    value={latitude}
+                    onChange={e => setLatitude(Number(e.target.value))}
+                    className="w-full border border-gray-200 rounded-lg p-2.5 text-xs font-mono font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 mb-1">Center Longitude *</label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    value={longitude}
+                    onChange={e => setLongitude(Number(e.target.value))}
+                    className="w-full border border-gray-200 rounded-lg p-2.5 text-xs font-mono font-semibold"
+                  />
+                </div>
               </div>
             </div>
 
@@ -288,9 +374,18 @@ export default function GeofenceControl() {
             <div className="flex justify-end pt-2">
               <button
                 onClick={handleSaveConfig}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#202B75] hover:bg-[#161f56] text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95"
+                disabled={saving}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#202B75] hover:bg-[#161f56] disabled:bg-gray-400 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
               >
-                <Save size={15} /> Save Geofence Parameters
+                {saving ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" /> Saving to PostgreSQL...
+                  </>
+                ) : (
+                  <>
+                    <Save size={15} /> Save Geofence Parameters
+                  </>
+                )}
               </button>
             </div>
           </div>

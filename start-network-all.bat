@@ -46,3 +46,4 @@ echo   - Backend API:       http://%IP%:5000
 echo   - PostgreSQL DB:     %IP%:5432 (Database: silverstardb)
 echo ==========================================================
 pause
+

@@ -229,8 +229,17 @@ export default function GeofenceMapWidget({
         </div>
       </div>
 
-      {/* Top Right Map Style & Zoom Controls */}
+      {/* Top Right Map Style & Zoom Controls + External Maps Link */}
       <div className="absolute top-2.5 right-2.5 z-30 flex items-center gap-1">
+        <a
+          href={`https://www.google.com/maps/search/?api=1&query=${siteLat},${siteLng}`}
+          target="_blank"
+          rel="noreferrer"
+          className="px-2 h-7 bg-white/90 hover:bg-white text-slate-800 rounded-lg shadow text-[10px] font-bold flex items-center gap-1"
+          title="Open in Google Maps App"
+        >
+          <Navigation size={11} className="text-[#1A2B79]" /> Maps
+        </a>
         <button
           type="button"
           onClick={() => setZoom((z) => Math.min(19, z + 1))}
