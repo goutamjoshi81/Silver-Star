@@ -123,7 +123,6 @@ export default function SilverStarIDCard({
                   className="w-full h-full object-contain drop-shadow-md"
                 />
               </div>
-              </div>
 
               <div>
                 <h1 className="text-xl font-black text-[#1A2B79] tracking-tight font-serif">
@@ -204,7 +203,6 @@ export default function SilverStarIDCard({
                   alt="Silver Star"
                   className="h-7 w-auto object-contain max-w-[170px]"
                 />
-              </div>
               </div>
 
               <div className="border-t border-slate-100 pt-2 space-y-1">
