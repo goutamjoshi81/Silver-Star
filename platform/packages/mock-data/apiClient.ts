@@ -28,12 +28,23 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(errBody.error || `Request failed with status ${res.status}`);
+      const errorMsg = errBody.error || `Request failed with status ${res.status}`;
+      const httpError = new Error(errorMsg);
+      (httpError as any).status = res.status;
+      (httpError as any).isHttpError = true;
+      throw httpError;
     }
 
     return await res.json();
   } catch (err: any) {
-    // If connection failed, test candidate endpoints (LAN hosted 10.93.223.85, localhost, or Android emulator)
+    // If the server answered with an HTTP error status (400, 401, 403, 404, 422),
+    // the server is active and explicitly rejected the credentials.
+    // Do NOT loop through fallbacks as it causes a hanging spinner.
+    if (err?.isHttpError || (err?.status && err.status >= 400 && err.status < 500)) {
+      throw err;
+    }
+
+    // If connection completely failed (offline or wrong IP), test candidate endpoints
     if (typeof window !== 'undefined') {
       const candidates = [
         `http://${window.location.hostname}:5000/api`,
@@ -45,18 +56,35 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 
       for (const fallbackBase of candidates) {
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 1200);
+
           const fallbackRes = await fetch(`${fallbackBase}${endpoint}`, {
             headers: {
               'Content-Type': 'application/json',
               ...(options?.headers || {}),
             },
+            signal: controller.signal,
             ...options,
           });
+          clearTimeout(timeoutId);
+
           if (fallbackRes.ok) {
             API_BASE_URL = fallbackBase;
             return await fallbackRes.json();
+          } else if (fallbackRes.status >= 400 && fallbackRes.status < 500) {
+            // Server was reached on this candidate, but returned authentication/validation error
+            API_BASE_URL = fallbackBase;
+            const errBody = await fallbackRes.json().catch(() => ({ error: fallbackRes.statusText }));
+            const candidateHttpError = new Error(errBody.error || `Request failed with status ${fallbackRes.status}`);
+            (candidateHttpError as any).status = fallbackRes.status;
+            throw candidateHttpError;
           }
-        } catch (_) {}
+        } catch (candidateErr: any) {
+          if (candidateErr?.status && candidateErr.status >= 400 && candidateErr.status < 500) {
+            throw candidateErr;
+          }
+        }
       }
     }
     console.error(`[API Error] ${endpoint}:`, err);
