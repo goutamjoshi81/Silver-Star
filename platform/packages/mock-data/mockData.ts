@@ -20,6 +20,10 @@ export interface Company {
   founderPhone2: string;
   website: string;
   logo: string;
+  logoDark?: string;
+  logoWhiteBg?: string;
+  icon?: string;
+  logoSvg?: string;
   email: string;
   phone: string;
   address: string;
@@ -36,7 +40,11 @@ export const COMPANY: Company = {
   founderPhone1: "+91 9620000494",
   founderPhone2: "+91 9620008783",
   website: "https://silverstarindia.net/",
-  logo: "https://silverstarindia.net/wp-content/uploads/2024/08/sitelogo.png",
+  logo: "/silverstar-logo.png",
+  logoDark: "/silverstar-logo-white-text.png",
+  logoWhiteBg: "/silverstar-logo-white-bg.png",
+  icon: "/silverstar-icon-512.png",
+  logoSvg: "/silverstar-logo.svg",
   email: "info@silverstarindia.net",
   phone: "+91 80 4123 4567",
   address: "Electronic City Phase II, Bangalore - 560100",

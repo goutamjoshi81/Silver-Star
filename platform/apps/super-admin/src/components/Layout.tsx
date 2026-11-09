@@ -54,17 +54,20 @@ export default function Layout({ children, onLogout }: LayoutProps) {
         `}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 px-4 py-4 border-b border-white/10 min-h-[64px]">
-          <img
-            src={COMPANY.logo}
-            alt="Silver Star"
-            className="h-9 w-9 object-contain flex-shrink-0 bg-white rounded-md p-1"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-          />
-          {!collapsed && (
-            <div className="overflow-hidden">
-              <p className="text-white text-xs font-bold leading-tight">Silver Star</p>
-              <p className="text-[#26BCEE] text-[10px] leading-tight">Facility Management</p>
+        <div className="flex items-center px-4 py-3.5 border-b border-white/10 min-h-[64px]">
+          {collapsed ? (
+            <img
+              src="/silverstar-icon-512.png"
+              alt="Silver Star"
+              className="h-9 w-9 object-contain mx-auto rounded-lg"
+            />
+          ) : (
+            <div className="flex items-center gap-2.5 overflow-hidden">
+              <img
+                src="/silverstar-logo-white-text.png"
+                alt="Silver Star Facility Management"
+                className="h-9 w-auto object-contain max-w-[190px]"
+              />
             </div>
           )}
         </div>

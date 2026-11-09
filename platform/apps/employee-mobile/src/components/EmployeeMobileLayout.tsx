@@ -77,11 +77,12 @@ export default function EmployeeMobileLayout({
         {/* Top App Header */}
         <div className="bg-[#1A2B79] px-4 py-3 text-white flex items-center justify-between shadow-md flex-shrink-0 z-10">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-white p-1 flex items-center justify-center flex-shrink-0 shadow-sm">
-              <svg viewBox="0 0 100 100" className="w-full h-full">
-                <path d="M 50,10 C 28,10 12,26 12,48 C 12,56 16,63 22,68 C 24,62 30,57 40,55 C 56,52 68,44 68,30 C 68,18 60,10 50,10 Z" fill="#42B8EE" />
-                <path d="M 50,90 C 72,90 88,74 88,52 C 88,44 84,37 78,32 C 76,38 70,43 60,45 C 44,48 32,56 32,70 C 32,82 40,90 50,90 Z" fill="#1A2B79" />
-              </svg>
+            <div className="w-8 h-8 rounded-xl bg-white p-1 flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden">
+              <img
+                src="/silverstar-icon-512.png"
+                alt="Silver Star"
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <div className="flex items-center gap-1.5">

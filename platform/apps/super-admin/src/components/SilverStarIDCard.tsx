@@ -101,29 +101,13 @@ export default function SilverStarIDCard({
 
             {/* Center Brand Identity */}
             <div className="flex flex-col items-center space-y-3 my-auto">
-              {/* Swirling Waves Silver Star Vector Logo */}
+              {/* Official Enhanced Silver Star Logo Emblem */}
               <div className="w-24 h-24 relative flex items-center justify-center">
-                <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
-                  {/* Top Cyan Wave */}
-                  <path
-                    d="M 50,10 C 28,10 12,26 12,48 C 12,56 16,63 22,68 C 24,62 30,57 40,55 C 56,52 68,44 68,30 C 68,18 60,10 50,10 Z"
-                    fill="#42B8EE"
-                  />
-                  {/* Bottom Deep Navy Wave */}
-                  <path
-                    d="M 50,90 C 72,90 88,74 88,52 C 88,44 84,37 78,32 C 76,38 70,43 60,45 C 44,48 32,56 32,70 C 32,82 40,90 50,90 Z"
-                    fill="#1A2B79"
-                  />
-                  {/* Inner Swirl Accents */}
-                  <circle cx="50" cy="50" r="11" fill="#FFFFFF" />
-                  <path
-                    d="M 44,48 C 44,44 47,41 51,41 C 55,41 58,44 58,48 C 58,54 44,54 44,60 C 44,62 46,63 48,63"
-                    fill="none"
-                    stroke="#42B8EE"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                  />
-                </svg>
+                <img
+                  src="/silverstar-icon-512.png"
+                  alt="Silver Star Emblem"
+                  className="w-full h-full object-contain drop-shadow-md"
+                />
               </div>
 
               {/* Company Typography */}
@@ -196,22 +180,13 @@ export default function SilverStarIDCard({
 
             {/* Center: Silver Star Logo & Member Information */}
             <div className="space-y-3 py-2">
-              {/* Logo horizontal snippet */}
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 relative flex-shrink-0">
-                  <svg viewBox="0 0 100 100" className="w-full h-full">
-                    <path d="M 50,10 C 28,10 12,26 12,48 C 12,56 16,63 22,68 C 24,62 30,57 40,55 C 56,52 68,44 68,30 C 68,18 60,10 50,10 Z" fill="#42B8EE" />
-                    <path d="M 50,90 C 72,90 88,74 88,52 C 88,44 84,37 78,32 C 76,38 70,43 60,45 C 44,48 32,56 32,70 C 32,82 40,90 50,90 Z" fill="#1A2B79" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-[#1A2B79] leading-tight font-serif">
-                    Silver Star
-                  </h3>
-                  <p className="text-[8px] text-gray-400 leading-none">
-                    Your True Business Partners
-                  </p>
-                </div>
+              {/* Official Enhanced Silver Star Logo */}
+              <div className="flex items-center">
+                <img
+                  src="/silverstar-logo.png"
+                  alt="Silver Star"
+                  className="h-8 w-auto object-contain max-w-[190px]"
+                />
               </div>
 
               {/* Person Identity */}

@@ -78,7 +78,7 @@ npm run build:all
 ### 4.2 Corporate Branding
 - Official Silver Star Navy Blue (`#202B75`) as primary brand anchor.
 - Cyan/Teal (`#26BCEE`) as high-contrast active indicator.
-- Official corporate logo loaded from `https://silverstarindia.net/wp-content/uploads/2024/08/sitelogo.png`.
+- Official enhanced corporate logo and vectors deployed locally across all portals and DB.
 - Currency formatting strictly in **Indian Rupees (INR ₹)**.
 
 ### 4.3 GPS Geofencing Engine Simulation

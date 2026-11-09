@@ -26,9 +26,22 @@ export default function Layout({ children, onLogout }: { children: ReactNode; on
     <div className="flex h-screen bg-[#f0f2f8] overflow-hidden">
       {mobileOpen && <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setMobileOpen(false)} />}
       <aside className={`fixed lg:static inset-y-0 left-0 z-40 ${collapsed ? 'w-16' : 'w-60'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} bg-[#202B75] flex flex-col transition-all duration-300`}>
-        <div className="flex items-center gap-3 px-4 py-4 border-b border-white/10 min-h-[64px]">
-          <img src={COMPANY.logo} alt="Silver Star" className="h-9 w-9 object-contain flex-shrink-0 bg-white rounded-md p-1" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-          {!collapsed && <div><p className="text-white text-xs font-bold">Operations</p><p className="text-[#26BCEE] text-[10px]">Field Management</p></div>}
+        <div className="flex items-center px-4 py-3.5 border-b border-white/10 min-h-[64px]">
+          {collapsed ? (
+            <img
+              src="/silverstar-icon-512.png"
+              alt="Silver Star"
+              className="h-9 w-9 object-contain mx-auto rounded-lg"
+            />
+          ) : (
+            <div className="flex items-center gap-2.5 overflow-hidden">
+              <img
+                src="/silverstar-logo-white-text.png"
+                alt="Silver Star Facility Management"
+                className="h-9 w-auto object-contain max-w-[190px]"
+              />
+            </div>
+          )}
         </div>
         <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
           {navItems.map(({ icon: Icon, label, path }) => {

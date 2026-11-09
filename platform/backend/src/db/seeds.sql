@@ -14,7 +14,7 @@ VALUES (
     '+91 9620000494',
     '+91 9620008783',
     'https://silverstarindia.net/',
-    'https://silverstarindia.net/wp-content/uploads/2024/08/sitelogo.png',
+    '/silverstar-logo.png',
     'info@silverstarindia.net',
     '+91 80 4123 4567',
     'Electronic City Phase II, Bangalore - 560100',

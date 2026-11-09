@@ -99,7 +99,7 @@ router.get('/:id', async (req, res) => {
         id: 'EMP-FOUNDER',
         employeeCode: 'SS-FOUNDER-01',
         name: 'Ashok Majjige',
-        photo: 'https://silverstarindia.net/wp-content/uploads/2024/08/sitelogo.png',
+        photo: '/silverstar-icon-512.png',
         dob: '1978-04-12',
         gender: 'Male',
         maritalStatus: 'Married',

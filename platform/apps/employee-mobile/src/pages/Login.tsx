@@ -82,12 +82,12 @@ export default function Login({ onLogin, onOpenIntegrations }: LoginProps) {
         
         {/* Top Corporate Brand Header */}
         <div className="bg-gradient-to-r from-[#1A2B79] via-[#162363] to-[#0E163D] px-6 pt-7 pb-6 text-center text-white relative">
-          <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-2xl mx-auto p-2 mb-2.5 shadow-lg border border-white/20 flex items-center justify-center">
-            {/* Swirling Waves Logo */}
-            <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow">
-              <path d="M 50,10 C 28,10 12,26 12,48 C 12,56 16,63 22,68 C 24,62 30,57 40,55 C 56,52 68,44 68,30 C 68,18 60,10 50,10 Z" fill="#42B8EE" />
-              <path d="M 50,90 C 72,90 88,74 88,52 C 88,44 84,37 78,32 C 76,38 70,43 60,45 C 44,48 32,56 32,70 C 32,82 40,90 50,90 Z" fill="#FFFFFF" />
-            </svg>
+          <div className="w-16 h-16 bg-white rounded-2xl mx-auto p-2 mb-2.5 shadow-lg border border-white/20 flex items-center justify-center overflow-hidden">
+            <img
+              src="/silverstar-icon-512.png"
+              alt="Silver Star"
+              className="w-full h-full object-contain"
+            />
           </div>
           <h1 className="text-white text-lg font-black tracking-wide font-serif">Silver Star One</h1>
           <p className="text-cyan-300 text-[11px] font-medium tracking-wide">Unified Mobile Workforce & Client Platform</p>
