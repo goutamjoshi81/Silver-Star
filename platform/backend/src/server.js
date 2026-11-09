@@ -70,9 +70,11 @@ async function startServer() {
     // Verify DB & Run migrations
     await runMigrations();
 
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`====================================================`);
-      console.log(`Silver Star Platform API running on http://localhost:${PORT}`);
+      console.log(`Silver Star Platform API running on port ${PORT}`);
+      console.log(`Local Access:   http://localhost:${PORT}`);
+      console.log(`Network Access: http://192.168.1.36:${PORT}`);
       console.log(`Connected to PostgreSQL: ${process.env.DB_NAME || 'silverstardb'} on port ${process.env.DB_PORT || 5432}`);
       console.log(`====================================================`);
     });

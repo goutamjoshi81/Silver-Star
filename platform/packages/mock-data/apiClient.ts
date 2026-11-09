@@ -36,6 +36,8 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     // If connection failed, test candidate endpoints (LAN hosted 10.93.223.85, localhost, or Android emulator)
     if (typeof window !== 'undefined') {
       const candidates = [
+        `http://${window.location.hostname}:5000/api`,
+        'http://192.168.1.36:5000/api',
         'http://10.93.223.85:5000/api',
         'http://localhost:5000/api',
         'http://10.0.2.2:5000/api'

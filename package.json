@@ -4,6 +4,8 @@
   "private": true,
   "description": "Silver Star Facility Management Pvt. Ltd. - Integrated Digital Platform",
   "scripts": {
+    "server": "npm --prefix platform/backend run dev",
+    "start:network": "cmd /c start-network-all.bat",
     "dev:admin": "npm --prefix platform/apps/super-admin run dev",
     "dev:hr": "npm --prefix platform/apps/hr-panel run dev",
     "dev:ops": "npm --prefix platform/apps/operations-panel run dev",
