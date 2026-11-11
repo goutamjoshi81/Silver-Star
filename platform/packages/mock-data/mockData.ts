@@ -151,13 +151,20 @@ export interface Site {
   id: string;
   name: string;
   clientId: string;
+  clientName?: string;
   address: string;
   latitude: number;
   longitude: number;
   geofenceRadius: number; // in meters
   sanctionedStrength: number;
   status: "Active" | "Inactive";
-  supervisorId: string;
+  supervisorId?: string;
+  supervisorName?: string;
+  siteType?: "Permanent" | "Temporary" | "Emergency" | "Patrol Checkpoint";
+  isEmergency?: boolean;
+  emergencyNotes?: string;
+  validFrom?: string;
+  validUntil?: string;
 }
 
 // Clean production array synchronized with PostgreSQL
@@ -197,6 +204,24 @@ export let SITES: Site[] = [
     sanctionedStrength: 30,
     status: "Active",
     supervisorId: "EMP837389",
+  },
+  {
+    id: "SITE_TEMP_001",
+    name: "Emergency Reserve - Manyata Tech Park Gate 5",
+    clientId: "CLI001",
+    clientName: "Infosys Limited",
+    address: "Gate 5, Manyata Embassy Business Park, Outer Ring Road, Bengaluru",
+    latitude: 13.0494,
+    longitude: 77.6200,
+    geofenceRadius: 150,
+    sanctionedStrength: 6,
+    status: "Active",
+    supervisorId: "EMP837389",
+    siteType: "Emergency",
+    isEmergency: true,
+    emergencyNotes: "Temporary emergency perimeter post during corporate summit.",
+    validFrom: "2026-11-01",
+    validUntil: "2026-11-20",
   },
 ];
 
@@ -326,6 +351,129 @@ export let USER_ACCOUNTS: UserAccount[] = [
   { id: "USR001", name: "Admin User", email: "admin@silverstarindia.net", role: "Super Admin", status: "Active", lastLogin: "2026-11-05 00:00" },
   { id: "USR002", name: "HR Manager", email: "hr@silverstarindia.net", role: "HR Executive", status: "Active", lastLogin: "2026-11-05 00:00" },
   { id: "USR003", name: "Ops Manager", email: "ops@silverstarindia.net", role: "Operations Manager", status: "Active", lastLogin: "2026-11-05 00:00" },
+];
+
+export interface PatrolLog {
+  id: string;
+  officerId: string;
+  officerName?: string;
+  officerCode?: string;
+  siteId?: string;
+  siteName?: string;
+  checkpointName: string;
+  patrolShift: string;
+  status: string;
+  latitude?: number;
+  longitude?: number;
+  isGeofenceVerified?: boolean;
+  distanceMeters?: number;
+  photoUrl: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export let PATROL_LOGS: PatrolLog[] = [
+  {
+    id: "PATROL_001",
+    officerId: "EMP837389",
+    officerName: "Rajesh Kumar",
+    officerCode: "SS-10001",
+    siteId: "SITE001",
+    siteName: "Infosys - Electronic City Campus Phase 1",
+    checkpointName: "North Perimeter Gate & Guard Shack",
+    patrolShift: "Night Patrol (Round 1: 23:00)",
+    status: "All Normal & Secure",
+    latitude: 12.8453,
+    longitude: 77.6602,
+    isGeofenceVerified: true,
+    distanceMeters: 12,
+    photoUrl: "/silverstar-icon-512.png",
+    notes: "Both security guards alert and in full uniform. Boundary floodlights operational.",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "PATROL_002",
+    officerId: "EMP837389",
+    officerName: "Rajesh Kumar",
+    officerCode: "SS-10001",
+    siteId: "SITE001",
+    siteName: "Infosys - Electronic City Campus Phase 1",
+    checkpointName: "Rear Loading Dock & Transformer Yard",
+    patrolShift: "Night Patrol (Round 2: 02:30)",
+    status: "Gate Locked & Verified",
+    latitude: 12.8455,
+    longitude: 77.6605,
+    isGeofenceVerified: true,
+    distanceMeters: 22,
+    photoUrl: "/silverstar-icon-512.png",
+    notes: "Padlocks verified. Generator fuel level checked. Fire extinguisher seals intact.",
+    createdAt: new Date().toISOString(),
+  },
+];
+
+export interface SiteMusterAudit {
+  id: string;
+  officerId: string;
+  officerName?: string;
+  officerCode?: string;
+  siteId: string;
+  siteName?: string;
+  clientName?: string;
+  date: string;
+  shift: string;
+  totalSanctioned: number;
+  totalPresent: number;
+  totalAbsent: number;
+  musterPhotoUrl: string;
+  latitude?: number;
+  longitude?: number;
+  isGeofenceVerified?: boolean;
+  distanceMeters?: number;
+  notes?: string;
+  staffRecords?: any[];
+  createdAt: string;
+}
+
+export let SITE_MUSTER_AUDITS: SiteMusterAudit[] = [
+  {
+    id: "MUSTER_001",
+    officerId: "EMP837389",
+    officerName: "Rajesh Kumar",
+    officerCode: "SS-10001",
+    siteId: "SITE001",
+    siteName: "Infosys - Electronic City Campus Phase 1",
+    clientName: "Infosys Limited",
+    date: new Date().toISOString().split("T")[0],
+    shift: "Morning Shift (06:00 - 14:00)",
+    totalSanctioned: 6,
+    totalPresent: 6,
+    totalAbsent: 0,
+    musterPhotoUrl: "/silverstar-logo-white-bg.png",
+    latitude: 12.8452,
+    longitude: 77.6601,
+    isGeofenceVerified: true,
+    distanceMeters: 14,
+    notes: "Full morning muster verification completed at Gate 1. All guards in clean uniform with turnout inspection passed.",
+    staffRecords: [
+      { employeeId: "EMP837389", name: "Ramesh Gowda", designation: "Head Guard", status: "Present" },
+      { employeeId: "EMP002", name: "Suresh Patil", designation: "Security Guard", status: "Present" },
+      { employeeId: "EMP003", name: "Mahesh Kumar", designation: "Security Guard", status: "Present" },
+      { employeeId: "EMP004", name: "Laxmi Bai", designation: "Housekeeper", status: "Present" },
+    ],
+    createdAt: new Date().toISOString(),
+  },
+];
+
+export const PATROL_CHECKPOINTS = [
+  { id: 'CP_MAIN_GATE', name: 'Main Security Gate & Barrier Check', category: 'Access Control' },
+  { id: 'CP_PERIMETER_NORTH', name: 'North Boundary Wall & Fence Wire', category: 'Perimeter' },
+  { id: 'CP_PERIMETER_SOUTH', name: 'South Boundary Wall & Drain Outlet', category: 'Perimeter' },
+  { id: 'CP_TRANSFORMER', name: 'Electrical Substation & DG Set Yard', category: 'Critical Utilities' },
+  { id: 'CP_LOADING_DOCK', name: 'Warehouse Bay & Loading Dock Doors', category: 'Logistics' },
+  { id: 'CP_FIRE_PANEL', name: 'Central Fire Alarm Control Panel (FACP)', category: 'Safety' },
+  { id: 'CP_BASEMENT_PARKING', name: 'Basement Level B1/B2 Vehicle Parking', category: 'Internal' },
+  { id: 'CP_SERVER_ROOM', name: 'Data Center / Server Room External Lock', category: 'High Security' },
+  { id: 'CP_ROOFTOP_ACCESS', name: 'Rooftop & Water Tank Access Door', category: 'Overhead' },
 ];
 
 export interface DailyWorkReport {

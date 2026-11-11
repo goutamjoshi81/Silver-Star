@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { pool } from './index.js';
 import { runMobileMigrations } from './mobile_migrations.js';
+import { runFieldOpsMigrations } from './field_ops_migration.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,6 +21,7 @@ export async function runMigrations() {
     console.log('[PostgreSQL] Foundational seeds verified.');
 
     await runMobileMigrations();
+    await runFieldOpsMigrations();
   } catch (err) {
     console.error('[PostgreSQL] Migration error:', err);
     throw err;

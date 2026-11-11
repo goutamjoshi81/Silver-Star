@@ -5,7 +5,9 @@ import { COMPANY, generateQrCodeDataUrl, getEmployeeVerificationUrl, downloadVCa
 interface IDCardProps {
   name?: string
   designation?: string
+  department?: string
   employeeCode?: string
+  photo?: string | null
   phone1?: string
   phone2?: string
   bloodGroup?: string
@@ -15,7 +17,9 @@ interface IDCardProps {
 export default function SilverStarIDCard({
   name = 'RAMESH KUMAR',
   designation = 'SECURITY GUARD',
+  department = 'Operations',
   employeeCode = 'SS-10001',
+  photo = null,
   phone1 = '+91 98765 43210',
   phone2 = '+91 80 4123 4567',
   bloodGroup = 'B+',
@@ -23,8 +27,16 @@ export default function SilverStarIDCard({
 }: IDCardProps) {
   const [side, setSide] = useState<'front' | 'back'>(initialSide)
   const [qrDataUrl, setQrDataUrl] = useState<string>('')
+  const [imgError, setImgError] = useState(false)
 
   const verificationUrl = getEmployeeVerificationUrl(employeeCode || 'SS-10001')
+
+  const initials = (name || 'SS')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0].toUpperCase())
+    .join('')
 
   useEffect(() => {
     let active = true
@@ -82,42 +94,72 @@ export default function SilverStarIDCard({
 
       <div className="w-[280px] h-[450px] bg-white rounded-3xl p-5 shadow-xl border border-slate-200 relative flex flex-col justify-between overflow-hidden">
         {side === 'front' ? (
-          <div className="h-full flex flex-col justify-between items-center py-4 text-center">
-            <span className="text-[8px] font-mono font-bold text-slate-300 uppercase tracking-widest self-end">
-              RFID · NFC
-            </span>
-
-            <div className="flex flex-col items-center space-y-2.5 my-auto">
-              <div className="w-20 h-20 relative flex items-center justify-center">
-                <img
-                  src="/silverstar-icon-512.png"
-                  alt="Silver Star Emblem"
-                  className="w-full h-full object-contain drop-shadow-md"
-                />
-              </div>
-
-              <div>
-                <h1 className="text-xl font-black text-[#1A2B79] tracking-tight font-serif">
+          <div className="h-full flex flex-col justify-between items-center py-2 text-center">
+            {/* Top Bar with RFID Badge */}
+            <div className="w-full flex items-center justify-between pb-1 border-b border-slate-100">
+              <div className="flex items-center gap-1.5">
+                <img src="/silverstar-icon-512.png" alt="Silver Star" className="w-4 h-4 object-contain" />
+                <span className="text-[9px] font-black text-[#1A2B79] font-serif uppercase tracking-wider">
                   Silver Star
-                </h1>
-                <p className="text-[10px] font-medium text-slate-500 tracking-wide">
-                  Your True Business Partners
-                </p>
+                </span>
               </div>
+              <span className="text-[8px] font-mono font-bold text-[#1A2B79] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 uppercase tracking-wider">
+                RFID · NFC
+              </span>
+            </div>
 
-              <div className="pt-2">
-                <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">
+            {/* Employee Portrait Photo Container */}
+            <div className="relative my-2">
+              <div className="w-24 h-28 rounded-2xl overflow-hidden border-2 border-[#1A2B79] shadow-md ring-4 ring-[#26BCEE]/15 bg-gradient-to-b from-slate-100 to-slate-200 flex items-center justify-center">
+                {photo && !imgError ? (
+                  <img
+                    src={photo}
+                    alt={name}
+                    onError={() => setImgError(true)}
+                    className="w-full h-full object-cover object-top"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-[#1A2B79] to-[#26BCEE] flex flex-col items-center justify-center text-white p-2">
+                    <span className="text-xl font-black font-mono tracking-wider">{initials}</span>
+                    <span className="text-[8px] font-bold uppercase mt-1 tracking-widest opacity-80">Photo</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Identity & Designation Details */}
+            <div className="space-y-1 w-full px-2">
+              <p className="text-xs font-black text-slate-900 uppercase tracking-tight truncate max-w-[240px]">
+                {name}
+              </p>
+              <p className="text-[10px] font-bold text-[#1A2B79] uppercase truncate">
+                {designation}
+              </p>
+              {department && (
+                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wider">
+                  {department}
+                </p>
+              )}
+              <div className="pt-1">
+                <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-800 px-3 py-0.5 rounded-full border border-slate-200 inline-block shadow-sm">
                   {employeeCode}
                 </span>
               </div>
             </div>
 
-            <div className="w-full flex justify-end items-center pr-1 text-slate-800">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                <path d="M8.5 16.5a5 5 0 0 1 0-9" />
-                <path d="M12 19a8.5 8.5 0 0 0 0-14" />
-                <path d="M15.5 21.5a12 12 0 0 0 0-19" />
-              </svg>
+            {/* Bottom Contactless Waves Icon */}
+            <div className="w-full flex justify-between items-center text-slate-400 text-[9px] px-1">
+              <span className="flex items-center gap-1 font-semibold text-rose-600">
+                ❤️ {bloodGroup}
+              </span>
+              <div className="flex items-center gap-1 text-[#1A2B79]">
+                <span className="text-[8px] font-mono">TAP</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                  <path d="M8.5 16.5a5 5 0 0 1 0-9" />
+                  <path d="M12 19a8.5 8.5 0 0 0 0-14" />
+                  <path d="M15.5 21.5a12 12 0 0 0 0-19" />
+                </svg>
+              </div>
             </div>
           </div>
         ) : (

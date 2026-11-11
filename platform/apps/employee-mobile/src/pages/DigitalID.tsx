@@ -73,6 +73,7 @@ export default function DigitalID({ currentUser }: DigitalIDProps) {
           phone1={phone1}
           phone2={phone2}
           bloodGroup={bloodGroup}
+          photo={emp?.photo || emp?.photo_url || currentUser?.photo || null}
           initialSide="front"
         />
       </div>

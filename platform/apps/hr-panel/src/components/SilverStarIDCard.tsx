@@ -6,6 +6,7 @@ interface IDCardProps {
   name?: string
   designation?: string
   employeeCode?: string
+  photo?: string | null
   phone1?: string
   phone2?: string
   bloodGroup?: string
@@ -18,6 +19,7 @@ export default function SilverStarIDCard({
   name = 'ASHOK MAJJIGE',
   designation = 'CEO & FOUNDER.',
   employeeCode = 'SS-EXEC-01',
+  photo = null,
   phone1 = '+919620000494',
   phone2 = '+919620008783',
   bloodGroup = 'O+',
@@ -27,6 +29,14 @@ export default function SilverStarIDCard({
 }: IDCardProps) {
   const [side, setSide] = useState<'front' | 'back'>(initialSide)
   const [qrDataUrl, setQrDataUrl] = useState<string>('')
+  const [imgError, setImgError] = useState(false)
+
+  const initials = (name || 'SS')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0].toUpperCase())
+    .join('')
 
   const verificationUrl = getEmployeeVerificationUrl(employeeCode || 'SS-10001')
 
@@ -92,46 +102,67 @@ export default function SilverStarIDCard({
         
         {/* ===================== FRONT SIDE ===================== */}
         {side === 'front' ? (
-          <div className="h-full flex flex-col justify-between items-center py-6 animate-in fade-in duration-200 text-center">
-            <div className="w-full flex justify-end">
-              <span className="text-[9px] font-mono font-bold text-gray-300 uppercase tracking-widest">
-                RFID · NFC ENABLED
+          <div className="h-full flex flex-col justify-between items-center py-4 animate-in fade-in duration-200 text-center">
+            {/* Top Bar with RFID Badge */}
+            <div className="w-full flex items-center justify-between pb-2 border-b border-gray-100">
+              <div className="flex items-center gap-1.5">
+                <img src="/silverstar-icon-512.png" alt="Silver Star" className="w-5 h-5 object-contain" />
+                <span className="text-[11px] font-black text-[#1A2B79] font-serif uppercase tracking-wider">
+                  Silver Star
+                </span>
+              </div>
+              <span className="text-[9px] font-mono font-bold text-[#1A2B79] bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200 uppercase tracking-wider">
+                RFID · NFC
               </span>
             </div>
 
-            {/* Center Brand Identity */}
-            <div className="flex flex-col items-center space-y-3 my-auto">
-              {/* Official Enhanced Silver Star Logo Emblem */}
-              <div className="w-24 h-24 relative flex items-center justify-center">
-                <img
-                  src="/silverstar-icon-512.png"
-                  alt="Silver Star Emblem"
-                  className="w-full h-full object-contain drop-shadow-md"
-                />
+            {/* Employee Portrait Photo Container */}
+            <div className="relative my-2">
+              <div className="w-28 h-32 rounded-2xl overflow-hidden border-2 border-[#1A2B79] shadow-md ring-4 ring-[#26BCEE]/15 bg-gradient-to-b from-slate-100 to-slate-200 flex items-center justify-center">
+                {photo && !imgError ? (
+                  <img
+                    src={photo}
+                    alt={name}
+                    onError={() => setImgError(true)}
+                    className="w-full h-full object-cover object-top"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-[#1A2B79] to-[#26BCEE] flex flex-col items-center justify-center text-white p-2">
+                    <span className="text-2xl font-black font-mono tracking-wider">{initials}</span>
+                    <span className="text-[9px] font-bold uppercase mt-1 tracking-widest opacity-80">Photo</span>
+                  </div>
+                )}
               </div>
+            </div>
 
-              {/* Company Typography */}
-              <div>
-                <h1 className="text-2xl font-black text-[#1A2B79] tracking-tight font-serif">
-                  Silver Star
-                </h1>
-                <p className="text-[11px] font-medium text-gray-500 tracking-wide mt-0.5">
-                  Your True Business Partners
+            {/* Identity & Designation Details */}
+            <div className="space-y-1 w-full px-2">
+              <p className="text-sm font-black text-slate-900 uppercase tracking-tight truncate max-w-[260px]">
+                {name}
+              </p>
+              <p className="text-xs font-bold text-[#1A2B79] uppercase truncate">
+                {designation}
+              </p>
+              {department && (
+                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
+                  {department}
                 </p>
-              </div>
-
-              {/* Employee ID Tag (Subtle) */}
-              <div className="pt-4">
-                <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">
+              )}
+              <div className="pt-1.5">
+                <span className="text-[11px] font-mono font-bold bg-slate-100 text-slate-800 px-3.5 py-1 rounded-full border border-slate-200 inline-block shadow-sm">
                   {employeeCode}
                 </span>
               </div>
             </div>
 
             {/* Bottom Contactless / NFC Symbol */}
-            <div className="w-full flex justify-end items-center pr-2">
-              <div className="flex items-center text-slate-800" title="Contactless Smart Card">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <div className="w-full flex justify-between items-center text-slate-400 text-xs px-2 pt-2 border-t border-gray-100">
+              <span className="flex items-center gap-1 font-semibold text-rose-600 text-[10px]">
+                ❤️ {bloodGroup}
+              </span>
+              <div className="flex items-center gap-1 text-[#1A2B79]">
+                <span className="text-[9px] font-mono font-bold">CONTACTLESS</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                   <path d="M8.5 16.5a5 5 0 0 1 0-9" />
                   <path d="M12 19a8.5 8.5 0 0 0 0-14" />
                   <path d="M15.5 21.5a12 12 0 0 0 0-19" />

@@ -81,7 +81,10 @@ export default function App() {
           {persona === 'field' && (
             <>
               {activeTab === 'home' && (
-                <DutyHome currentUser={currentUser} onNavigateTab={setActiveTab} />
+                <DutyHome currentUser={currentUser} initialMode="muster" onNavigateTab={setActiveTab} />
+              )}
+              {activeTab === 'patrol' && (
+                <DutyHome currentUser={currentUser} initialMode="patrol" onNavigateTab={setActiveTab} />
               )}
               {activeTab === 'history' && <AttendanceHistory />}
               {activeTab === 'idcard' && <DigitalID currentUser={currentUser} />}

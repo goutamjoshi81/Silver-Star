@@ -163,7 +163,7 @@ router.post('/clients/bulk', async (req, res) => {
 // GET all sites
 router.get('/sites', async (req, res) => {
   try {
-    const { clientId } = req.query;
+    const { clientId, siteType, isEmergency } = req.query;
     let sql = `
       SELECT s.*, c.name as client_name, e.name as supervisor_name
       FROM sites s
@@ -176,7 +176,15 @@ router.get('/sites', async (req, res) => {
       params.push(clientId);
       sql += ` AND s.client_id = $${params.length}`;
     }
-    sql += ' ORDER BY s.name ASC';
+    if (siteType) {
+      params.push(siteType);
+      sql += ` AND s.site_type ILIKE $${params.length}`;
+    }
+    if (isEmergency !== undefined) {
+      params.push(isEmergency === 'true' || isEmergency === true);
+      sql += ` AND s.is_emergency = $${params.length}`;
+    }
+    sql += ' ORDER BY s.is_emergency DESC, s.name ASC';
     const { rows } = await query(sql, params);
     
     res.json(rows.map(r => ({
@@ -190,6 +198,11 @@ router.get('/sites', async (req, res) => {
       geofenceRadius: r.geofence_radius,
       sanctionedStrength: r.sanctioned_strength,
       status: r.status,
+      siteType: r.site_type || 'Permanent',
+      isEmergency: !!r.is_emergency,
+      emergencyNotes: r.emergency_notes || '',
+      validFrom: r.valid_from ? r.valid_from.toISOString().split('T')[0] : null,
+      validUntil: r.valid_until ? r.valid_until.toISOString().split('T')[0] : null,
       supervisorId: r.supervisor_id,
       supervisorName: r.supervisor_name,
     })));
@@ -198,27 +211,94 @@ router.get('/sites', async (req, res) => {
   }
 });
 
-// POST new site
+// GET deployed staff (Guards & Housekeepers) for a specific site for roll-call
+router.get('/sites/:id/deployed-staff', async (req, res) => {
+  try {
+    const siteId = req.params.id;
+    const { rows } = await query(
+      `SELECT e.id, e.employee_code, e.name, e.photo, e.phone, e.blood_group,
+              des.name as designation, d.name as department, dep.shift_id,
+              s.name as shift_name, dep.status as deployment_status
+       FROM deployments dep
+       JOIN employees e ON dep.employee_id = e.id
+       LEFT JOIN designations des ON e.designation_id = des.id
+       LEFT JOIN departments d ON e.department_id = d.id
+       LEFT JOIN shifts s ON dep.shift_id = s.id
+       WHERE dep.site_id = $1 AND dep.status = 'Active' AND e.status = 'Active'
+       ORDER BY des.name ASC, e.name ASC`,
+      [siteId]
+    );
+
+    // If no active deployments in deployments table, fallback to employees with deployed_site_id
+    if (rows.length === 0) {
+      const fallback = await query(
+        `SELECT e.id, e.employee_code, e.name, e.photo, e.phone, e.blood_group,
+                des.name as designation, d.name as department, 'Active' as deployment_status
+         FROM employees e
+         LEFT JOIN designations des ON e.designation_id = des.id
+         LEFT JOIN departments d ON e.department_id = d.id
+         WHERE e.deployed_site_id = $1 AND e.status = 'Active'
+         ORDER BY des.name ASC, e.name ASC`,
+        [siteId]
+      );
+      return res.json(fallback.rows.map(r => ({
+        id: r.id,
+        employeeCode: r.employee_code,
+        name: r.name,
+        photo: r.photo || '',
+        phone: r.phone,
+        bloodGroup: r.blood_group || 'O+',
+        designation: r.designation || 'Staff',
+        department: r.department || 'Operations',
+      })));
+    }
+
+    res.json(rows.map(r => ({
+      id: r.id,
+      employeeCode: r.employee_code,
+      name: r.name,
+      photo: r.photo || '',
+      phone: r.phone,
+      bloodGroup: r.blood_group || 'O+',
+      designation: r.designation || 'Staff',
+      department: r.department || 'Operations',
+      shiftId: r.shift_id,
+      shiftName: r.shift_name,
+    })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST new site (Supports Permanent, Temporary, and Emergency Geofences)
 router.post('/sites', async (req, res) => {
   try {
     const b = req.body;
-    const id = b.id || `SITE${Date.now().toString().slice(-6)}`;
+    const isEmerg = b.isEmergency === true || b.siteType === 'Emergency';
+    const prefix = isEmerg ? 'SITE_EMERG_' : (b.siteType === 'Temporary' ? 'SITE_TEMP_' : 'SITE');
+    const id = b.id || `${prefix}${Date.now().toString().slice(-6)}`;
     const { rows } = await query(
       `INSERT INTO sites (
-        id, name, client_id, address, latitude, longitude, geofence_radius, sanctioned_strength, status, supervisor_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        id, name, client_id, address, latitude, longitude, geofence_radius, sanctioned_strength, status, supervisor_id,
+        site_type, is_emergency, emergency_notes, valid_from, valid_until
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *`,
       [
         id,
         b.name,
         b.clientId,
         b.address || '',
-        b.latitude || 12.9716,
-        b.longitude || 77.5946,
-        b.geofenceRadius || 100,
-        b.sanctionedStrength || 5,
+        parseFloat(b.latitude) || 12.9716,
+        parseFloat(b.longitude) || 77.5946,
+        parseInt(b.geofenceRadius, 10) || 100,
+        parseInt(b.sanctionedStrength, 10) || 5,
         b.status || 'Active',
         b.supervisorId || null,
+        b.siteType || (isEmerg ? 'Emergency' : 'Permanent'),
+        isEmerg,
+        b.emergencyNotes || '',
+        b.validFrom || new Date().toISOString().split('T')[0],
+        b.validUntil || null,
       ]
     );
     res.status(201).json(rows[0]);
@@ -230,16 +310,20 @@ router.post('/sites', async (req, res) => {
 // PUT update site geofence
 router.put('/sites/:id/geofence', async (req, res) => {
   try {
-    const { latitude, longitude, geofenceRadius } = req.body;
+    const { latitude, longitude, geofenceRadius, siteType, isEmergency, emergencyNotes, validUntil } = req.body;
     const { rows } = await query(
       `UPDATE sites SET
         latitude = COALESCE($1, latitude),
         longitude = COALESCE($2, longitude),
         geofence_radius = COALESCE($3, geofence_radius),
+        site_type = COALESCE($4, site_type),
+        is_emergency = COALESCE($5, is_emergency),
+        emergency_notes = COALESCE($6, emergency_notes),
+        valid_until = COALESCE($7, valid_until),
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $4
+      WHERE id = $8
       RETURNING *`,
-      [latitude, longitude, geofenceRadius, req.params.id]
+      [latitude, longitude, geofenceRadius, siteType, isEmergency, emergencyNotes, validUntil, req.params.id]
     );
 
     if (rows.length === 0) {

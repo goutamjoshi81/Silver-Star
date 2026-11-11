@@ -98,6 +98,7 @@ export default function IDCards() {
                 phone1={emp?.phone}
                 phone2={COMPANY.phone}
                 bloodGroup={emp?.bloodGroup}
+                photo={(emp as any)?.photo || (emp as any)?.photo_url || null}
               />
             )}
           </div>

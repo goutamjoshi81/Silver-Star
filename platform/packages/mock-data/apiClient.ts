@@ -141,11 +141,35 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(clients),
     }),
-  getSites: (clientId?: string) =>
-    request<any[]>(`/sites${clientId ? `?clientId=${clientId}` : ''}`),
+  getSites: (clientId?: string, options?: { siteType?: string; isEmergency?: boolean }) => {
+    const p: any = {};
+    if (clientId) p.clientId = clientId;
+    if (options?.siteType) p.siteType = options.siteType;
+    if (options?.isEmergency !== undefined) p.isEmergency = options.isEmergency;
+    const q = new URLSearchParams(p).toString();
+    return request<any[]>(`/sites${q ? `?${q}` : ''}`);
+  },
   createSite: (siteData: any) =>
     request<any>('/sites', { method: 'POST', body: JSON.stringify(siteData) }),
-  updateGeofence: (siteId: string, data: { latitude: number; longitude: number; geofenceRadius: number }) =>
+  createEmergencyGeofence: (data: {
+    name: string;
+    clientId: string;
+    address?: string;
+    latitude: number;
+    longitude: number;
+    geofenceRadius?: number;
+    sanctionedStrength?: number;
+    emergencyNotes?: string;
+    validFrom?: string;
+    validUntil?: string;
+  }) =>
+    request<any>('/sites', {
+      method: 'POST',
+      body: JSON.stringify({ ...data, isEmergency: true, siteType: 'Emergency' }),
+    }),
+  getDeployedStaff: (siteId: string) =>
+    request<any[]>(`/sites/${siteId}/deployed-staff`),
+  updateGeofence: (siteId: string, data: { latitude: number; longitude: number; geofenceRadius: number; siteType?: string; isEmergency?: boolean; emergencyNotes?: string; validUntil?: string }) =>
     request<any>(`/sites/${siteId}/geofence`, { method: 'PUT', body: JSON.stringify(data) }),
 
   // Staff Deployments
@@ -189,6 +213,67 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  // Field Officer Site Muster & Frontline Roll-Call
+  submitFieldMuster: (data: {
+    officerId: string;
+    siteId: string;
+    shift?: string;
+    latitude?: number;
+    longitude?: number;
+    musterPhotoUrl: string;
+    staffStatuses: Array<{ employeeId: string; status: 'Present' | 'Absent' | 'Late' | 'Reliever'; notes?: string }>;
+    notes?: string;
+  }) =>
+    request<{
+      success: boolean;
+      auditId: string;
+      siteName: string;
+      date: string;
+      time: string;
+      totalSanctioned: number;
+      totalPresent: number;
+      totalAbsent: number;
+      isGeofenceVerified: boolean;
+      distanceMeters?: number;
+      audit: any;
+    }>('/attendance/field-muster', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getFieldMusterAudits: (params?: { siteId?: string; date?: string; officerId?: string }) => {
+    const q = new URLSearchParams(params as any).toString();
+    return request<any[]>(`/attendance/field-muster${q ? `?${q}` : ''}`);
+  },
+
+  // Night Patrolling & Checkpoint Inspection with Photo
+  getPatrolLogs: (params?: { siteId?: string; officerId?: string; date?: string; status?: string }) => {
+    const q = new URLSearchParams(params as any).toString();
+    return request<any[]>(`/patrols${q ? `?${q}` : ''}`);
+  },
+  submitPatrolLog: (data: {
+    officerId: string;
+    siteId?: string;
+    checkpointName: string;
+    patrolShift?: string;
+    status?: string;
+    latitude?: number;
+    longitude?: number;
+    photoUrl: string;
+    notes?: string;
+  }) =>
+    request<{
+      success: boolean;
+      id: string;
+      siteName: string;
+      isGeofenceVerified: boolean;
+      distanceMeters?: number;
+      patrolLog: any;
+    }>('/patrols', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getPatrolCheckpoints: () => request<any[]>('/patrols/checkpoints'),
 
   // Employee Documents & Review
   getDocuments: (params?: { status?: string; employeeId?: string; documentType?: string }) => {

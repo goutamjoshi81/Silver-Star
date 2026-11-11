@@ -14,6 +14,7 @@ import documentRoutes from './routes/documents.js';
 import billingRoutes from './routes/billing.js';
 import reportRoutes from './routes/reports.js';
 import dashboardRoutes from './routes/dashboard.js';
+import patrolRoutes from './routes/patrols.js';
 
 dotenv.config();
 
@@ -57,6 +58,7 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/patrols', patrolRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

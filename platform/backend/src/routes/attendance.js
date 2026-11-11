@@ -280,4 +280,188 @@ router.post('/punch', async (req, res) => {
   }
 });
 
+// POST Field Officer Site Roll-Call / Muster Audit
+router.post('/field-muster', async (req, res) => {
+  try {
+    const {
+      officerId,
+      siteId,
+      shift,
+      latitude,
+      longitude,
+      musterPhotoUrl,
+      staffStatuses,
+      notes
+    } = req.body;
+
+    if (!officerId || !siteId) {
+      return res.status(400).json({ error: 'officerId and siteId are required for muster audit' });
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const nowTime = new Date().toTimeString().split(' ')[0];
+
+    // 1. Verify Geofence distance
+    let isGeofenceVerified = false;
+    let distanceMeters = null;
+    let siteName = 'Client Site';
+    let geofenceRadius = 150;
+
+    if (siteId && latitude && longitude) {
+      const siteRes = await query('SELECT id, name, latitude, longitude, geofence_radius FROM sites WHERE id = $1', [siteId]);
+      if (siteRes.rows.length > 0) {
+        const site = siteRes.rows[0];
+        siteName = site.name;
+        geofenceRadius = site.geofence_radius || 150;
+        distanceMeters = Math.round(calculateDistanceMeters(Number(latitude), Number(longitude), Number(site.latitude), Number(site.longitude)));
+        isGeofenceVerified = distanceMeters <= geofenceRadius;
+      }
+    } else {
+      isGeofenceVerified = true;
+    }
+
+    // 2. Compute headcounts
+    const staffList = Array.isArray(staffStatuses) ? staffStatuses : [];
+    const totalSanctioned = staffList.length;
+    const totalPresent = staffList.filter(s => s.status === 'Present' || s.status === 'Late' || s.status === 'Reliever').length;
+    const totalAbsent = staffList.filter(s => s.status === 'Absent').length;
+
+    // 3. Create site_muster_audits record
+    const auditId = `MUSTER_${Date.now().toString().slice(-6)}`;
+    const { rows: auditRows } = await query(
+      `INSERT INTO site_muster_audits (
+        id, officer_id, site_id, date, shift, total_sanctioned, total_present, total_absent,
+        muster_photo_url, latitude, longitude, is_geofence_verified, distance_meters, notes, staff_records
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      RETURNING *`,
+      [
+        auditId,
+        officerId,
+        siteId,
+        today,
+        shift || 'Day Shift',
+        totalSanctioned,
+        totalPresent,
+        totalAbsent,
+        musterPhotoUrl || '/silverstar-icon-512.png',
+        latitude || null,
+        longitude || null,
+        isGeofenceVerified,
+        distanceMeters,
+        notes || '',
+        JSON.stringify(staffList),
+      ]
+    );
+
+    // 4. Upsert individual attendance records for deployed guards / staff
+    for (const member of staffList) {
+      if (!member.employeeId) continue;
+      const memberStatus = member.status || 'Present';
+      const attId = `ATT${Date.now().toString().slice(-6)}_${member.employeeId.slice(-4)}`;
+      await query(
+        `INSERT INTO attendance (
+          id, employee_id, site_id, date, punch_in, status, gps_verified, punch_type,
+          geofence_status, punch_in_latitude, punch_in_longitude, selfie_url,
+          marked_by_officer_id, audit_id, muster_photo_url
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'IN', $8, $9, $10, $11, $12, $13, $14)
+        ON CONFLICT (employee_id, date) DO UPDATE SET
+          site_id = EXCLUDED.site_id,
+          status = EXCLUDED.status,
+          gps_verified = EXCLUDED.gps_verified,
+          marked_by_officer_id = EXCLUDED.marked_by_officer_id,
+          audit_id = EXCLUDED.audit_id,
+          muster_photo_url = EXCLUDED.muster_photo_url`,
+        [
+          attId,
+          member.employeeId,
+          siteId,
+          today,
+          memberStatus === 'Absent' ? null : nowTime,
+          memberStatus,
+          isGeofenceVerified,
+          isGeofenceVerified ? 'INSIDE' : 'OUTSIDE',
+          latitude || null,
+          longitude || null,
+          musterPhotoUrl || null,
+          officerId,
+          auditId,
+          musterPhotoUrl || null,
+        ]
+      );
+    }
+
+    res.status(201).json({
+      success: true,
+      auditId,
+      siteName,
+      date: today,
+      time: nowTime.slice(0, 5),
+      totalSanctioned,
+      totalPresent,
+      totalAbsent,
+      isGeofenceVerified,
+      distanceMeters,
+      audit: auditRows[0],
+    });
+  } catch (err) {
+    console.error('Field muster audit error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET all Field Officer Site Muster Audits
+router.get('/field-muster', async (req, res) => {
+  try {
+    const { siteId, date, officerId } = req.query;
+    let sql = `
+      SELECT sma.*, s.name as site_name, c.name as client_name, e.name as officer_name, e.employee_code as officer_code
+      FROM site_muster_audits sma
+      JOIN sites s ON sma.site_id = s.id
+      LEFT JOIN clients c ON s.client_id = c.id
+      JOIN employees e ON sma.officer_id = e.id
+      WHERE 1=1
+    `;
+    const params = [];
+    if (siteId) {
+      params.push(siteId);
+      sql += ` AND sma.site_id = $${params.length}`;
+    }
+    if (date) {
+      params.push(date);
+      sql += ` AND sma.date = $${params.length}`;
+    }
+    if (officerId) {
+      params.push(officerId);
+      sql += ` AND sma.officer_id = $${params.length}`;
+    }
+    sql += ' ORDER BY sma.created_at DESC LIMIT 100';
+
+    const { rows } = await query(sql, params);
+    res.json(rows.map(r => ({
+      id: r.id,
+      officerId: r.officer_id,
+      officerName: r.officer_name,
+      officerCode: r.officer_code,
+      siteId: r.site_id,
+      siteName: r.site_name,
+      clientName: r.client_name,
+      date: r.date ? r.date.toISOString().split('T')[0] : '',
+      shift: r.shift,
+      totalSanctioned: r.total_sanctioned,
+      totalPresent: r.total_present,
+      totalAbsent: r.total_absent,
+      musterPhotoUrl: r.muster_photo_url,
+      latitude: r.latitude,
+      longitude: r.longitude,
+      isGeofenceVerified: r.is_geofence_verified,
+      distanceMeters: r.distance_meters,
+      notes: r.notes,
+      staffRecords: r.staff_records,
+      createdAt: r.created_at,
+    })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

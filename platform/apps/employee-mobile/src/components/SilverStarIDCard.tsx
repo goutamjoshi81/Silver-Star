@@ -5,7 +5,9 @@ import { COMPANY, generateQrCodeDataUrl, getEmployeeVerificationUrl, downloadVCa
 interface IDCardProps {
   name?: string;
   designation?: string;
+  department?: string;
   employeeCode?: string;
+  photo?: string | null;
   phone1?: string;
   phone2?: string;
   bloodGroup?: string;
@@ -14,8 +16,10 @@ interface IDCardProps {
 
 export default function SilverStarIDCard({
   name = 'RAMESH KUMAR',
-  designation = 'SECURITY GUARD',
+  designation = 'FIELD SUPERVISOR',
+  department = 'Operations',
   employeeCode = 'SS-10001',
+  photo = null,
   phone1 = '+91 98765 43210',
   phone2 = '+91 80 4123 4567',
   bloodGroup = 'B+',
@@ -23,8 +27,16 @@ export default function SilverStarIDCard({
 }: IDCardProps) {
   const [side, setSide] = useState<'front' | 'back'>(initialSide);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [imgError, setImgError] = useState(false);
 
   const verificationUrl = getEmployeeVerificationUrl(employeeCode || 'SS-10001');
+
+  const initials = (name || 'SS')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0].toUpperCase())
+    .join('');
 
   useEffect(() => {
     let active = true;
@@ -105,42 +117,57 @@ export default function SilverStarIDCard({
           <div className="h-full flex flex-col justify-between items-center py-3 text-center">
             
             {/* Top Bar with RFID Badge */}
-            <div className="w-full flex items-center justify-between">
-              <span className="text-[8px] font-mono font-bold text-slate-400 uppercase tracking-widest">
-                OFFICIAL CREDENTIAL
-              </span>
+            <div className="w-full flex items-center justify-between pb-1 border-b border-slate-100">
+              <div className="flex items-center gap-1.5">
+                <img src="/silverstar-icon-512.png" alt="Silver Star" className="w-4 h-4 object-contain" />
+                <span className="text-[9px] font-black text-[#1A2B79] font-serif uppercase tracking-wider">
+                  Silver Star
+                </span>
+              </div>
               <span className="text-[8px] font-mono font-bold text-[#1A2B79] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 uppercase tracking-wider">
                 RFID · NFC
               </span>
             </div>
 
-            {/* Central Badge Graphic */}
-            <div className="flex flex-col items-center space-y-2.5 my-auto">
-              <div className="w-20 h-20 relative flex items-center justify-center p-1 bg-white rounded-2xl shadow-sm border border-slate-100">
-                <img
-                  src="/silverstar-icon-512.png"
-                  alt="Silver Star Emblem"
-                  className="w-full h-full object-contain drop-shadow-md"
-                />
+            {/* Employee Portrait Photo Container */}
+            <div className="relative my-2">
+              <div className="w-24 h-28 rounded-2xl overflow-hidden border-2 border-[#1A2B79] shadow-md ring-4 ring-[#26BCEE]/15 bg-gradient-to-b from-slate-100 to-slate-200 flex items-center justify-center">
+                {photo && !imgError ? (
+                  <img
+                    src={photo}
+                    alt={name}
+                    onError={() => setImgError(true)}
+                    className="w-full h-full object-cover object-top"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-[#1A2B79] to-[#26BCEE] flex flex-col items-center justify-center text-white p-2">
+                    <span className="text-xl font-black font-mono tracking-wider">{initials}</span>
+                    <span className="text-[8px] font-bold uppercase mt-1 tracking-widest opacity-80">Photo</span>
+                  </div>
+                )}
               </div>
+              <div className="absolute -bottom-1.5 -right-1.5 bg-emerald-600 text-white rounded-full p-1 shadow border border-white" title="Identity Verified">
+                <Shield size={10} />
+              </div>
+            </div>
 
-              <div>
-                <h1 className="text-xl font-black text-[#1A2B79] tracking-tight font-serif">
-                  Silver Star
-                </h1>
-                <p className="text-[9px] font-medium text-slate-500 tracking-wide">
-                  Your True Business Partners
+            {/* Identity & Designation Details */}
+            <div className="space-y-1 w-full px-2">
+              <p className="text-xs font-black text-slate-900 uppercase tracking-tight truncate max-w-[240px]">
+                {name}
+              </p>
+              <p className="text-[10px] font-bold text-[#1A2B79] uppercase truncate">
+                {designation}
+              </p>
+              {department && (
+                <p className="text-[8px] font-semibold text-slate-400 uppercase tracking-wider">
+                  {department}
                 </p>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-xs font-black text-slate-900 uppercase tracking-tight">{name}</p>
-                <p className="text-[10px] font-bold text-[#1A2B79] uppercase">{designation}</p>
-                <div className="pt-1">
-                  <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">
-                    {employeeCode}
-                  </span>
-                </div>
+              )}
+              <div className="pt-1">
+                <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-800 px-3 py-0.5 rounded-full border border-slate-200 inline-block shadow-sm">
+                  {employeeCode}
+                </span>
               </div>
             </div>
 
