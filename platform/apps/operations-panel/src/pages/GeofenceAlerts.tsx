@@ -1,56 +1,41 @@
 import { useState, useEffect } from 'react'
-import { SITES, CLIENTS, EMPLOYEES, PATROL_LOGS, PATROL_CHECKPOINTS, api } from '@mock/mockData'
+import { SITES, CLIENTS, EMPLOYEES, api } from '@mock/mockData'
 import {
   Radio, AlertTriangle, ShieldCheck, MapPin, Sliders, CheckCircle2,
   X, RefreshCw, Compass, Plus, Save, AlertCircle, Info, ExternalLink, Loader2,
-  Moon, Camera, AlertOctagon, Calendar, Eye, Shield, Users, Check, Filter,
-  Clock, Navigation
+  Search, Check, Building, AlertOctagon, Calendar
 } from 'lucide-react'
 
 export default function GeofenceControl() {
   const [sitesList, setSitesList] = useState<any[]>(SITES)
   const [selectedSiteId, setSelectedSiteId] = useState<string>(SITES[0]?.id || 'SITE001')
-  const [activeTab, setActiveTab] = useState<'control' | 'breaches' | 'radar' | 'patrols'>('control')
+  const [activeTab, setActiveTab] = useState<'control' | 'radar' | 'breaches'>('control')
   const [feedback, setFeedback] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [detectingGps, setDetectingGps] = useState(false)
 
-  // Night Patrol Logs State
-  const [patrolLogs, setPatrolLogs] = useState<any[]>(PATROL_LOGS)
-  const [patrolFilterShift, setPatrolFilterShift] = useState<string>('ALL')
-  const [patrolFilterStatus, setPatrolFilterStatus] = useState<string>('ALL')
-  const [loadingPatrols, setLoadingPatrols] = useState<boolean>(false)
+  // Top Search State
+  const [searchQuery, setSearchQuery] = useState<string>('')
 
-  // Photo Lightbox Modal
-  const [photoModal, setPhotoModal] = useState<{
-    url: string
-    title: string
-    checkpoint: string
-    officer: string
-    time: string
-    isVerified: boolean
-    notes?: string
-  } | null>(null)
-
-  // Emergency / Temporary Geofence Modal State
-  const [showEmergencyModal, setShowEmergencyModal] = useState(false)
-  const [creatingSite, setCreatingSite] = useState(false)
+  // Add Manual Geofence Location Modal State
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [creatingLocation, setCreatingLocation] = useState(false)
   const [detectingModalGps, setDetectingModalGps] = useState(false)
-  const [emergencyForm, setEmergencyForm] = useState({
+  const [manualForm, setManualForm] = useState({
     name: '',
     clientId: CLIENTS[0]?.id || 'CLI001',
     address: '',
     latitude: 12.8456,
     longitude: 77.6603,
     geofenceRadius: 150,
-    siteType: 'Emergency' as 'Emergency' | 'Temporary' | 'Patrol Checkpoint',
+    siteType: 'Permanent' as 'Permanent' | 'Temporary' | 'Emergency' | 'Patrol Checkpoint',
+    sanctionedStrength: 6,
     validFrom: new Date().toISOString().split('T')[0],
-    validUntil: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-    emergencyNotes: '',
-    sanctionedStrength: 4,
+    validUntil: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+    notes: '',
   })
 
-  // Fetch live sites and patrol logs from database on mount
+  // Fetch live sites from database on mount
   useEffect(() => {
     let isMounted = true
     api.getSites().then(data => {
@@ -64,12 +49,6 @@ export default function GeofenceControl() {
         setLongitude(Number(target.longitude) || 77.6603)
       }
     }).catch(err => console.warn('Could not fetch sites from API, using fallback:', err))
-
-    // Fetch live patrol logs
-    api.getPatrolLogs().then(data => {
-      if (!isMounted || !data || data.length === 0) return
-      setPatrolLogs(data)
-    }).catch(err => console.warn('Could not fetch patrol logs:', err))
 
     return () => { isMounted = false }
   }, [])
@@ -131,7 +110,7 @@ export default function GeofenceControl() {
     )
   }
 
-  // Real device GPS capture for new emergency/temp geofence
+  // 1-Click GPS capture for new location modal
   const handleDetectModalGps = () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       alert('GPS Geolocation is not supported by this browser.')
@@ -143,13 +122,13 @@ export default function GeofenceControl() {
         const lat = parseFloat(pos.coords.latitude.toFixed(6))
         const lng = parseFloat(pos.coords.longitude.toFixed(6))
         const acc = Math.round(pos.coords.accuracy)
-        setEmergencyForm(prev => ({
+        setManualForm(prev => ({
           ...prev,
           latitude: lat,
           longitude: lng,
         }))
         setDetectingModalGps(false)
-        setFeedback(`✓ Centroid GPS locked: ${lat}, ${lng} (±${acc}m)`)
+        setFeedback(`✓ GPS Centroid captured: ${lat}, ${lng} (±${acc}m)`)
         setTimeout(() => setFeedback(null), 4000)
       },
       (err) => {
@@ -198,34 +177,39 @@ export default function GeofenceControl() {
     }
   }
 
-  // Create Emergency / Temporary Geofence
-  const handleCreateEmergencyGeofence = async (e: React.FormEvent) => {
+  // Handle Manual Geofence Location Creation
+  const handleCreateManualLocation = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!emergencyForm.name) {
+    if (!manualForm.name.trim()) {
       alert('Please enter a location/site name.')
       return
     }
 
-    setCreatingSite(true)
+    setCreatingLocation(true)
     try {
+      const isEmergency = manualForm.siteType === 'Emergency'
       const payload = {
-        name: emergencyForm.name,
-        clientId: emergencyForm.clientId,
-        address: emergencyForm.address || `${emergencyForm.name}, Field Location`,
-        latitude: Number(emergencyForm.latitude),
-        longitude: Number(emergencyForm.longitude),
-        geofenceRadius: Number(emergencyForm.geofenceRadius),
-        sanctionedStrength: Number(emergencyForm.sanctionedStrength),
-        emergencyNotes: emergencyForm.emergencyNotes,
-        validFrom: emergencyForm.validFrom,
-        validUntil: emergencyForm.validUntil,
-        siteType: emergencyForm.siteType,
-        isEmergency: emergencyForm.siteType === 'Emergency',
+        name: manualForm.name.trim(),
+        clientId: manualForm.clientId,
+        address: manualForm.address || `${manualForm.name}, Campus Location`,
+        latitude: Number(manualForm.latitude),
+        longitude: Number(manualForm.longitude),
+        geofenceRadius: Number(manualForm.geofenceRadius),
+        sanctionedStrength: Number(manualForm.sanctionedStrength),
+        siteType: manualForm.siteType,
+        isEmergency,
+        emergencyNotes: manualForm.notes,
+        validFrom: manualForm.validFrom,
+        validUntil: manualForm.validUntil,
+        status: 'Active',
       }
 
-      const res = await api.createEmergencyGeofence(payload)
+      const res = isEmergency
+        ? await api.createEmergencyGeofence(payload)
+        : await api.createSite(payload)
+
       const created = res?.site || res || {
-        id: `SITE_EMG_${Date.now()}`,
+        id: `SITE_${Date.now()}`,
         ...payload,
       }
 
@@ -234,45 +218,45 @@ export default function GeofenceControl() {
       setRadius(created.geofenceRadius || 150)
       setLatitude(Number(created.latitude))
       setLongitude(Number(created.longitude))
-      setShowEmergencyModal(false)
-      setFeedback(`✓ Created ${emergencyForm.siteType} Geofence: "${emergencyForm.name}" saved to database.`)
-      
+      setShowAddModal(false)
+      setFeedback(`✓ Successfully created and saved new geofence location: "${manualForm.name}".`)
+
       // Reset form
-      setEmergencyForm({
+      setManualForm({
         name: '',
         clientId: CLIENTS[0]?.id || 'CLI001',
         address: '',
         latitude: 12.8456,
         longitude: 77.6603,
         geofenceRadius: 150,
-        siteType: 'Emergency',
+        siteType: 'Permanent',
+        sanctionedStrength: 6,
         validFrom: new Date().toISOString().split('T')[0],
-        validUntil: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-        emergencyNotes: '',
-        sanctionedStrength: 4,
+        validUntil: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+        notes: '',
       })
     } catch (err: any) {
-      console.warn('API error creating emergency geofence, saving locally:', err)
+      console.warn('API error creating site, saving to local state:', err)
       const fallbackSite = {
-        id: `SITE_EMG_${Date.now()}`,
-        name: emergencyForm.name,
-        clientId: emergencyForm.clientId,
-        address: emergencyForm.address || emergencyForm.name,
-        latitude: Number(emergencyForm.latitude),
-        longitude: Number(emergencyForm.longitude),
-        geofenceRadius: Number(emergencyForm.geofenceRadius),
-        sanctionedStrength: Number(emergencyForm.sanctionedStrength),
-        siteType: emergencyForm.siteType,
-        isEmergency: emergencyForm.siteType === 'Emergency',
+        id: `SITE_${Date.now()}`,
+        name: manualForm.name,
+        clientId: manualForm.clientId,
+        address: manualForm.address || manualForm.name,
+        latitude: Number(manualForm.latitude),
+        longitude: Number(manualForm.longitude),
+        geofenceRadius: Number(manualForm.geofenceRadius),
+        sanctionedStrength: Number(manualForm.sanctionedStrength),
+        siteType: manualForm.siteType,
+        isEmergency: manualForm.siteType === 'Emergency',
         status: 'Active',
       }
       setSitesList(prev => [fallbackSite, ...prev])
       setSelectedSiteId(fallbackSite.id)
-      setShowEmergencyModal(false)
-      setFeedback(`✓ Created ${emergencyForm.siteType} Geofence: "${emergencyForm.name}" (Local cache fallback).`)
+      setShowAddModal(false)
+      setFeedback(`✓ Created geofence location: "${manualForm.name}" (Cached).`)
     } finally {
-      setCreatingSite(false)
-      setTimeout(() => setFeedback(null), 5000)
+      setCreatingLocation(false)
+      setTimeout(() => setFeedback(null), 4000)
     }
   }
 
@@ -282,57 +266,45 @@ export default function GeofenceControl() {
     setTimeout(() => setFeedback(null), 3000)
   }
 
-  const refreshPatrols = async () => {
-    setLoadingPatrols(true)
-    try {
-      const data = await api.getPatrolLogs()
-      if (data && data.length > 0) setPatrolLogs(data)
-      setFeedback('✓ Night patrol records refreshed from server.')
-      setTimeout(() => setFeedback(null), 3000)
-    } catch (err) {
-      console.warn('Could not refresh patrol logs:', err)
-    } finally {
-      setLoadingPatrols(false)
-    }
-  }
-
   const client = CLIENTS.find(c => c.id === currentSite?.clientId)
 
-  // Filtered Patrol Logs
-  const filteredPatrols = patrolLogs.filter(p => {
-    if (patrolFilterShift !== 'ALL' && p.patrolShift && !p.patrolShift.includes(patrolFilterShift)) return false
-    if (patrolFilterStatus !== 'ALL' && p.status !== patrolFilterStatus) return false
-    return true
+  // Filter sites based on top search query
+  const filteredSites = sitesList.filter(site => {
+    if (!searchQuery.trim()) return true
+    const q = searchQuery.toLowerCase().trim()
+    const nameMatch = site.name?.toLowerCase().includes(q)
+    const idMatch = site.id?.toLowerCase().includes(q)
+    const addrMatch = site.address?.toLowerCase().includes(q)
+    const cl = CLIENTS.find(c => c.id === site.clientId)
+    const clientMatch = cl?.name?.toLowerCase().includes(q)
+    const typeMatch = site.siteType?.toLowerCase().includes(q)
+    return nameMatch || idMatch || addrMatch || clientMatch || typeMatch
   })
-
-  // Patrol Metrics
-  const totalPatrols = patrolLogs.length
-  const verifiedCount = patrolLogs.filter(p => p.isGeofenceVerified).length
-  const verifiedRate = totalPatrols > 0 ? Math.round((verifiedCount / totalPatrols) * 100) : 100
-  const secureCount = patrolLogs.filter(p => p.status === 'All Secure').length
-  const incidentCount = patrolLogs.filter(p => p.status === 'Incident Noticed' || p.status === 'Unattended Post').length
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-[#202B75]">Operations Geofencing & Night Patrol Hub</h2>
+          <h2 className="text-xl font-bold text-[#202B75]">Operations Geofencing Control Hub</h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            Full GPS boundary management, emergency geofences, night patrolling photo audits, and perimeter breach monitoring
+            Full GPS boundary management, radius calibration, anti-spoofing enforcement, and real-time perimeter breach monitoring
           </p>
         </div>
+
         <div className="flex items-center gap-2">
+          {/* Add New Geofence Location Button */}
           <button
-            onClick={() => setShowEmergencyModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white rounded-xl text-xs font-bold shadow-md shadow-red-600/20 transition-all cursor-pointer"
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#202B75] hover:bg-[#161f56] text-white rounded-xl text-xs font-bold shadow-md shadow-[#202B75]/20 transition-all cursor-pointer"
           >
-            <AlertOctagon size={14} />
-            + New Emergency / Temp Geofence
+            <Plus size={15} />
+            + Add New Geofence Location
           </button>
+
           <span className="text-xs font-semibold px-3 py-2 rounded-xl bg-[#202B75]/10 text-[#202B75] flex items-center gap-1.5">
             <Radio size={14} className="text-[#26BCEE]" />
-            <strong>{sitesList.length} Sites</strong> Active
+            <strong>{sitesList.length} Active Sites</strong>
           </span>
         </div>
       </div>
@@ -347,63 +319,104 @@ export default function GeofenceControl() {
         </div>
       )}
 
-      {/* Site Selector Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-        {sitesList.map(site => {
-          const isSelected = site.id === selectedSiteId
-          const c = CLIENTS.find(cl => cl.id === site.clientId)
-          const isEmergency = site.isEmergency || site.siteType === 'Emergency'
-          const isTemp = site.siteType === 'Temporary'
-          const isPatrolCP = site.siteType === 'Patrol Checkpoint'
-
-          return (
-            <div
-              key={site.id}
-              onClick={() => handleSiteSelect(site.id)}
-              className={`p-3.5 rounded-xl border cursor-pointer transition-all relative ${
-                isSelected
-                  ? 'border-[#202B75] bg-[#202B75]/5 ring-2 ring-[#202B75]/20 shadow-sm'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
-              }`}
+      {/* Top Search Bar & Location Finder */}
+      <div className="bg-white p-3 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search geofence by location name, corporate client, site ID, or address..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:bg-white focus:ring-2 focus:ring-[#202B75] transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="font-mono text-[10px] font-bold text-gray-400">{site.id}</span>
-                <div className="flex items-center gap-1">
-                  {isEmergency && (
-                    <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-red-100 text-red-700 border border-red-200 uppercase">
-                      Emergency
-                    </span>
-                  )}
-                  {isTemp && (
-                    <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 uppercase">
-                      Temporary
-                    </span>
-                  )}
-                  {isPatrolCP && (
-                    <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 border border-indigo-200 uppercase">
-                      Patrol CP
-                    </span>
-                  )}
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    {site.geofenceRadius || (site as any).geofence_radius || 100}m
-                  </span>
-                </div>
-              </div>
-              <h4 className="font-bold text-xs text-gray-900 truncate">{site.name}</h4>
-              <p className="text-[10px] text-gray-500 truncate mt-0.5">{c?.name || 'Client Site'}</p>
-              <div className="mt-2 text-[10px] font-mono text-[#202B75] flex items-center gap-1">
-                <Compass size={11} /> {Number(site.latitude).toFixed(4)}, {Number(site.longitude).toFixed(4)}
-              </div>
-            </div>
-          )
-        })}
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        <button
+          onClick={() => {}}
+          className="px-4 py-2 bg-[#202B75] hover:bg-[#161f56] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+        >
+          <Search size={14} />
+          <span>Search</span>
+        </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-200 gap-6 overflow-x-auto">
+      {/* Site Selector Cards */}
+      {filteredSites.length === 0 ? (
+        <div className="bg-white p-8 rounded-2xl border border-gray-200 text-center text-xs text-gray-400 space-y-2">
+          <MapPin size={32} className="mx-auto text-gray-300 stroke-1" />
+          <p className="font-semibold text-gray-700">No geofence location found matching "{searchQuery}"</p>
+          <div className="flex justify-center gap-2 pt-1">
+            <button
+              onClick={() => setSearchQuery('')}
+              className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-bold text-xs"
+            >
+              Clear Search
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-3 py-1 bg-[#202B75] text-white rounded-lg font-bold text-xs"
+            >
+              + Add This Location
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          {filteredSites.map(site => {
+            const isSelected = site.id === selectedSiteId
+            const c = CLIENTS.find(cl => cl.id === site.clientId)
+            const isEmergency = site.isEmergency || site.siteType === 'Emergency'
+            const isTemp = site.siteType === 'Temporary'
+
+            return (
+              <div
+                key={site.id}
+                onClick={() => handleSiteSelect(site.id)}
+                className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                  isSelected
+                    ? 'border-[#202B75] bg-[#202B75]/5 ring-2 ring-[#202B75]/20 shadow-sm'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="font-mono text-[10px] font-bold text-gray-400">{site.id}</span>
+                  <div className="flex items-center gap-1">
+                    {isEmergency && (
+                      <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-red-100 text-red-700">EMG</span>
+                    )}
+                    {isTemp && (
+                      <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-amber-100 text-amber-700">TEMP</span>
+                    )}
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      {site.geofenceRadius || (site as any).geofence_radius || 100}m Radius
+                    </span>
+                  </div>
+                </div>
+                <h4 className="font-bold text-xs text-gray-900 truncate">{site.name}</h4>
+                <p className="text-[10px] text-gray-500 truncate mt-0.5">{c?.name || 'Client Site'}</p>
+                <div className="mt-2 text-[10px] font-mono text-[#202B75] flex items-center gap-1">
+                  <Compass size={11} /> {Number(site.latitude).toFixed(4)}, {Number(site.longitude).toFixed(4)}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Classic 3 Tabs */}
+      <div className="flex border-b border-gray-200 gap-6">
         <button
           onClick={() => setActiveTab('control')}
-          className={`pb-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap ${
+          className={`pb-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 ${
             activeTab === 'control'
               ? 'border-[#202B75] text-[#202B75]'
               : 'border-transparent text-gray-400 hover:text-gray-700'
@@ -413,19 +426,8 @@ export default function GeofenceControl() {
         </button>
 
         <button
-          onClick={() => setActiveTab('patrols')}
-          className={`pb-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap ${
-            activeTab === 'patrols'
-              ? 'border-[#202B75] text-[#202B75]'
-              : 'border-transparent text-gray-400 hover:text-gray-700'
-          }`}
-        >
-          <Moon size={14} className="text-indigo-600" /> Night Patrol Tracker ({patrolLogs.length})
-        </button>
-
-        <button
           onClick={() => setActiveTab('radar')}
-          className={`pb-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap ${
+          className={`pb-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 ${
             activeTab === 'radar'
               ? 'border-[#202B75] text-[#202B75]'
               : 'border-transparent text-gray-400 hover:text-gray-700'
@@ -436,7 +438,7 @@ export default function GeofenceControl() {
 
         <button
           onClick={() => setActiveTab('breaches')}
-          className={`pb-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap ${
+          className={`pb-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 ${
             activeTab === 'breaches'
               ? 'border-[#202B75] text-[#202B75]'
               : 'border-transparent text-gray-400 hover:text-gray-700'
@@ -446,7 +448,9 @@ export default function GeofenceControl() {
         </button>
       </div>
 
+      {/* ========================================================================= */}
       {/* TAB 1: CALIBRATION & CONTROL */}
+      {/* ========================================================================= */}
       {activeTab === 'control' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-5">
@@ -457,10 +461,10 @@ export default function GeofenceControl() {
                 </h3>
                 <p className="text-xs text-gray-400">Client: {client?.name} | Coordinates: {latitude}, {longitude}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 {currentSite.isEmergency && (
                   <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded-lg border border-red-200">
-                    EMERGENCY SITE
+                    EMERGENCY
                   </span>
                 )}
                 <span className="px-2.5 py-1 bg-blue-50 text-[#202B75] text-xs font-bold rounded-lg border border-blue-200 font-mono">
@@ -494,47 +498,53 @@ export default function GeofenceControl() {
             </div>
 
             {/* Coordinates Manual & Device Detection */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Gate Centroid Latitude</label>
-                <input
-                  type="number"
-                  step="0.000001"
-                  value={latitude}
-                  onChange={e => setLatitude(Number(e.target.value))}
-                  className="w-full border border-gray-200 rounded-xl p-2.5 text-xs font-mono font-bold text-[#202B75] bg-gray-50"
-                />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-gray-700">Geographic Center Coordinates</label>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-semibold"
+                  >
+                    <ExternalLink size={12} /> View on Google Maps
+                  </a>
+                  <button
+                    type="button"
+                    onClick={handleDetectGateLocation}
+                    disabled={detectingGps}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-cyan-50 text-[#202B75] hover:bg-cyan-100 rounded-lg text-xs font-bold transition-all border border-cyan-200 cursor-pointer"
+                  >
+                    <Compass size={13} className={detectingGps ? "animate-spin text-cyan-600" : "text-[#26BCEE]"} />
+                    {detectingGps ? "Acquiring GPS..." : "Capture Device GPS"}
+                  </button>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Gate Centroid Longitude</label>
-                <input
-                  type="number"
-                  step="0.000001"
-                  value={longitude}
-                  onChange={e => setLongitude(Number(e.target.value))}
-                  className="w-full border border-gray-200 rounded-xl p-2.5 text-xs font-mono font-bold text-[#202B75] bg-gray-50"
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 mb-1">Center Latitude *</label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    value={latitude}
+                    onChange={e => setLatitude(Number(e.target.value))}
+                    className="w-full border border-gray-200 rounded-lg p-2.5 text-xs font-mono font-semibold bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 mb-1">Center Longitude *</label>
+                  <input
+                    type="number"
+                    step="0.000001"
+                    value={longitude}
+                    onChange={e => setLongitude(Number(e.target.value))}
+                    className="w-full border border-gray-200 rounded-lg p-2.5 text-xs font-mono font-semibold bg-gray-50"
+                  />
+                </div>
               </div>
             </div>
-
-            {/* 1-Click Device GPS Centroid Button */}
-            <button
-              onClick={handleDetectGateLocation}
-              disabled={detectingGps}
-              className="w-full py-2.5 px-4 rounded-xl border border-[#202B75]/30 bg-blue-50/70 hover:bg-blue-100/70 text-[#202B75] text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
-            >
-              {detectingGps ? (
-                <>
-                  <Loader2 size={14} className="animate-spin text-[#202B75]" />
-                  <span>Locking High-Precision Device GPS Centroid...</span>
-                </>
-              ) : (
-                <>
-                  <Compass size={14} className="text-[#26BCEE]" />
-                  <span>🎯 Capture Current Device Location as Site Centroid</span>
-                </>
-              )}
-            </button>
 
             {/* Enforcement & Drift Controls */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
@@ -578,11 +588,11 @@ export default function GeofenceControl() {
             </div>
 
             {/* Save Button */}
-            <div className="pt-2 flex justify-end">
+            <div className="flex justify-end pt-2">
               <button
                 onClick={handleSaveConfig}
                 disabled={saving}
-                className="px-6 py-2.5 rounded-xl bg-[#202B75] hover:bg-[#161f56] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-[#202B75]/20 transition-all cursor-pointer"
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#202B75] hover:bg-[#161f56] disabled:bg-gray-400 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
               >
                 {saving ? (
                   <>
@@ -597,7 +607,7 @@ export default function GeofenceControl() {
             </div>
           </div>
 
-          {/* Quick Info & Statistics */}
+          {/* Quick Info & Health Stats */}
           <div className="space-y-4">
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-3 text-xs">
               <h4 className="font-bold text-gray-800 uppercase text-[11px] tracking-wide">Perimeter Health Check</h4>
@@ -613,7 +623,7 @@ export default function GeofenceControl() {
                   <span className="font-bold text-gray-800">{currentSite.sanctionedStrength || 6} Officers</span>
                 </div>
                 <div className="flex justify-between p-2 rounded-lg bg-gray-50">
-                  <span className="text-gray-500">Site Type:</span>
+                  <span className="text-gray-500">Site Classification:</span>
                   <span className="font-bold text-[#202B75]">{currentSite.siteType || 'Permanent'}</span>
                 </div>
                 <div className="flex justify-between p-2 rounded-lg bg-gray-50">
@@ -633,223 +643,19 @@ export default function GeofenceControl() {
 
             <div className="bg-gradient-to-br from-[#202B75] to-[#121a4e] text-white rounded-2xl p-5 shadow-sm space-y-2 text-xs">
               <h4 className="font-bold text-[#26BCEE] flex items-center gap-1.5">
-                <ShieldCheck size={16} /> Cost-Cutting Field Operations
+                <ShieldCheck size={16} /> Indian Statutory & Labor Compliance
               </h4>
               <p className="text-[11px] text-gray-200 leading-relaxed">
-                Security guards and housekeepers are verified on-site by travelling Field Officers. Field Officers log GPS arrival, conduct muster roll-calls with group photos, and execute night patrolling checkpoint sweeps.
+                All geofence punches record GPS latitude, longitude, reverse-geocoded address, and carrier cell ID to create tamper-proof muster rolls for statutory compliance.
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* TAB 2: NIGHT PATROL TRACKER */}
-      {activeTab === 'patrols' && (
-        <div className="space-y-5 animate-in fade-in duration-200">
-          {/* Night Patrol Metrics Strip */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
-              <div className="flex items-center justify-between text-gray-500 mb-1">
-                <span className="text-xs font-semibold">Total Patrol Visits</span>
-                <Moon size={16} className="text-indigo-600" />
-              </div>
-              <p className="text-2xl font-black text-[#202B75]">{totalPatrols}</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">Logged across client campuses</p>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
-              <div className="flex items-center justify-between text-gray-500 mb-1">
-                <span className="text-xs font-semibold">Geofence Compliance</span>
-                <Compass size={16} className="text-emerald-600" />
-              </div>
-              <p className="text-2xl font-black text-emerald-600">{verifiedRate}%</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">{verifiedCount} of {totalPatrols} inside perimeter</p>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
-              <div className="flex items-center justify-between text-gray-500 mb-1">
-                <span className="text-xs font-semibold">All Secure Checks</span>
-                <ShieldCheck size={16} className="text-[#26BCEE]" />
-              </div>
-              <p className="text-2xl font-black text-[#202B75]">{secureCount}</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">Zero security deviations</p>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
-              <div className="flex items-center justify-between text-gray-500 mb-1">
-                <span className="text-xs font-semibold">Security Hazards / Flags</span>
-                <AlertTriangle size={16} className="text-rose-600" />
-              </div>
-              <p className="text-2xl font-black text-rose-600">{incidentCount}</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">Requiring supervisor attention</p>
-            </div>
-          </div>
-
-          {/* Filters & Refresh Controls */}
-          <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="font-bold text-gray-700 flex items-center gap-1">
-                <Filter size={14} className="text-[#202B75]" /> Filter Shifts:
-              </span>
-              <div className="flex gap-1.5">
-                {['ALL', 'Night Shift 1', 'Night Shift 2', 'Dawn Shift'].map(shift => (
-                  <button
-                    key={shift}
-                    onClick={() => setPatrolFilterShift(shift)}
-                    className={`px-3 py-1 rounded-lg font-bold text-[11px] transition-all ${
-                      patrolFilterShift === shift
-                        ? 'bg-[#202B75] text-white shadow-sm'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    {shift}
-                  </button>
-                ))}
-              </div>
-
-              <span className="font-bold text-gray-700 flex items-center gap-1 ml-2">
-                Status:
-              </span>
-              <select
-                value={patrolFilterStatus}
-                onChange={e => setPatrolFilterStatus(e.target.value)}
-                className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-gray-800"
-              >
-                <option value="ALL">All Statuses</option>
-                <option value="All Secure">All Secure</option>
-                <option value="Incident Noticed">Incident Noticed</option>
-                <option value="Unattended Post">Unattended Post</option>
-              </select>
-            </div>
-
-            <button
-              onClick={refreshPatrols}
-              disabled={loadingPatrols}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-bold text-xs transition-colors self-end sm:self-auto cursor-pointer"
-            >
-              <RefreshCw size={13} className={loadingPatrols ? 'animate-spin' : ''} />
-              Refresh Feed
-            </button>
-          </div>
-
-          {/* Patrol Logs Feed */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50/50">
-              <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wide flex items-center gap-2">
-                <Moon size={15} className="text-indigo-600" />
-                Live Night Patrolling Log Stream ({filteredPatrols.length} entries)
-              </h3>
-              <span className="text-[11px] text-gray-400">Captured with GPS & Photo Proof</span>
-            </div>
-
-            {filteredPatrols.length === 0 ? (
-              <div className="p-12 text-center text-gray-400 space-y-2">
-                <Moon size={36} className="mx-auto text-gray-300 stroke-1" />
-                <p className="text-sm font-semibold text-gray-600">No patrol logs found for selected filters</p>
-                <p className="text-xs text-gray-400">Field officers will submit inspection logs with photo proof from their mobile app.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100 text-xs">
-                {filteredPatrols.map((log: any) => {
-                  const isVerified = log.isGeofenceVerified
-                  const isIncident = log.status === 'Incident Noticed' || log.status === 'Unattended Post'
-                  const displayTime = log.createdAt ? new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '23:45'
-                  const displayDate = log.createdAt ? new Date(log.createdAt).toLocaleDateString() : 'Today'
-
-                  return (
-                    <div key={log.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-gray-50/80 transition-colors">
-                      {/* Left: Info */}
-                      <div className="flex items-start gap-3.5">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0 text-indigo-700">
-                          <Moon size={18} />
-                        </div>
-
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-extrabold text-gray-900 text-xs">{log.checkpointName}</span>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#202B75]/10 text-[#202B75]">
-                              {log.siteName || 'Client Site'}
-                            </span>
-                            <span className="text-[10px] font-mono text-gray-400">{displayDate} · {displayTime}</span>
-                          </div>
-
-                          <div className="text-[11px] text-gray-600 flex items-center gap-2">
-                            <span>Officer: <strong className="text-gray-900">{log.officerName || 'Field Patrol Officer'}</strong> ({log.officerCode || log.officerId || 'SS-10001'})</span>
-                            <span>•</span>
-                            <span className="font-medium text-indigo-700">{log.patrolShift || 'Night Shift'}</span>
-                          </div>
-
-                          {log.notes && (
-                            <p className="text-[11px] text-gray-700 italic bg-gray-50 p-2 rounded-lg border border-gray-100">
-                              "{log.notes}"
-                            </p>
-                          )}
-
-                          <div className="flex items-center gap-3 pt-0.5 text-[10px] font-mono text-gray-500">
-                            <span>GPS: {Number(log.latitude || 12.8452).toFixed(4)}, {Number(log.longitude || 77.6601).toFixed(4)}</span>
-                            <span>•</span>
-                            <span>Distance from Post: <strong>{log.distanceMeters ?? 14}m</strong></span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right: Badges & Photo Thumbnail */}
-                      <div className="flex items-center gap-3 self-end md:self-center flex-shrink-0">
-                        {/* Status Badge */}
-                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold ${
-                          isIncident
-                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        }`}>
-                          {log.status || 'All Secure'}
-                        </span>
-
-                        {/* GPS Geofence Badge */}
-                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold flex items-center gap-1 ${
-                          isVerified
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                            : 'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}>
-                          <Compass size={11} />
-                          {isVerified ? 'GPS Verified' : 'Perimeter Deviation'}
-                        </span>
-
-                        {/* Photo Evidence Thumbnail Button */}
-                        {log.photoUrl ? (
-                          <button
-                            onClick={() => setPhotoModal({
-                              url: log.photoUrl,
-                              title: log.checkpointName,
-                              checkpoint: log.checkpointName,
-                              officer: log.officerName || log.officerId,
-                              time: `${displayDate} ${displayTime}`,
-                              isVerified: log.isGeofenceVerified,
-                              notes: log.notes
-                            })}
-                            className="group relative w-12 h-12 rounded-xl overflow-hidden border-2 border-indigo-200 shadow-sm hover:scale-105 transition-transform cursor-pointer"
-                            title="Click to view photo proof"
-                          >
-                            <img src={log.photoUrl} alt="Patrol evidence" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 flex items-center justify-center">
-                              <Eye size={14} className="text-white drop-shadow" />
-                            </div>
-                          </button>
-                        ) : (
-                          <div className="w-12 h-12 rounded-xl border border-dashed border-gray-300 flex items-center justify-center text-gray-400">
-                            <Camera size={14} />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 3: INTERACTIVE RADAR / MAP VIEW */}
+      {/* ========================================================================= */}
+      {/* TAB 2: INTERACTIVE RADAR / MAP VIEW */}
+      {/* ========================================================================= */}
       {activeTab === 'radar' && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
           <div className="flex items-center justify-between border-b pb-3">
@@ -923,7 +729,9 @@ export default function GeofenceControl() {
         </div>
       )}
 
-      {/* TAB 4: BREACH EXCEPTIONS */}
+      {/* ========================================================================= */}
+      {/* TAB 3: BREACH EXCEPTIONS */}
+      {/* ========================================================================= */}
       {activeTab === 'breaches' && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-200 flex items-center justify-between">
@@ -991,45 +799,45 @@ export default function GeofenceControl() {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: CREATE TEMPORARY / EMERGENCY GEOFENCE */}
+      {/* MODAL: ADD NEW GEOFENCE LOCATION MANUALLY */}
       {/* ========================================================================= */}
-      {showEmergencyModal && (
+      {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden border border-gray-100 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden border border-gray-100 animate-in fade-in duration-150">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-red-600 to-rose-700 px-6 py-4 text-white flex items-center justify-between">
+            <div className="bg-[#202B75] px-6 py-4 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <AlertOctagon size={20} className="text-white" />
+                <MapPin size={20} className="text-[#26BCEE]" />
                 <div>
-                  <h3 className="font-bold text-sm">Create Temporary / Emergency Geofence</h3>
-                  <p className="text-[11px] text-white/80">Establish perimeter boundaries for emergency deployments and event patrols</p>
+                  <h3 className="font-bold text-sm">Add New Geofencing Location</h3>
+                  <p className="text-[11px] text-white/80">Configure GPS centroid coordinates, permitted radius, and boundary policy</p>
                 </div>
               </div>
               <button
-                onClick={() => setShowEmergencyModal(false)}
-                className="text-white/80 hover:text-white p-1 rounded-lg"
+                onClick={() => setShowAddModal(false)}
+                className="text-white/80 hover:text-white p-1 rounded-lg cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateEmergencyGeofence} className="p-6 space-y-4 text-xs">
-              {/* Type Selector */}
+            <form onSubmit={handleCreateManualLocation} className="p-6 space-y-4 text-xs">
+              {/* Classification */}
               <div>
-                <label className="block font-bold text-gray-700 mb-1.5">Geofence Location Classification *</label>
+                <label className="block font-bold text-gray-700 mb-1.5">Location Classification *</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { type: 'Emergency', label: 'Emergency Site', desc: 'Crisis / Immediate Post' },
-                    { type: 'Temporary', label: 'Temporary Event', desc: 'VIP / Short Visit' },
-                    { type: 'Patrol Checkpoint', label: 'Patrol Checkpoint', desc: 'Night Patrol Route' }
+                    { type: 'Permanent', label: 'Permanent Site', desc: 'Main Campus / Facility' },
+                    { type: 'Temporary', label: 'Temporary Event', desc: 'VIP / Short Deployment' },
+                    { type: 'Emergency', label: 'Emergency Site', desc: 'Critical / Crisis Post' }
                   ].map(item => (
                     <button
                       key={item.type}
                       type="button"
-                      onClick={() => setEmergencyForm(prev => ({ ...prev, siteType: item.type as any }))}
-                      className={`p-2.5 rounded-xl border text-left transition-all ${
-                        emergencyForm.siteType === item.type
-                          ? 'border-red-600 bg-red-50 text-red-900 ring-2 ring-red-600/20'
+                      onClick={() => setManualForm(prev => ({ ...prev, siteType: item.type as any }))}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        manualForm.siteType === item.type
+                          ? 'border-[#202B75] bg-blue-50/70 text-[#202B75] ring-2 ring-[#202B75]/20'
                           : 'border-gray-200 bg-white hover:border-gray-300 text-gray-700'
                       }`}
                     >
@@ -1040,25 +848,25 @@ export default function GeofenceControl() {
                 </div>
               </div>
 
-              {/* Name & Client */}
+              {/* Location Name & Client */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Location / Site Name *</label>
+                  <label className="block font-semibold text-gray-700 mb-1">Geofence Location / Site Name *</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. VIP Conclave - Grand Ballroom"
-                    value={emergencyForm.name}
-                    onChange={e => setEmergencyForm(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:ring-2 focus:ring-red-600"
+                    placeholder="e.g. Prestige Tech Cloud - Gate 2"
+                    value={manualForm.name}
+                    onChange={e => setManualForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl p-2.5 text-xs font-semibold focus:ring-2 focus:ring-[#202B75]"
                   />
                 </div>
 
                 <div>
                   <label className="block font-semibold text-gray-700 mb-1">Associated Corporate Client *</label>
                   <select
-                    value={emergencyForm.clientId}
-                    onChange={e => setEmergencyForm(prev => ({ ...prev, clientId: e.target.value }))}
+                    value={manualForm.clientId}
+                    onChange={e => setManualForm(prev => ({ ...prev, clientId: e.target.value }))}
                     className="w-full border border-gray-200 rounded-xl p-2.5 text-xs font-semibold bg-white"
                   >
                     {CLIENTS.map(c => (
@@ -1068,40 +876,40 @@ export default function GeofenceControl() {
                 </div>
               </div>
 
-              {/* Address */}
+              {/* Physical Address */}
               <div>
-                <label className="block font-semibold text-gray-700 mb-1">Physical Landmark / Address</label>
+                <label className="block font-semibold text-gray-700 mb-1">Physical Address / Gatehouse Description</label>
                 <input
                   type="text"
-                  placeholder="e.g. Gate 4, Electronic City Expressway"
-                  value={emergencyForm.address}
-                  onChange={e => setEmergencyForm(prev => ({ ...prev, address: e.target.value }))}
+                  placeholder="e.g. Outer Ring Road, Bellandur, Bangalore"
+                  value={manualForm.address}
+                  onChange={e => setManualForm(prev => ({ ...prev, address: e.target.value }))}
                   className="w-full border border-gray-200 rounded-xl p-2.5 text-xs"
                 />
               </div>
 
-              {/* GPS Coordinates & 1-Click Centroid Capture */}
+              {/* Manual Coordinates & 1-Click Detect GPS */}
               <div className="space-y-2 bg-gray-50 p-3.5 rounded-xl border border-gray-200">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-gray-800 flex items-center gap-1.5">
-                    <Compass size={14} className="text-red-600" />
-                    GPS Centroid Coordinates
+                    <Compass size={14} className="text-[#202B75]" />
+                    Manual Geofence Coordinates
                   </span>
                   <button
                     type="button"
                     onClick={handleDetectModalGps}
                     disabled={detectingModalGps}
-                    className="flex items-center gap-1 px-3 py-1 bg-white border border-gray-300 hover:border-red-600 text-red-700 font-bold rounded-lg text-[11px] shadow-sm transition-all"
+                    className="flex items-center gap-1 px-3 py-1 bg-white border border-gray-300 hover:border-[#202B75] text-[#202B75] font-bold rounded-lg text-[11px] shadow-sm transition-all cursor-pointer"
                   >
                     {detectingModalGps ? (
                       <>
-                        <Loader2 size={12} className="animate-spin text-red-600" />
+                        <Loader2 size={12} className="animate-spin text-[#202B75]" />
                         Detecting...
                       </>
                     ) : (
                       <>
-                        <Compass size={12} className="text-red-600" />
-                        🎯 Use My Current GPS
+                        <Compass size={12} className="text-[#26BCEE]" />
+                        🎯 Detect My Device GPS
                       </>
                     )}
                   </button>
@@ -1109,24 +917,24 @@ export default function GeofenceControl() {
 
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <div>
-                    <label className="block text-[11px] text-gray-500 mb-0.5">Latitude</label>
+                    <label className="block text-[11px] text-gray-500 mb-0.5">Latitude (Decimal)</label>
                     <input
                       type="number"
                       step="0.000001"
                       required
-                      value={emergencyForm.latitude}
-                      onChange={e => setEmergencyForm(prev => ({ ...prev, latitude: Number(e.target.value) }))}
+                      value={manualForm.latitude}
+                      onChange={e => setManualForm(prev => ({ ...prev, latitude: Number(e.target.value) }))}
                       className="w-full bg-white border border-gray-200 rounded-lg p-2 font-mono font-bold text-gray-800"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] text-gray-500 mb-0.5">Longitude</label>
+                    <label className="block text-[11px] text-gray-500 mb-0.5">Longitude (Decimal)</label>
                     <input
                       type="number"
                       step="0.000001"
                       required
-                      value={emergencyForm.longitude}
-                      onChange={e => setEmergencyForm(prev => ({ ...prev, longitude: Number(e.target.value) }))}
+                      value={manualForm.longitude}
+                      onChange={e => setManualForm(prev => ({ ...prev, longitude: Number(e.target.value) }))}
                       className="w-full bg-white border border-gray-200 rounded-lg p-2 font-mono font-bold text-gray-800"
                     />
                   </div>
@@ -1137,63 +945,47 @@ export default function GeofenceControl() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <div className="flex justify-between items-center">
-                    <label className="font-semibold text-gray-700">Perimeter Radius</label>
-                    <span className="font-mono font-bold text-red-600">{emergencyForm.geofenceRadius}m</span>
+                    <label className="font-semibold text-gray-700">Permitted Geofence Radius</label>
+                    <span className="font-mono font-bold text-[#202B75]">{manualForm.geofenceRadius} Meters</span>
                   </div>
                   <input
                     type="range"
                     min="30"
                     max="500"
-                    step="10"
-                    value={emergencyForm.geofenceRadius}
-                    onChange={e => setEmergencyForm(prev => ({ ...prev, geofenceRadius: Number(e.target.value) }))}
-                    className="w-full accent-red-600 cursor-pointer"
+                    step="5"
+                    value={manualForm.geofenceRadius}
+                    onChange={e => setManualForm(prev => ({ ...prev, geofenceRadius: Number(e.target.value) }))}
+                    className="w-full accent-[#202B75] cursor-pointer"
                   />
+                  <div className="flex justify-between text-[10px] text-gray-400 font-mono">
+                    <span>30m (Strict)</span>
+                    <span>150m (Standard)</span>
+                    <span>500m (Large)</span>
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Sanctioned Officers</label>
+                  <label className="block font-semibold text-gray-700 mb-1">Sanctioned Staff Strength</label>
                   <input
                     type="number"
                     min="1"
-                    max="50"
-                    value={emergencyForm.sanctionedStrength}
-                    onChange={e => setEmergencyForm(prev => ({ ...prev, sanctionedStrength: Number(e.target.value) }))}
+                    max="100"
+                    value={manualForm.sanctionedStrength}
+                    onChange={e => setManualForm(prev => ({ ...prev, sanctionedStrength: Number(e.target.value) }))}
                     className="w-full border border-gray-200 rounded-xl p-2 font-semibold"
                   />
+                  <p className="text-[10px] text-gray-400 mt-1">Guards & housekeepers sanctioned for post</p>
                 </div>
               </div>
 
-              {/* Validity Window */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Valid From</label>
-                  <input
-                    type="date"
-                    value={emergencyForm.validFrom}
-                    onChange={e => setEmergencyForm(prev => ({ ...prev, validFrom: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl p-2"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Valid Until (Expiry)</label>
-                  <input
-                    type="date"
-                    value={emergencyForm.validUntil}
-                    onChange={e => setEmergencyForm(prev => ({ ...prev, validUntil: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl p-2"
-                  />
-                </div>
-              </div>
-
-              {/* Emergency Notes */}
+              {/* Operational Notes */}
               <div>
-                <label className="block font-semibold text-gray-700 mb-1">Emergency Operations Brief / Reason</label>
+                <label className="block font-semibold text-gray-700 mb-1">Location Notes & Perimeter Guidelines</label>
                 <textarea
                   rows={2}
-                  placeholder="e.g. VIP delegation visiting tech park. Night patrol post established at rear gate."
-                  value={emergencyForm.emergencyNotes}
-                  onChange={e => setEmergencyForm(prev => ({ ...prev, emergencyNotes: e.target.value }))}
+                  placeholder="e.g. Main visitor entry barrier with ANPR camera and turnstiles."
+                  value={manualForm.notes}
+                  onChange={e => setManualForm(prev => ({ ...prev, notes: e.target.value }))}
                   className="w-full border border-gray-200 rounded-xl p-2 text-xs"
                 />
               </div>
@@ -1202,95 +994,28 @@ export default function GeofenceControl() {
               <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
                 <button
                   type="button"
-                  onClick={() => setShowEmergencyModal(false)}
-                  className="px-4 py-2 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={creatingSite}
-                  className="px-5 py-2 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white rounded-xl font-bold flex items-center gap-1.5 shadow-md shadow-red-600/20"
+                  disabled={creatingLocation}
+                  className="px-5 py-2 bg-[#202B75] hover:bg-[#161f56] text-white rounded-xl font-bold flex items-center gap-1.5 shadow-md shadow-[#202B75]/20 cursor-pointer"
                 >
-                  {creatingSite ? (
+                  {creatingLocation ? (
                     <>
-                      <Loader2 size={13} className="animate-spin" /> Saving Geofence...
+                      <Loader2 size={13} className="animate-spin" /> Saving Location...
                     </>
                   ) : (
                     <>
-                      <Check size={14} /> Commit Geofence to Database
+                      <Check size={14} /> Commit Location to Database
                     </>
                   )}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL: PHOTO EVIDENCE LIGHTBOX */}
-      {/* ========================================================================= */}
-      {photoModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white max-w-lg w-full rounded-3xl overflow-hidden shadow-2xl border border-white/20 animate-in zoom-in-95 duration-150">
-            <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
-              <div>
-                <h4 className="font-bold text-sm">{photoModal.checkpoint}</h4>
-                <p className="text-[11px] text-gray-400">Patrol Checkpoint Inspection Photo</p>
-              </div>
-              <button
-                onClick={() => setPhotoModal(null)}
-                className="text-gray-400 hover:text-white p-1 rounded-lg"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="bg-black flex items-center justify-center max-h-[60vh] overflow-hidden">
-              <img
-                src={photoModal.url}
-                alt="Enlarged evidence"
-                className="w-full h-full object-contain"
-              />
-            </div>
-
-            <div className="p-5 space-y-3 text-xs bg-white">
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div>
-                  <span className="text-gray-400 block text-[10px]">Patrol Officer</span>
-                  <span className="font-bold text-gray-900">{photoModal.officer}</span>
-                </div>
-                <div>
-                  <span className="text-gray-400 block text-[10px]">Timestamp</span>
-                  <span className="font-mono text-gray-700">{photoModal.time}</span>
-                </div>
-              </div>
-
-              {photoModal.notes && (
-                <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 text-gray-700 italic">
-                  "{photoModal.notes}"
-                </div>
-              )}
-
-              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 ${
-                  photoModal.isVerified
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : 'bg-amber-50 text-amber-700 border border-amber-200'
-                }`}>
-                  <Compass size={11} />
-                  {photoModal.isVerified ? 'GPS Geofence Verified' : 'GPS Deviation Logged'}
-                </span>
-
-                <button
-                  onClick={() => setPhotoModal(null)}
-                  className="px-4 py-1.5 bg-[#202B75] text-white rounded-xl font-bold text-xs"
-                >
-                  Close Inspection
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}

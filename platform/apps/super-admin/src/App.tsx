@@ -8,6 +8,7 @@ import Employees from './pages/Employees'
 import Onboarding from './pages/Onboarding'
 import Attendance from './pages/Attendance'
 import Geofencing from './pages/Geofencing'
+import NightPatrolling from './pages/NightPatrolling'
 import Deployment from './pages/Deployment'
 import IDCards from './pages/IDCards'
 import Documents from './pages/Documents'
@@ -25,6 +26,7 @@ const KNOWN_APP_ROUTES = [
   '/onboarding',
   '/attendance',
   '/geofencing',
+  '/night-patrolling',
   '/deployment',
   '/idcards',
   '/documents',
@@ -82,6 +84,7 @@ export default function App() {
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/attendance" element={<Attendance />} />
         <Route path="/geofencing" element={<Geofencing />} />
+        <Route path="/night-patrolling" element={<NightPatrolling />} />
         <Route path="/deployment" element={<Deployment />} />
         <Route path="/idcards" element={<IDCards />} />
         <Route path="/documents" element={<Documents />} />

@@ -8,6 +8,7 @@ import OpsEmployees from './pages/OpsEmployees'
 import SiteRosters from './pages/SiteRosters'
 import AttendanceMonitor from './pages/AttendanceMonitor'
 import GeofenceAlerts from './pages/GeofenceAlerts'
+import NightPatrolling from './pages/NightPatrolling'
 import IncidentManagement from './pages/IncidentManagement'
 import DailyWorkReports from './pages/DailyWorkReports'
 import OpsDeployment from './pages/OpsDeployment'
@@ -21,6 +22,7 @@ const KNOWN_APP_ROUTES = [
   '/rosters',
   '/attendance',
   '/geofence-alerts',
+  '/night-patrolling',
   '/incidents',
   '/daily-reports',
   '/deployment',
@@ -72,6 +74,7 @@ export default function App() {
         <Route path="/rosters" element={<SiteRosters />} />
         <Route path="/attendance" element={<AttendanceMonitor />} />
         <Route path="/geofence-alerts" element={<GeofenceAlerts />} />
+        <Route path="/night-patrolling" element={<NightPatrolling />} />
         <Route path="/incidents" element={<IncidentManagement />} />
         <Route path="/daily-reports" element={<DailyWorkReports />} />
         <Route path="/deployment" element={<OpsDeployment />} />

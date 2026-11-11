@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, Clock, MapPin,
   Truck, CreditCard, FileText, BarChart2, Receipt, Shield,
   Bell, Settings, ChevronLeft, ChevronRight, LogOut, Menu,
-  Building2
+  Building2, Moon
 } from 'lucide-react'
 import { COMPANY, NOTIFICATIONS } from '@mock/mockData'
 
@@ -14,6 +14,7 @@ const navItems = [
   { icon: Users, label: 'Employees', path: '/employees' },
   { icon: Clock, label: 'Attendance', path: '/attendance' },
   { icon: MapPin, label: 'Geofencing & Sites', path: '/geofencing' },
+  { icon: Moon, label: 'Night Patrolling', path: '/night-patrolling' },
   { icon: Truck, label: 'Deployment', path: '/deployment' },
   { icon: CreditCard, label: 'ID Cards', path: '/idcards' },
   { icon: FileText, label: 'Documents', path: '/documents' },

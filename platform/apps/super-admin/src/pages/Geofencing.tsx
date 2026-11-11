@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { SITES, CLIENTS, EMPLOYEES, api } from '@mock/mockData'
-import { MapPin, Circle, Eye, Edit2, X, Radio, Compass, Save, CheckCircle2, ExternalLink, Loader2, AlertOctagon, Check } from 'lucide-react'
+import { MapPin, Circle, Eye, Edit2, X, Radio, Compass, Save, CheckCircle2, ExternalLink, Loader2, AlertOctagon, Check, Search, Plus } from 'lucide-react'
 
 export default function Geofencing() {
   const [sites, setSites] = useState<any[]>(SITES)
@@ -11,8 +11,9 @@ export default function Geofencing() {
   const [saving, setSaving] = useState(false)
   const [detectingGps, setDetectingGps] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
-  // Emergency / Temporary Geofence Modal State
+  // Emergency / Temporary / Manual Geofence Modal State
   const [showEmergencyModal, setShowEmergencyModal] = useState(false)
   const [creatingEmergency, setCreatingEmergency] = useState(false)
   const [detectingModalGps, setDetectingModalGps] = useState(false)
@@ -23,9 +24,9 @@ export default function Geofencing() {
     latitude: 12.8456,
     longitude: 77.6603,
     geofenceRadius: 150,
-    siteType: 'Emergency' as 'Emergency' | 'Temporary' | 'Patrol Checkpoint',
+    siteType: 'Permanent' as 'Permanent' | 'Emergency' | 'Temporary' | 'Patrol Checkpoint',
     validFrom: new Date().toISOString().split('T')[0],
-    validUntil: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+    validUntil: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
     emergencyNotes: '',
     sanctionedStrength: 4,
   })
@@ -155,6 +156,7 @@ export default function Geofencing() {
 
     setCreatingEmergency(true)
     try {
+      const isEmergency = emergencyForm.siteType === 'Emergency'
       const payload = {
         name: emergencyForm.name,
         clientId: emergencyForm.clientId,
@@ -167,10 +169,12 @@ export default function Geofencing() {
         validFrom: emergencyForm.validFrom,
         validUntil: emergencyForm.validUntil,
         siteType: emergencyForm.siteType,
-        isEmergency: emergencyForm.siteType === 'Emergency',
+        isEmergency,
       }
 
-      const res = await api.createEmergencyGeofence(payload)
+      const res = (isEmergency || emergencyForm.siteType === 'Temporary')
+        ? await api.createEmergencyGeofence(payload)
+        : await api.createSite(payload)
       const created = res?.site || res || {
         id: `SITE_EMG_${Date.now()}`,
         ...payload,
@@ -196,6 +200,19 @@ export default function Geofencing() {
     }
   }
 
+  // Filter sites based on search query
+  const filteredSites = sites.filter(s => {
+    if (!searchQuery.trim()) return true
+    const q = searchQuery.toLowerCase().trim()
+    const nameMatch = s.name?.toLowerCase().includes(q)
+    const idMatch = s.id?.toLowerCase().includes(q)
+    const addrMatch = s.address?.toLowerCase().includes(q)
+    const cli = clients.find(c => c.id === s.clientId) || CLIENTS.find(c => c.id === s.clientId)
+    const clientMatch = cli?.name?.toLowerCase().includes(q)
+    const typeMatch = (s.siteType || (s.isEmergency ? 'Emergency' : 'Permanent'))?.toLowerCase().includes(q)
+    return nameMatch || idMatch || addrMatch || clientMatch || typeMatch
+  })
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -206,10 +223,10 @@ export default function Geofencing() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowEmergencyModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white rounded-xl text-xs font-bold shadow-md shadow-red-600/20 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#202B75] hover:bg-[#161f56] text-white rounded-xl text-xs font-bold shadow-md shadow-[#202B75]/20 transition-all cursor-pointer"
           >
-            <AlertOctagon size={14} />
-            + New Emergency / Temp Geofence
+            <Plus size={14} />
+            + Add New Geofence Location
           </button>
           <span className="text-xs font-semibold px-3 py-2 rounded-xl bg-[#202B75]/10 text-[#202B75] flex items-center gap-1.5">
             <Radio size={14} className="text-[#26BCEE]" />
@@ -228,16 +245,46 @@ export default function Geofencing() {
         </div>
       )}
 
+      {/* Top Search Bar & Search Button */}
+      <div className="bg-white p-3 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search geofences by location name, client, address, or site ID..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:bg-white focus:ring-2 focus:ring-[#202B75] transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        <button
+          onClick={() => {}}
+          className="px-4 py-2 bg-[#202B75] hover:bg-[#161f56] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+        >
+          <Search size={14} />
+          <span>Search</span>
+        </button>
+      </div>
+
       {/* Map Placeholder */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="bg-[#f0f2f8] h-48 flex items-center justify-center relative">
           <div className="text-center text-gray-400">
             <MapPin className="w-12 h-12 mx-auto mb-2 text-[#202B75]/30" />
             <p className="text-sm font-medium text-gray-500">Interactive Map View</p>
-            <p className="text-xs text-gray-400">Google Maps boundary enforcement & live radar</p>
+            <p className="text-xs text-gray-400">Google Maps boundary enforcement & live radar ({filteredSites.length} showing)</p>
           </div>
-          {/* Dummy site pins */}
-          {sites.map((s, i) => (
+          {/* Site pins */}
+          {filteredSites.map((s, i) => (
             <button
               key={s.id}
               onClick={() => setSelected(s.id)}
@@ -257,23 +304,35 @@ export default function Geofencing() {
 
       {/* Sites Table */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-100">
-            <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Site</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Coordinates</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Geofence Radius</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Strength</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {sites.map(s => {
-              const cli = clients.find(c => c.id === s.clientId) || CLIENTS.find(c => c.id === s.clientId)
-              const isEmergency = s.isEmergency || s.siteType === 'Emergency'
-              const isTemp = s.siteType === 'Temporary'
+        {filteredSites.length === 0 ? (
+          <div className="p-8 text-center text-xs text-gray-400 space-y-2">
+            <MapPin size={32} className="mx-auto text-gray-300 stroke-1" />
+            <p className="font-semibold text-gray-700">No geofence location found matching "{searchQuery}"</p>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-bold text-xs"
+            >
+              Clear Search
+            </button>
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Site</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Coordinates</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Geofence Radius</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Strength</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {filteredSites.map(s => {
+                const cli = clients.find(c => c.id === s.clientId) || CLIENTS.find(c => c.id === s.clientId)
+                const isEmergency = s.isEmergency || s.siteType === 'Emergency'
+                const isTemp = s.siteType === 'Temporary'
 
               return (
                 <tr key={s.id} className="hover:bg-gray-50/50">
@@ -342,6 +401,7 @@ export default function Geofencing() {
             })}
           </tbody>
         </table>
+      )}
       </div>
 
       {/* Site Detail Modal */}
@@ -523,16 +583,16 @@ export default function Geofencing() {
         </div>
       )}
 
-      {/* Emergency / Temporary Geofence Modal */}
+      {/* Manual / Emergency / Temporary Geofence Modal */}
       {showEmergencyModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden border border-gray-100 animate-in fade-in duration-200">
-            <div className="bg-gradient-to-r from-red-600 to-rose-700 px-6 py-4 text-white flex items-center justify-between">
+          <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in duration-200">
+            <div className="bg-gradient-to-r from-[#202B75] to-[#161f56] px-6 py-4 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <AlertOctagon size={20} className="text-white" />
+                <MapPin size={20} className="text-[#26BCEE]" />
                 <div>
-                  <h3 className="font-bold text-sm">Add Temporary / Emergency Geofence</h3>
-                  <p className="text-[11px] text-white/80">Establish temporary client posts, VIP security zones & emergency geofences</p>
+                  <h3 className="font-bold text-sm">Add New Geofence Location</h3>
+                  <p className="text-[11px] text-white/80">Establish permanent locations, emergency posts, temporary events, or patrol checkpoints</p>
                 </div>
               </div>
               <button
@@ -546,8 +606,9 @@ export default function Geofencing() {
             <form onSubmit={handleCreateEmergency} className="p-6 space-y-4 text-xs">
               <div>
                 <label className="block font-bold text-gray-700 mb-1.5">Geofence Classification *</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
+                    { type: 'Permanent', label: 'Permanent Site', desc: 'Standard Office / Factory' },
                     { type: 'Emergency', label: 'Emergency Site', desc: 'Crisis / Immediate Post' },
                     { type: 'Temporary', label: 'Temporary Event', desc: 'VIP / Short Visit' },
                     { type: 'Patrol Checkpoint', label: 'Patrol Checkpoint', desc: 'Night Patrol Route' }
@@ -558,7 +619,7 @@ export default function Geofencing() {
                       onClick={() => setEmergencyForm(prev => ({ ...prev, siteType: item.type as any }))}
                       className={`p-2.5 rounded-xl border text-left transition-all ${
                         emergencyForm.siteType === item.type
-                          ? 'border-red-600 bg-red-50 text-red-900 ring-2 ring-red-600/20'
+                          ? 'border-[#202B75] bg-[#202B75]/5 text-[#202B75] ring-2 ring-[#202B75]/20'
                           : 'border-gray-200 bg-white hover:border-gray-300 text-gray-700'
                       }`}
                     >
