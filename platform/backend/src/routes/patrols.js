@@ -166,3 +166,4 @@ router.get('/checkpoints', (req, res) => {
 });
 
 export default router;
+
