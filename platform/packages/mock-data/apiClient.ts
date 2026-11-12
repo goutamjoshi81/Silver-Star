@@ -188,6 +188,16 @@ export const api = {
   createDeployment: (data: { siteId: string; clientId: string; employeeId: string; shiftId?: string; startDate?: string; deployedBy?: string }) =>
     request<any>('/deployments', { method: 'POST', body: JSON.stringify(data) }),
   relieveDeployment: (id: string) => request<any>(`/deployments/${id}`, { method: 'DELETE' }),
+  uploadStaffExcel: (data: { clientId: string; siteId: string; officerId?: string; staff: any[] }) =>
+    request<{ success: boolean; count: number; siteId: string; siteName: string; clientId: string; clientName: string; officerId?: string; staff: any[]; message: string }>(
+      '/deployments/bulk-excel',
+      { method: 'POST', body: JSON.stringify(data) }
+    ),
+  assignClientToOfficer: (data: { officerId: string; clientId: string; siteId: string; shift?: string; notes?: string }) =>
+    request<{ success: boolean; message: string; officerId: string; siteId: string; clientId: string }>(
+      '/deployments/assign-officer',
+      { method: 'POST', body: JSON.stringify(data) }
+    ),
 
   // Attendance & GPS
   getAttendance: (params?: { date?: string; startDate?: string; endDate?: string; employeeId?: string; siteId?: string; clientId?: string }) => {
@@ -282,6 +292,37 @@ export const api = {
       body: JSON.stringify(data),
     }),
   getPatrolCheckpoints: () => request<any[]>('/patrols/checkpoints'),
+  getPatrolAssignments: (params?: { officerId?: string; date?: string; status?: string }) => {
+    const q = new URLSearchParams(params as any).toString();
+    return request<any[]>(`/patrols/assignments${q ? `?${q}` : ''}`);
+  },
+  createPatrolAssignment: (data: {
+    officerId: string;
+    clientId?: string;
+    siteId?: string;
+    locationType?: 'client' | 'custom';
+    locationName: string;
+    address: string;
+    latitude?: number;
+    longitude?: number;
+    geofenceRadius?: number;
+    checkpointName: string;
+    shift?: string;
+    instructions?: string;
+  }) =>
+    request<{ success: boolean; message: string; assignment: any }>('/patrols/assignments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getOfficerDuties: (officerId: string) =>
+    request<{
+      officerId: string;
+      officerName: string;
+      officerCode: string;
+      assignedClients: any[];
+      assignedPatrols: any[];
+      totalDutiesCount: number;
+    }>(`/attendance/officer-duties/${encodeURIComponent(officerId)}`),
 
   // Employee Documents & Review
   getDocuments: (params?: { status?: string; employeeId?: string; documentType?: string }) => {

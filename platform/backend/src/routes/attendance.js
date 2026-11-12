@@ -464,4 +464,151 @@ router.get('/field-muster', async (req, res) => {
   }
 });
 
+// GET /officer-duties/:officerId: Returns ONLY the assigned client sites & night patrols for this specific officer
+router.get('/officer-duties/:officerId', async (req, res) => {
+  try {
+    const { officerId } = req.params;
+
+    // Resolve target employee
+    let targetId = officerId;
+    let officerName = 'Field Officer';
+    let officerCode = 'SS-10001';
+
+    const empRes = await query(
+      'SELECT id, name, employee_code FROM employees WHERE id = $1 OR employee_code = $1',
+      [officerId]
+    );
+
+    if (empRes.rows.length > 0) {
+      targetId = empRes.rows[0].id;
+      officerName = empRes.rows[0].name;
+      officerCode = empRes.rows[0].employee_code;
+    }
+
+    // 1. Fetch Assigned Client Sites
+    const sitesSql = `
+      SELECT DISTINCT s.*, c.name as client_name, c.contact_person, c.phone as client_phone
+      FROM sites s
+      JOIN clients c ON s.client_id = c.id
+      LEFT JOIN client_inspection_assignments cia ON s.id = cia.site_id AND cia.officer_id = $1
+      WHERE s.supervisor_id = $1 OR cia.officer_id = $1
+      ORDER BY s.name ASC
+    `;
+    const sitesRes = await query(sitesSql, [targetId]);
+
+    const assignedClients = [];
+    for (const s of sitesRes.rows) {
+      // Get deployed staff (guards/housekeepers) for this site
+      const staffRes = await query(`
+        SELECT e.id as "employeeId", e.employee_code as "employeeCode", e.name, e.photo, e.phone,
+               COALESCE(des.name, 'Security Staff') as designation, 
+               COALESCE(d.name, 'Security') as department, 'Present' as status
+        FROM deployments dep
+        JOIN employees e ON dep.employee_id = e.id
+        LEFT JOIN designations des ON e.designation_id = des.id
+        LEFT JOIN departments d ON e.department_id = d.id
+        WHERE dep.site_id = $1 AND dep.status = 'Active' AND e.status = 'Active'
+        ORDER BY des.name ASC, e.name ASC
+      `, [s.id]);
+
+      let staffList = staffRes.rows;
+      if (staffList.length === 0) {
+        const fallbackStaff = await query(`
+          SELECT e.id as "employeeId", e.employee_code as "employeeCode", e.name, e.photo, e.phone,
+                 COALESCE(des.name, 'Security Staff') as designation, 
+                 COALESCE(d.name, 'Operations') as department, 'Present' as status
+          FROM employees e
+          LEFT JOIN designations des ON e.designation_id = des.id
+          LEFT JOIN departments d ON e.department_id = d.id
+          WHERE e.deployed_site_id = $1 AND e.status = 'Active'
+          ORDER BY des.name ASC, e.name ASC
+        `, [s.id]);
+        staffList = fallbackStaff.rows;
+      }
+
+      // Check if audit done today
+      const todayAudit = await query(
+        'SELECT * FROM site_muster_audits WHERE site_id = $1 AND date = CURRENT_DATE ORDER BY created_at DESC LIMIT 1',
+        [s.id]
+      );
+
+      assignedClients.push({
+        id: s.id,
+        siteId: s.id,
+        name: s.name,
+        siteName: s.name,
+        clientId: s.client_id,
+        clientName: s.client_name,
+        address: s.address,
+        latitude: Number(s.latitude),
+        longitude: Number(s.longitude),
+        geofenceRadius: Number(s.geofence_radius || 150),
+        isEmergency: Boolean(s.is_emergency),
+        siteType: s.site_type || 'Permanent',
+        sanctionedStrength: Number(s.sanctioned_strength || staffList.length),
+        deployedStaff: staffList,
+        todayAuditCompleted: todayAudit.rows.length > 0,
+        todayAudit: todayAudit.rows[0] || null,
+      });
+    }
+
+    // 2. Fetch Assigned Night Patrols
+    const patrolsSql = `
+      SELECT pa.*, c.name as client_name, s.name as site_name
+      FROM patrol_assignments pa
+      LEFT JOIN clients c ON pa.client_id = c.id
+      LEFT JOIN sites s ON pa.site_id = s.id
+      WHERE (pa.officer_id = $1 OR pa.officer_id = $2) AND pa.status != 'Cancelled'
+      ORDER BY pa.created_at DESC
+    `;
+    const patrolsRes = await query(patrolsSql, [targetId, officerCode]);
+
+    const assignedPatrols = [];
+    for (const r of patrolsRes.rows) {
+      // Check if patrol was submitted for this assignment today
+      const checkLog = await query(
+        `SELECT * FROM patrol_logs 
+         WHERE (officer_id = $1 OR officer_id = $2) 
+           AND (checkpoint_name ILIKE $3 OR site_id = $4)
+           AND DATE(created_at) = CURRENT_DATE 
+         LIMIT 1`,
+        [targetId, officerCode, `%${r.checkpoint_name}%`, r.site_id]
+      );
+
+      assignedPatrols.push({
+        id: r.id,
+        assignmentId: r.id,
+        locationType: r.location_type,
+        locationName: r.location_name,
+        siteId: r.site_id,
+        siteName: r.site_name,
+        clientId: r.client_id,
+        clientName: r.client_name,
+        address: r.address,
+        latitude: Number(r.latitude),
+        longitude: Number(r.longitude),
+        geofenceRadius: Number(r.geofence_radius || 150),
+        checkpointName: r.checkpoint_name,
+        shift: r.shift,
+        instructions: r.instructions,
+        status: checkLog.rows.length > 0 ? 'Completed' : r.status,
+        assignedDate: r.assigned_date ? r.assigned_date.toISOString().split('T')[0] : '',
+        completedLog: checkLog.rows[0] || null,
+      });
+    }
+
+    res.json({
+      officerId: targetId,
+      officerName,
+      officerCode,
+      assignedClients,
+      assignedPatrols,
+      totalDutiesCount: assignedClients.length + assignedPatrols.length,
+    });
+  } catch (err) {
+    console.error('Error fetching officer duties:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

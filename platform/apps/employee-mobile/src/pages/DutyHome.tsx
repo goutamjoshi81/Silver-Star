@@ -4,53 +4,40 @@ import {
   Users, Moon, MapPin, ShieldCheck, Clock, AlertTriangle, CheckCircle2,
   Navigation, RefreshCw, XCircle, Camera, AlertOctagon, Phone, User,
   Check, Eye, ChevronRight, Upload, Sparkles, Compass, Shield, Building,
-  FileCheck, Image as ImageIcon, Loader2
+  FileCheck, Image as ImageIcon, Loader2, Info, ChevronDown
 } from 'lucide-react';
-import GeofenceMapWidget from '../components/GeofenceMapWidget';
-import SelfieCaptureModal from '../components/SelfieCaptureModal';
 
 interface DutyHomeProps {
   currentUser?: any;
-  initialMode?: 'muster' | 'patrol' | 'self';
   onNavigateTab?: (tab: string) => void;
 }
 
-export default function DutyHome({ currentUser, initialMode = 'muster', onNavigateTab }: DutyHomeProps) {
+export default function DutyHome({ currentUser, onNavigateTab }: DutyHomeProps) {
   const [emp, setEmp] = useState<any>(currentUser || null);
-  const [activeMode, setActiveMode] = useState<'muster' | 'patrol' | 'self'>(initialMode);
-  const [allSites, setAllSites] = useState<any[]>(SITES);
-  const [selectedSiteId, setSelectedSiteId] = useState<string>(SITES[0]?.id || 'SITE001');
+  const [loadingDuties, setLoadingDuties] = useState<boolean>(true);
+  const [assignedClients, setAssignedClients] = useState<any[]>([]);
+  const [assignedPatrols, setAssignedPatrols] = useState<any[]>([]);
+  const [selectedSiteIndex, setSelectedSiteIndex] = useState<number>(0);
+  const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
 
-  // Sync mode if initialMode prop changes
-  useEffect(() => {
-    if (initialMode) setActiveMode(initialMode);
-  }, [initialMode]);
-
-  // GPS Coordinates & Distance state
+  // GPS state
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>({ lat: 12.845214, lng: 77.660168 });
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(8);
   const [distanceMeters, setDistanceMeters] = useState<number>(14);
   const [isInside, setIsInside] = useState<boolean>(true);
   const [gpsSimMode, setGpsSimMode] = useState<'inside' | 'outside' | 'device'>('inside');
 
-  // =========================================================================
-  // MODE 1: SITE MUSTER & ROLL-CALL STATE (Guards & Housekeepers)
-  // =========================================================================
+  // Roll-Call & Muster State for Active Assigned Client
   const [deployedStaff, setDeployedStaff] = useState<any[]>([]);
-  const [loadingStaff, setLoadingStaff] = useState<boolean>(false);
   const [musterShift, setMusterShift] = useState<string>('Morning Shift (06:00 - 14:00)');
-  const [musterNotes, setMusterNotes] = useState<string>('Turnout inspection completed. All guards in clean uniform with standard duty gear.');
+  const [musterNotes, setMusterNotes] = useState<string>('Turnout inspection completed. Guards & housekeepers alert and in full uniform.');
   const [musterPhoto, setMusterPhoto] = useState<string | null>(null);
   const [submittingMuster, setSubmittingMuster] = useState<boolean>(false);
   const [musterSuccessModal, setMusterSuccessModal] = useState<any | null>(null);
   const musterPhotoInputRef = useRef<HTMLInputElement>(null);
 
-  // =========================================================================
-  // MODE 2: NIGHT PATROLLING & CHECKPOINT INSPECTION STATE
-  // =========================================================================
-  const [patrolCheckpoint, setPatrolCheckpoint] = useState<string>(PATROL_CHECKPOINTS[0]?.name || 'Main Security Gate & Barrier Check');
-  const [customCheckpoint, setCustomCheckpoint] = useState<string>('');
-  const [patrolShift, setPatrolShift] = useState<string>('Night Shift 1 (20:00 - 00:00)');
+  // Night Patrol State for Active Assigned Patrol
+  const [selectedPatrolIndex, setSelectedPatrolIndex] = useState<number>(0);
   const [patrolStatus, setPatrolStatus] = useState<string>('All Secure');
   const [patrolNotes, setPatrolNotes] = useState<string>('Perimeter fencing intact, floodlights active, emergency gates secured.');
   const [patrolPhoto, setPatrolPhoto] = useState<string | null>(null);
@@ -58,130 +45,126 @@ export default function DutyHome({ currentUser, initialMode = 'muster', onNaviga
   const [patrolSuccessModal, setPatrolSuccessModal] = useState<any | null>(null);
   const patrolPhotoInputRef = useRef<HTMLInputElement>(null);
 
-  // =========================================================================
-  // MODE 3: FIELD OFFICER SELF PUNCH IN/OUT STATE
-  // =========================================================================
-  const [punchedIn, setPunchedIn] = useState(false);
-  const [punchTime, setPunchTime] = useState('--:--');
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [showSelfieModal, setShowSelfieModal] = useState(false);
-  const [selfieData, setSelfieData] = useState<string | null>(null);
-  const [showResultModal, setShowResultModal] = useState(false);
-  const [resultMessage, setResultMessage] = useState('');
-  const [resultSuccess, setResultSuccess] = useState(true);
-  const [sosSent, setSosSent] = useState(false);
+  // Fetch only assigned duties for this specific officer
+  const loadOfficerDuties = async () => {
+    setLoadingDuties(true);
+    const targetEmpId = currentUser?.id || currentUser?.employeeId || currentUser?.employeeCode || 'SS-10001';
 
-  // Load live sites & employee profile
-  useEffect(() => {
-    let isMounted = true;
-    const targetEmpId = currentUser?.employeeId || currentUser?.id || 'SS-10001';
+    try {
+      const [dutiesRes, empRes] = await Promise.all([
+        api.getOfficerDuties(targetEmpId).catch(() => null),
+        api.getEmployee(targetEmpId).catch(() => currentUser),
+      ]);
 
-    Promise.all([
-      api.getEmployee(targetEmpId).catch(() => currentUser),
-      api.getSites().catch(() => SITES),
-      api.getTodayAttendance(targetEmpId).catch(() => null),
-    ]).then(([empData, sitesData, todayAtt]) => {
-      if (!isMounted) return;
-      if (empData) setEmp(empData);
-      if (sitesData && sitesData.length > 0) {
-        setAllSites(sitesData);
-        if (!selectedSiteId || !sitesData.some(s => s.id === selectedSiteId)) {
-          setSelectedSiteId(sitesData[0].id);
-        }
+      if (empRes) setEmp(empRes);
+
+      if (dutiesRes) {
+        setAssignedClients(dutiesRes.assignedClients || []);
+        setAssignedPatrols(dutiesRes.assignedPatrols || []);
+      } else {
+        // Fallback: check sites where this officer is supervisor
+        const allSites = await api.getSites().catch(() => SITES);
+        const mySites = allSites.filter((s: any) => s.supervisorId === targetEmpId || s.supervisorId === currentUser?.employeeCode);
+        setAssignedClients(mySites);
       }
-      if (todayAtt && todayAtt.hasPunchedIn) {
-        setPunchedIn(true);
-        setPunchTime(todayAtt.punchIn || '--:--');
-      }
-    });
-
-    return () => { isMounted = false };
-  }, [currentUser]);
-
-  // Selected Site object
-  const currentSite = allSites.find(s => s.id === selectedSiteId) || allSites[0] || {
-    id: 'SITE001',
-    name: 'Infosys - Electronic City Campus Phase 1',
-    address: 'Hosur Road, Electronics City Phase 1, Bangalore',
-    latitude: 12.845214,
-    longitude: 77.660168,
-    geofenceRadius: 150,
+    } catch (err) {
+      console.warn('Error loading officer duties:', err);
+    } finally {
+      setLoadingDuties(false);
+    }
   };
 
-  // Fetch deployed guards/housekeepers whenever selected site changes
   useEffect(() => {
-    let isMounted = true;
-    setLoadingStaff(true);
+    loadOfficerDuties();
+  }, [currentUser]);
 
-    api.getDeployedStaff(selectedSiteId)
-      .then(staff => {
-        if (!isMounted) return;
-        if (staff && staff.length > 0) {
-          // Initialize attendance status to Present for all
-          setDeployedStaff(staff.map((s: any) => ({
-            ...s,
-            status: 'Present',
-          })));
-        } else {
-          // Fallback mock roster for deployment demonstration
+  // Active Assigned Client Site (if assigned)
+  const activeClientSite = assignedClients[selectedSiteIndex] || null;
+
+  // When active client site changes, sync deployed staff
+  useEffect(() => {
+    if (!activeClientSite) {
+      setDeployedStaff([]);
+      return;
+    }
+
+    if (activeClientSite.deployedStaff && activeClientSite.deployedStaff.length > 0) {
+      setDeployedStaff(
+        activeClientSite.deployedStaff.map((s: any) => ({
+          ...s,
+          status: s.status || 'Present',
+        }))
+      );
+    } else {
+      // Fetch from API for this site
+      api.getDeployedStaff(activeClientSite.id)
+        .then(staff => {
+          if (staff && staff.length > 0) {
+            setDeployedStaff(staff.map((s: any) => ({ ...s, status: 'Present' })));
+          } else {
+            // Default mock roster if site was newly created
+            setDeployedStaff([
+              { employeeId: 'EMP001', name: 'Ramesh Gowda', employeeCode: 'SS-10001', designation: 'Head Guard', department: 'Security', status: 'Present' },
+              { employeeId: 'EMP002', name: 'Suresh Patil', employeeCode: 'SS-10002', designation: 'Security Guard', department: 'Security', status: 'Present' },
+              { employeeId: 'EMP003', name: 'Mahesh Kumar', employeeCode: 'SS-10003', designation: 'Security Guard', department: 'Security', status: 'Present' },
+              { employeeId: 'EMP004', name: 'Laxmi Bai', employeeCode: 'SS-10004', designation: 'Housekeeper', department: 'Housekeeping', status: 'Present' },
+            ]);
+          }
+        })
+        .catch(() => {
           setDeployedStaff([
             { employeeId: 'EMP001', name: 'Ramesh Gowda', employeeCode: 'SS-10001', designation: 'Head Guard', department: 'Security', status: 'Present' },
             { employeeId: 'EMP002', name: 'Suresh Patil', employeeCode: 'SS-10002', designation: 'Security Guard', department: 'Security', status: 'Present' },
             { employeeId: 'EMP003', name: 'Mahesh Kumar', employeeCode: 'SS-10003', designation: 'Security Guard', department: 'Security', status: 'Present' },
-            { employeeId: 'EMP004', name: 'Laxmi Bai', employeeCode: 'SS-10004', designation: 'Housekeeper', department: 'Housekeeping', status: 'Present' },
-            { employeeId: 'EMP005', name: 'Kamala Devi', employeeCode: 'SS-10005', designation: 'Housekeeper', department: 'Housekeeping', status: 'Present' },
           ]);
-        }
-      })
-      .catch(() => {
-        if (!isMounted) return;
-        setDeployedStaff([
-          { employeeId: 'EMP001', name: 'Ramesh Gowda', employeeCode: 'SS-10001', designation: 'Head Guard', department: 'Security', status: 'Present' },
-          { employeeId: 'EMP002', name: 'Suresh Patil', employeeCode: 'SS-10002', designation: 'Security Guard', department: 'Security', status: 'Present' },
-          { employeeId: 'EMP003', name: 'Mahesh Kumar', employeeCode: 'SS-10003', designation: 'Security Guard', department: 'Security', status: 'Present' },
-          { employeeId: 'EMP004', name: 'Laxmi Bai', employeeCode: 'SS-10004', designation: 'Housekeeper', department: 'Housekeeping', status: 'Present' },
-        ]);
-      })
-      .finally(() => {
-        if (isMounted) setLoadingStaff(false);
-      });
+        });
+    }
+  }, [activeClientSite]);
 
-    return () => { isMounted = false };
-  }, [selectedSiteId]);
+  // Active Assigned Night Patrol (if assigned)
+  const activePatrol = assignedPatrols[selectedPatrolIndex] || null;
 
-  // GPS Simulation / Real Geolocation Watcher
+  // Target Location for GPS Calculations (prioritizing active client or active patrol)
+  const targetLocation = activeClientSite || activePatrol || {
+    latitude: 12.845214,
+    longitude: 77.660168,
+    geofenceRadius: 150,
+    name: 'Assigned Post',
+  };
+
+  // GPS Simulation & Device Tracking
   useEffect(() => {
+    const lat = Number(targetLocation.latitude) || 12.845214;
+    const lng = Number(targetLocation.longitude) || 77.660168;
+    const radius = Number(targetLocation.geofenceRadius) || 150;
+
     if (gpsSimMode === 'device' && typeof navigator !== 'undefined' && navigator.geolocation) {
       const watchId = navigator.geolocation.watchPosition(
         (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          setUserCoords({ lat, lng });
+          const userLat = pos.coords.latitude;
+          const userLng = pos.coords.longitude;
+          setUserCoords({ lat: userLat, lng: userLng });
           setGpsAccuracy(Math.round(pos.coords.accuracy));
-          const dist = calculateDistanceMeters(lat, lng, Number(currentSite.latitude), Number(currentSite.longitude));
+          const dist = calculateDistanceMeters(userLat, userLng, lat, lng);
           setDistanceMeters(Math.round(dist));
-          setIsInside(dist <= (currentSite.geofenceRadius || currentSite.geofence_radius || 150));
+          setIsInside(dist <= radius);
         },
         () => setGpsSimMode('inside'),
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
       );
       return () => navigator.geolocation.clearWatch(watchId);
     } else if (gpsSimMode === 'inside') {
-      const lat = Number(currentSite.latitude) + 0.00012;
-      const lng = Number(currentSite.longitude) + 0.00008;
-      setUserCoords({ lat, lng });
+      setUserCoords({ lat: lat + 0.0001, lng: lng + 0.0001 });
       setDistanceMeters(14);
       setIsInside(true);
       setGpsAccuracy(6);
     } else if (gpsSimMode === 'outside') {
-      const lat = Number(currentSite.latitude) + 0.0042;
-      const lng = Number(currentSite.longitude) + 0.0038;
-      setUserCoords({ lat, lng });
+      setUserCoords({ lat: lat + 0.0042, lng: lng + 0.0038 });
       setDistanceMeters(480);
       setIsInside(false);
       setGpsAccuracy(18);
     }
-  }, [gpsSimMode, currentSite]);
+  }, [gpsSimMode, targetLocation]);
 
   function calculateDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
     const R = 6371e3;
@@ -196,17 +179,15 @@ export default function DutyHome({ currentUser, initialMode = 'muster', onNaviga
     return R * c;
   }
 
-  // Handle staff attendance toggle (Present / Absent / Late)
+  // Handle staff attendance toggle
   const handleStaffStatusToggle = (empId: string, status: 'Present' | 'Absent' | 'Late') => {
     setDeployedStaff(prev => prev.map(s => s.employeeId === empId ? { ...s, status } : s));
   };
 
-  // Mark all staff present in 1-click
   const handleMarkAllPresent = () => {
     setDeployedStaff(prev => prev.map(s => ({ ...s, status: 'Present' })));
   };
 
-  // Convert uploaded/captured camera photo to data URL
   const handleFileCapture = (e: React.ChangeEvent<HTMLInputElement>, setter: (url: string) => void) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -217,10 +198,9 @@ export default function DutyHome({ currentUser, initialMode = 'muster', onNaviga
     reader.readAsDataURL(file);
   };
 
-  // =========================================================================
-  // SUBMIT FIELD MUSTER ROLL-CALL
-  // =========================================================================
+  // Submit Field Muster Roll-Call
   const handleSubmitMuster = async () => {
+    if (!activeClientSite) return;
     if (!musterPhoto) {
       alert('Photo Evidence Required: Please snap or upload a group photo of the deployed security/housekeeping staff at the site.');
       musterPhotoInputRef.current?.click();
@@ -229,10 +209,10 @@ export default function DutyHome({ currentUser, initialMode = 'muster', onNaviga
 
     setSubmittingMuster(true);
     try {
-      const officerId = emp?.id || emp?.employeeId || 'EMP837389';
+      const officerId = emp?.id || emp?.employeeId || 'SS-10001';
       const payload = {
         officerId,
-        siteId: currentSite.id,
+        siteId: activeClientSite.id,
         shift: musterShift,
         staffStatuses: deployedStaff.map(s => ({
           employeeId: s.employeeId,
@@ -240,8 +220,8 @@ export default function DutyHome({ currentUser, initialMode = 'muster', onNaviga
           notes: s.status === 'Absent' ? 'Marked absent by field inspection officer' : undefined,
         })),
         musterPhotoUrl: musterPhoto,
-        latitude: userCoords?.lat || currentSite.latitude,
-        longitude: userCoords?.lng || currentSite.longitude,
+        latitude: userCoords?.lat || activeClientSite.latitude,
+        longitude: userCoords?.lng || activeClientSite.longitude,
         notes: musterNotes,
       };
 
@@ -251,61 +231,45 @@ export default function DutyHome({ currentUser, initialMode = 'muster', onNaviga
       const absentCount = deployedStaff.filter(s => s.status === 'Absent').length;
 
       setMusterSuccessModal({
-        siteName: res.siteName || currentSite.name,
+        siteName: res.siteName || activeClientSite.name,
         totalPresent: res.totalPresent ?? presentCount,
         totalAbsent: res.totalAbsent ?? absentCount,
         totalSanctioned: res.totalSanctioned ?? deployedStaff.length,
         isGeofenceVerified: res.isGeofenceVerified ?? isInside,
         distanceMeters: res.distanceMeters ?? distanceMeters,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        auditId: res.auditId || `AUD_${Date.now()}`,
       });
+
+      // Update local status
+      setAssignedClients(prev => prev.map((s, idx) => idx === selectedSiteIndex ? { ...s, todayAuditCompleted: true } : s));
+      setMusterPhoto(null);
     } catch (err: any) {
-      console.warn('Field muster submission error, showing local completion:', err);
-      const presentCount = deployedStaff.filter(s => s.status === 'Present').length;
-      const absentCount = deployedStaff.filter(s => s.status === 'Absent').length;
-      setMusterSuccessModal({
-        siteName: currentSite.name,
-        totalPresent: presentCount,
-        totalAbsent: absentCount,
-        totalSanctioned: deployedStaff.length,
-        isGeofenceVerified: isInside,
-        distanceMeters: distanceMeters,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        auditId: `AUD_${Date.now()}`,
-      });
+      alert(`Muster submission: ${err.message}`);
     } finally {
       setSubmittingMuster(false);
     }
   };
 
-  // =========================================================================
-  // SUBMIT NIGHT PATROL CHECKPOINT LOG
-  // =========================================================================
+  // Submit Night Patrol Inspection
   const handleSubmitPatrol = async () => {
-    const activeCheckpointName = customCheckpoint.trim() || patrolCheckpoint;
-    if (!activeCheckpointName) {
-      alert('Please select or specify a patrol checkpoint name.');
-      return;
-    }
-
+    if (!activePatrol) return;
     if (!patrolPhoto) {
-      alert('Inspection Photo Required: Please capture a photo of the checkpoint lock/perimeter as physical evidence.');
+      alert('Photo Evidence Required: Please snap a clear photo of the inspection checkpoint or security gate.');
       patrolPhotoInputRef.current?.click();
       return;
     }
 
     setSubmittingPatrol(true);
     try {
-      const officerId = emp?.id || emp?.employeeId || 'EMP837389';
+      const officerId = emp?.id || emp?.employeeId || 'SS-10001';
       const payload = {
         officerId,
-        siteId: currentSite.id,
-        checkpointName: activeCheckpointName,
-        patrolShift,
+        siteId: activePatrol.siteId || undefined,
+        checkpointName: activePatrol.checkpointName,
+        patrolShift: activePatrol.shift,
         status: patrolStatus,
-        latitude: userCoords?.lat || currentSite.latitude,
-        longitude: userCoords?.lng || currentSite.longitude,
+        latitude: userCoords?.lat || activePatrol.latitude,
+        longitude: userCoords?.lng || activePatrol.longitude,
         photoUrl: patrolPhoto,
         notes: patrolNotes,
       };
@@ -313,107 +277,39 @@ export default function DutyHome({ currentUser, initialMode = 'muster', onNaviga
       const res = await api.submitPatrolLog(payload);
 
       setPatrolSuccessModal({
-        checkpoint: activeCheckpointName,
-        siteName: res.siteName || currentSite.name,
+        checkpoint: activePatrol.checkpointName,
+        siteName: activePatrol.locationName,
         status: patrolStatus,
         isGeofenceVerified: res.isGeofenceVerified ?? isInside,
         distanceMeters: res.distanceMeters ?? distanceMeters,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        id: res.id || `PAT_${Date.now()}`,
       });
+
+      // Update status of assignment
+      setAssignedPatrols(prev => prev.map((p, idx) => idx === selectedPatrolIndex ? { ...p, status: 'Completed' } : p));
+      setPatrolPhoto(null);
     } catch (err: any) {
-      console.warn('Night patrol log error, using local fallback:', err);
-      setPatrolSuccessModal({
-        checkpoint: activeCheckpointName,
-        siteName: currentSite.name,
-        status: patrolStatus,
-        isGeofenceVerified: isInside,
-        distanceMeters: distanceMeters,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        id: `PAT_${Date.now()}`,
-      });
+      alert(`Patrol submission: ${err.message}`);
     } finally {
       setSubmittingPatrol(false);
     }
   };
 
-  // =========================================================================
-  // OFFICER SELF PUNCH IN/OUT
-  // =========================================================================
-  const handleOfficerSelfPunch = async () => {
-    setIsVerifying(true);
-    try {
-      const nextPunchType = punchedIn ? 'OUT' : 'IN';
-      const res = await api.punchAttendance({
-        employeeId: emp?.id,
-        employeeCode: emp?.employeeCode || 'SS-10001',
-        siteId: currentSite.id,
-        latitude: userCoords?.lat || currentSite.latitude,
-        longitude: userCoords?.lng || currentSite.longitude,
-        punchType: nextPunchType,
-        accuracy: gpsAccuracy || 10,
-        selfieUrl: selfieData || undefined,
-      });
-
-      setIsVerifying(false);
-      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      if (res.gpsVerified) {
-        setResultSuccess(true);
-        if (nextPunchType === 'IN') {
-          setPunchedIn(true);
-          setPunchTime(now);
-          setResultMessage(`Field Officer Arrival Logged at ${now}. Geofence verified (${res.distanceMeters || 14}m).`);
-        } else {
-          setPunchedIn(false);
-          setResultMessage(`Field Shift Checkout recorded at ${now}. Safe journey!`);
-        }
-      } else {
-        setResultSuccess(false);
-        setResultMessage(`Punch Blocked: Distance is ${res.distanceMeters || 480}m from ${currentSite.name}. Must be within ${res.geofenceRadius || 150}m.`);
-      }
-      setShowResultModal(true);
-    } catch (err: any) {
-      setIsVerifying(false);
-      setResultSuccess(false);
-      setResultMessage(err.message || 'Error recording attendance.');
-      setShowResultModal(true);
-    }
-  };
-
-  const handleSos = async () => {
-    try {
-      await api.createIncident({
-        title: `EMERGENCY SOS: Triggered by Field Officer ${emp?.name || 'Officer'}`,
-        siteId: currentSite.id,
-        category: 'Safety',
-        priority: 'High',
-        reportedBy: emp?.id,
-        description: `Emergency distress signal triggered at ${currentSite.name}. Immediate ops supervisor dispatch required.`,
-      });
-      setSosSent(true);
-      setTimeout(() => setSosSent(false), 5000);
-    } catch (err) {
-      setSosSent(true);
-    }
-  };
-
-  // Stats calculation for roll-call
-  const presentCount = deployedStaff.filter(s => s.status === 'Present').length;
-  const absentCount = deployedStaff.filter(s => s.status === 'Absent').length;
-  const lateCount = deployedStaff.filter(s => s.status === 'Late').length;
+  const hasClients = assignedClients.length > 0;
+  const hasPatrols = assignedPatrols.length > 0;
+  const totalDuties = assignedClients.length + assignedPatrols.length;
 
   return (
     <div className="p-3.5 sm:p-4 space-y-4 max-w-md mx-auto">
-      
       {/* Top Field Officer Status Pill */}
-      <div className="bg-gradient-to-r from-[#1A2B79] to-[#202B75] rounded-3xl p-4 text-white shadow-md space-y-2">
+      <div className="bg-gradient-to-r from-[#1A2B79] to-[#202B75] rounded-3xl p-4 text-white shadow-md space-y-2.5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-2xl bg-white/10 p-1 flex items-center justify-center border border-white/20">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-white/10 p-1 flex items-center justify-center border border-white/20 flex-shrink-0">
               {emp?.photo ? (
                 <img src={emp.photo} alt="Officer" className="w-full h-full object-cover rounded-xl" />
               ) : (
-                <Shield size={20} className="text-[#26BCEE]" />
+                <Shield size={22} className="text-[#26BCEE]" />
               )}
             </div>
             <div>
@@ -436,735 +332,496 @@ export default function DutyHome({ currentUser, initialMode = 'muster', onNaviga
               <span className={`w-1.5 h-1.5 rounded-full ${isInside ? 'bg-emerald-400' : 'bg-rose-400'}`} />
               {isInside ? 'On-Site' : 'En Route'}
             </span>
-            <p className="text-[10px] text-white/70 font-mono mt-0.5">{distanceMeters}m from gate</p>
+            <p className="text-[10px] text-white/70 font-mono mt-0.5">{distanceMeters}m from centroid</p>
           </div>
         </div>
 
-        {/* Client Site Selection Dropdown */}
-        <div className="pt-1 border-t border-white/10 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 text-xs text-white/90 truncate flex-1">
-            <Building size={13} className="text-[#26BCEE] flex-shrink-0" />
-            <select
-              value={selectedSiteId}
-              onChange={e => setSelectedSiteId(e.target.value)}
-              className="bg-white/10 text-white text-xs font-bold rounded-xl px-2 py-1 border border-white/20 outline-none w-full truncate cursor-pointer"
+        {/* Assigned Duties Summary Banner */}
+        <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs text-white/90">
+          <span className="flex items-center gap-1.5 font-bold">
+            <ShieldCheck size={14} className="text-emerald-400" />
+            <span>Today's Dispatched Duties:</span>
+          </span>
+          <span className="font-extrabold text-[11px] px-2 py-0.5 rounded-lg bg-white/10 border border-white/20">
+            {totalDuties === 0 ? '0 Assigned' : `${totalDuties} Active (${assignedClients.length} Roll-Call, ${assignedPatrols.length} Patrol)`}
+          </span>
+        </div>
+      </div>
+
+      {feedbackToast && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3.5 py-2.5 rounded-2xl flex items-center justify-between shadow-sm animate-in fade-in">
+          <span className="font-semibold flex items-center gap-1.5">
+            <CheckCircle2 size={15} className="text-emerald-600" />
+            {feedbackToast}
+          </span>
+          <button onClick={() => setFeedbackToast(null)} className="text-[10px] underline">Dismiss</button>
+        </div>
+      )}
+
+      {/* LOADING STATE */}
+      {loadingDuties && (
+        <div className="bg-white rounded-3xl p-8 text-center text-xs text-gray-500 shadow-sm border border-gray-100 flex flex-col items-center gap-2">
+          <Loader2 size={24} className="animate-spin text-[#202B75]" />
+          <p className="font-bold text-gray-800">Checking Assigned Client Visits & Night Patrols...</p>
+        </div>
+      )}
+
+      {/* EMPTY STATE: NO ASSIGNMENTS DISPATCHED BY OPS */}
+      {!loadingDuties && totalDuties === 0 && (
+        <div className="bg-white rounded-3xl p-8 text-center shadow-sm border border-gray-100 space-y-3">
+          <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center mx-auto">
+            <ShieldCheck size={28} />
+          </div>
+          <div className="space-y-1">
+            <h3 className="font-extrabold text-sm text-gray-900">No Active Duties Assigned Today</h3>
+            <p className="text-xs text-gray-500 leading-relaxed max-w-xs mx-auto">
+              Operations has not assigned any client site visits or night patrol checkpoints to your account for today.
+            </p>
+          </div>
+          <div className="pt-2">
+            <button
+              onClick={loadOfficerDuties}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold rounded-xl text-xs transition-colors"
             >
-              {allSites.map(s => (
-                <option key={s.id} value={s.id} className="text-slate-900 bg-white">
-                  {s.name} {s.isEmergency ? '⚠️ (Emergency)' : ''}
-                </option>
-              ))}
-            </select>
+              <RefreshCw size={13} /> Check for New Assignments
+            </button>
           </div>
-
-          {currentSite.isEmergency && (
-            <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-rose-500 text-white uppercase tracking-wider flex-shrink-0">
-              EMERGENCY
-            </span>
-          )}
         </div>
-      </div>
-
-      {/* Mode Switcher (Roll-Call Muster vs Night Patrol vs Self Check-in) */}
-      <div className="bg-slate-200/80 p-1 rounded-2xl grid grid-cols-3 gap-1 text-center font-bold text-[11px]">
-        <button
-          type="button"
-          onClick={() => setActiveMode('muster')}
-          className={`py-2 px-1 rounded-xl transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
-            activeMode === 'muster'
-              ? 'bg-white text-[#1A2B79] shadow-sm font-black'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <Users size={14} className={activeMode === 'muster' ? 'text-[#1A2B79]' : 'text-slate-500'} />
-          <span>Staff Roll-Call</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveMode('patrol')}
-          className={`py-2 px-1 rounded-xl transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
-            activeMode === 'patrol'
-              ? 'bg-[#1A2B79] text-white shadow-sm font-black'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <Moon size={14} className={activeMode === 'patrol' ? 'text-[#26BCEE]' : 'text-slate-500'} />
-          <span>Night Patrol</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveMode('self')}
-          className={`py-2 px-1 rounded-xl transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
-            activeMode === 'self'
-              ? 'bg-white text-[#1A2B79] shadow-sm font-black'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <MapPin size={14} className={activeMode === 'self' ? 'text-[#1A2B79]' : 'text-slate-500'} />
-          <span>Officer GPS</span>
-        </button>
-      </div>
+      )}
 
       {/* ========================================================================= */}
-      {/* MODE 1: FIELD STAFF ROLL-CALL & MUSTER AUDIT */}
+      {/* 1. ASSIGNED CLIENT VISITS & DEPLOYED STAFF ROLL-CALL SECTION */}
       {/* ========================================================================= */}
-      {activeMode === 'muster' && (
-        <div className="space-y-4 animate-in fade-in duration-150">
-          
-          {/* Roll-Call Metric Cards */}
-          <div className="grid grid-cols-3 gap-2 text-center text-xs">
-            <div className="bg-white p-2.5 rounded-2xl border border-slate-200 shadow-sm">
-              <span className="text-[10px] text-slate-400 font-bold uppercase">Sanctioned</span>
-              <p className="text-lg font-black text-[#1A2B79] mt-0.5">{deployedStaff.length}</p>
-            </div>
-            <div className="bg-emerald-50/80 p-2.5 rounded-2xl border border-emerald-200/80 shadow-sm">
-              <span className="text-[10px] text-emerald-700 font-bold uppercase">Present</span>
-              <p className="text-lg font-black text-emerald-700 mt-0.5">{presentCount}</p>
-            </div>
-            <div className="bg-rose-50/80 p-2.5 rounded-2xl border border-rose-200/80 shadow-sm">
-              <span className="text-[10px] text-rose-700 font-bold uppercase">Absent</span>
-              <p className="text-lg font-black text-rose-700 mt-0.5">{absentCount}</p>
-            </div>
-          </div>
-
-          {/* Deployed Personnel Checklist */}
-          <div className="bg-white rounded-3xl p-4 border border-slate-200 shadow-sm space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+      {!loadingDuties && hasClients && activeClientSite && (
+        <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-200/80 space-y-3.5">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+                <Building size={16} />
+              </div>
               <div>
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide">
-                  Deployed Guards & Housekeepers
+                <h3 className="text-xs font-black text-gray-900 uppercase tracking-wide">
+                  Assigned Client Visit & Roll-Call
                 </h3>
-                <p className="text-[10px] text-slate-500">
-                  Verify physical presence at {currentSite.name}
+                <p className="text-[10px] text-gray-500">
+                  {assignedClients.length > 1 ? `Site ${selectedSiteIndex + 1} of ${assignedClients.length}` : 'Assigned Client Facility'}
                 </p>
               </div>
+            </div>
 
+            {activeClientSite.todayAuditCompleted && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                <Check size={11} /> Muster Done
+              </span>
+            )}
+          </div>
+
+          {/* Multiple Client Sites Selector Tabs (if more than 1 assigned) */}
+          {assignedClients.length > 1 && (
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {assignedClients.map((site, idx) => (
+                <button
+                  key={site.id}
+                  onClick={() => setSelectedSiteIndex(idx)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                    selectedSiteIndex === idx
+                      ? 'bg-[#1A2B79] text-white shadow-xs'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {site.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Client & Site Details Box */}
+          <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <h4 className="font-extrabold text-xs text-[#1A2B79] truncate">{activeClientSite.name}</h4>
+              <span className="text-[10px] font-mono text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200">
+                {activeClientSite.geofenceRadius || 150}m Radius
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-500 flex items-start gap-1">
+              <MapPin size={12} className="text-rose-500 flex-shrink-0 mt-0.5" />
+              <span>{activeClientSite.address}</span>
+            </p>
+            <div className="pt-1 border-t border-slate-200/80 flex items-center justify-between text-[11px] text-gray-600">
+              <span>Client: <strong>{activeClientSite.clientName || 'Corporate Client'}</strong></span>
+              <span className="text-emerald-700 font-bold">
+                {deployedStaff.length} Deployed Staff
+              </span>
+            </div>
+          </div>
+
+          {/* DEPLOYED GUARDS & HOUSEKEEPERS ATTENDANCE ROSTER */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <h5 className="font-extrabold text-xs text-gray-900">Deployed Guards & Housekeepers</h5>
+                <p className="text-[10px] text-gray-500">Physically verify physical presence at post</p>
+              </div>
               <button
                 type="button"
                 onClick={handleMarkAllPresent}
-                className="text-[10px] font-bold text-[#1A2B79] bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-xl transition-colors cursor-pointer"
+                className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
               >
                 All Present ✓
               </button>
             </div>
 
-            {loadingStaff ? (
-              <div className="py-6 text-center text-slate-400 space-y-2">
-                <Loader2 size={24} className="animate-spin mx-auto text-[#1A2B79]" />
-                <p className="text-xs font-semibold">Loading deployed staff roster...</p>
-              </div>
-            ) : deployedStaff.length === 0 ? (
-              <div className="py-6 text-center text-slate-400 space-y-1">
-                <Users size={28} className="mx-auto text-slate-300" />
-                <p className="text-xs font-semibold text-slate-600">No staff deployed at this site yet</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto pr-1">
-                {deployedStaff.map((staff) => (
-                  <div key={staff.employeeId} className="py-2.5 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-xs text-[#1A2B79] flex-shrink-0">
-                        {staff.name?.charAt(0) || 'G'}
-                      </div>
-                      <div className="truncate">
-                        <p className="text-xs font-bold text-slate-900 truncate leading-tight">{staff.name}</p>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-700">
-                            {staff.designation || 'Staff'}
-                          </span>
-                          <span className="text-[9px] text-slate-400 font-mono">{staff.employeeCode || staff.employeeId}</span>
-                        </div>
-                      </div>
+            {/* Attendance List */}
+            <div className="space-y-1.5 max-h-56 overflow-y-auto pr-0.5">
+              {deployedStaff.map((staff, idx) => (
+                <div
+                  key={staff.employeeId || idx}
+                  className="bg-white border border-slate-200 rounded-xl p-2 flex items-center justify-between gap-2 shadow-xs"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-full bg-slate-100 text-[#1A2B79] flex items-center justify-center font-bold text-[10px] flex-shrink-0">
+                      {staff.name ? staff.name[0] : 'S'}
                     </div>
-
-                    {/* Status Pill Toggle */}
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleStaffStatusToggle(staff.employeeId, 'Present')}
-                        className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                          staff.status === 'Present'
-                            ? 'bg-emerald-600 text-white shadow-sm'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        Present
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleStaffStatusToggle(staff.employeeId, 'Absent')}
-                        className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                          staff.status === 'Absent'
-                            ? 'bg-rose-600 text-white shadow-sm'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        Absent
-                      </button>
+                    <div className="min-w-0">
+                      <p className="font-bold text-xs text-gray-900 truncate">{staff.name}</p>
+                      <p className="text-[10px] text-gray-500 font-mono">
+                        {staff.employeeCode} · {staff.designation || 'Guard'}
+                      </p>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
 
-          {/* Group Muster Photo Proof Upload */}
-          <div className="bg-white rounded-3xl p-4 border border-slate-200 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-                  <Camera size={14} className="text-[#1A2B79]" />
-                  Group Muster Photo Proof *
-                </h4>
-                <p className="text-[10px] text-slate-500">
-                  Photograph deployed guards assembled at client post
-                </p>
-              </div>
-
-              {musterPhoto && (
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                  <CheckCircle2 size={11} /> Photo Attached
-                </span>
-              )}
+                  {/* Status Toggle Buttons */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleStaffStatusToggle(staff.employeeId, 'Present')}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold cursor-pointer transition-all ${
+                        staff.status === 'Present'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      Present
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleStaffStatusToggle(staff.employeeId, 'Absent')}
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold cursor-pointer transition-all ${
+                        staff.status === 'Absent'
+                          ? 'bg-rose-600 text-white shadow-xs'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      Absent
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
 
-            {/* Hidden file input supporting mobile camera capture */}
-            <input
-              ref={musterPhotoInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={e => handleFileCapture(e, setMusterPhoto)}
-              className="hidden"
-            />
+            {/* Turnout Photo Evidence Capture */}
+            <div className="pt-2 border-t border-gray-100 space-y-2">
+              <label className="block text-xs font-bold text-gray-800">
+                Staff Turnout Photo Evidence *
+              </label>
 
-            {musterPhoto ? (
-              <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-black max-h-48 flex items-center justify-center">
-                <img src={musterPhoto} alt="Muster evidence" className="w-full h-48 object-cover" />
-                <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-[9px] font-mono">
-                  GPS: {userCoords?.lat.toFixed(4)}, {userCoords?.lng.toFixed(4)}
+              {musterPhoto ? (
+                <div className="relative rounded-2xl overflow-hidden border border-emerald-500 shadow-sm">
+                  <img src={musterPhoto} alt="Turnout" className="w-full h-36 object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setMusterPhoto(null)}
+                    className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-white hover:bg-rose-600 transition-colors"
+                  >
+                    <XCircle size={16} />
+                  </button>
+                  <span className="absolute bottom-2 left-2 bg-emerald-600/90 text-white px-2 py-0.5 rounded-full text-[9px] font-bold">
+                    ✓ Photo Ready
+                  </span>
                 </div>
+              ) : (
                 <button
                   type="button"
                   onClick={() => musterPhotoInputRef.current?.click()}
-                  className="absolute bottom-2 right-2 bg-white/90 hover:bg-white text-slate-900 px-3 py-1 rounded-xl text-xs font-bold shadow-md cursor-pointer"
+                  className="w-full border-2 border-dashed border-gray-300 hover:border-[#1A2B79] bg-gray-50/50 hover:bg-blue-50/30 rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1"
                 >
-                  Retake Photo
+                  <input
+                    ref={musterPhotoInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={e => handleFileCapture(e, setMusterPhoto)}
+                    className="hidden"
+                  />
+                  <Camera size={22} className="text-[#1A2B79]" />
+                  <span className="text-xs font-bold text-[#1A2B79]">Snap Turnout / Group Photo</span>
+                  <span className="text-[10px] text-gray-400">Camera capture of deployed guards & housekeepers</span>
                 </button>
-              </div>
-            ) : (
+              )}
+
+              {/* Submit Muster Roll-Call Button */}
               <button
                 type="button"
-                onClick={() => musterPhotoInputRef.current?.click()}
-                className="w-full py-6 rounded-2xl border-2 border-dashed border-slate-300 hover:border-[#1A2B79] bg-slate-50 hover:bg-slate-100 flex flex-col items-center justify-center gap-1.5 text-slate-600 transition-colors cursor-pointer"
+                onClick={handleSubmitMuster}
+                disabled={submittingMuster}
+                className="w-full py-2.5 bg-gradient-to-r from-[#1A2B79] to-[#202B75] hover:from-[#13205a] hover:to-[#171f54] text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-[#1A2B79]/20 transition-all cursor-pointer"
               >
-                <div className="w-11 h-11 rounded-full bg-blue-50 text-[#1A2B79] flex items-center justify-center shadow-sm">
-                  <Camera size={20} />
-                </div>
-                <span className="text-xs font-black text-[#1A2B79]">Tap to Snap / Upload Group Photo</span>
-                <span className="text-[10px] text-slate-400">Required by client audit SLA</span>
+                {submittingMuster ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" /> Submitting Roll-Call...
+                  </>
+                ) : (
+                  <>
+                    <FileCheck size={15} className="text-[#26BCEE]" />
+                    <span>Submit Client Staff Roll-Call</span>
+                  </>
+                )}
               </button>
-            )}
-
-            {/* Shift & Notes */}
-            <div className="space-y-2 pt-1 text-xs">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Shift</label>
-                  <select
-                    value={musterShift}
-                    onChange={e => setMusterShift(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs font-semibold"
-                  >
-                    <option value="Morning Shift (06:00 - 14:00)">Morning (06:00 - 14:00)</option>
-                    <option value="Evening Shift (14:00 - 22:00)">Evening (14:00 - 22:00)</option>
-                    <option value="Night Shift (22:00 - 06:00)">Night (22:00 - 06:00)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-600 mb-0.5">GPS Verification</label>
-                  <div className={`p-2 rounded-xl text-xs font-bold flex items-center gap-1 ${
-                    isInside ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-                  }`}>
-                    <Compass size={13} />
-                    <span>{isInside ? `Verified (${distanceMeters}m)` : `Outside (${distanceMeters}m)`}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Turnout & Inspection Remarks</label>
-                <input
-                  type="text"
-                  value={musterNotes}
-                  onChange={e => setMusterNotes(e.target.value)}
-                  placeholder="e.g. Turnout good. 1 guard absent, reliever requested."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs"
-                />
-              </div>
             </div>
           </div>
-
-          {/* Submit Muster Roll-Call Button */}
-          <button
-            type="button"
-            onClick={handleSubmitMuster}
-            disabled={submittingMuster}
-            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#1A2B79] to-[#202B75] hover:from-[#162363] hover:to-[#1a235f] text-white font-black text-sm uppercase tracking-wider shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 transition-transform active:scale-[0.98] cursor-pointer"
-          >
-            {submittingMuster ? (
-              <>
-                <Loader2 size={16} className="animate-spin text-[#26BCEE]" />
-                <span>Committing Roll-Call to Database...</span>
-              </>
-            ) : (
-              <>
-                <FileCheck size={18} className="text-[#26BCEE]" />
-                <span>Submit Muster & Photo Proof</span>
-              </>
-            )}
-          </button>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* MODE 2: NIGHT PATROLLING & CHECKPOINT INSPECTION */}
+      {/* 2. ASSIGNED NIGHT PATROL CHECKPOINT SWEEPS SECTION */}
       {/* ========================================================================= */}
-      {activeMode === 'patrol' && (
-        <div className="space-y-4 animate-in fade-in duration-150">
-          <div className="bg-slate-900 text-white rounded-3xl p-4 shadow-md space-y-3 border border-slate-800">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                  <Moon size={16} />
-                </div>
-                <div>
-                  <h3 className="text-xs font-black uppercase tracking-wide">Night Patrolling Patrol Sweep</h3>
-                  <p className="text-[10px] text-slate-400">Physical checkpoint verification with photo proof</p>
-                </div>
+      {!loadingDuties && hasPatrols && activePatrol && (
+        <div className="bg-white rounded-3xl p-4 shadow-sm border border-indigo-200/80 space-y-3.5">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center">
+                <Moon size={16} />
               </div>
-              <span className="text-[10px] font-mono text-indigo-300 bg-indigo-950/80 border border-indigo-800/50 px-2 py-0.5 rounded-full">
-                Active Round
+              <div>
+                <h3 className="text-xs font-black text-gray-900 uppercase tracking-wide">
+                  Assigned Night Patrol
+                </h3>
+                <p className="text-[10px] text-gray-500">
+                  {assignedPatrols.length > 1 ? `Checkpoint ${selectedPatrolIndex + 1} of ${assignedPatrols.length}` : 'Night Security Sweep'}
+                </p>
+              </div>
+            </div>
+
+            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+              activePatrol.status === 'Completed'
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-amber-50 text-amber-700 border border-amber-200'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${activePatrol.status === 'Completed' ? 'bg-emerald-600' : 'bg-amber-600'}`} />
+              {activePatrol.status || 'Pending'}
+            </span>
+          </div>
+
+          {/* Multiple Night Patrol Checkpoints Selector Tabs */}
+          {assignedPatrols.length > 1 && (
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {assignedPatrols.map((patrol, idx) => (
+                <button
+                  key={patrol.id}
+                  onClick={() => setSelectedPatrolIndex(idx)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                    selectedPatrolIndex === idx
+                      ? 'bg-indigo-700 text-white shadow-xs'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {patrol.checkpointName}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Checkpoint Details Card */}
+          <div className="bg-indigo-50/50 rounded-2xl p-3 border border-indigo-100 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <h4 className="font-extrabold text-xs text-indigo-950">{activePatrol.checkpointName}</h4>
+              <span className="text-[10px] font-mono font-bold text-indigo-700 bg-white px-2 py-0.5 rounded border border-indigo-200">
+                {activePatrol.shift || 'Night Shift'}
               </span>
             </div>
-
-            {/* Checkpoint Selector */}
-            <div className="space-y-1.5 text-xs">
-              <label className="block text-[10px] font-bold text-slate-400">Inspection Checkpoint</label>
-              <select
-                value={patrolCheckpoint}
-                onChange={e => {
-                  setPatrolCheckpoint(e.target.value);
-                  setCustomCheckpoint('');
-                }}
-                className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl p-2.5 text-xs font-semibold outline-none cursor-pointer"
-              >
-                {PATROL_CHECKPOINTS.map(cp => (
-                  <option key={cp.id} value={cp.name} className="bg-slate-900 text-white">
-                    {cp.name} ({cp.category})
-                  </option>
-                ))}
-                <option value="CUSTOM" className="bg-slate-900 text-white">+ Custom Checkpoint Location</option>
-              </select>
-
-              {patrolCheckpoint === 'CUSTOM' && (
-                <input
-                  type="text"
-                  placeholder="Enter custom checkpoint name (e.g. DG Set Room B)"
-                  value={customCheckpoint}
-                  onChange={e => setCustomCheckpoint(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl p-2 text-xs font-semibold mt-1"
-                />
-              )}
-            </div>
-
-            {/* Shift & Security Status */}
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-0.5">Patrol Shift</label>
-                <select
-                  value={patrolShift}
-                  onChange={e => setPatrolShift(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl p-2 text-xs font-semibold cursor-pointer"
-                >
-                  <option value="Night Shift 1 (20:00 - 00:00)">Night 1 (20:00 - 00:00)</option>
-                  <option value="Night Shift 2 (00:00 - 04:00)">Night 2 (00:00 - 04:00)</option>
-                  <option value="Dawn Shift (04:00 - 08:00)">Dawn (04:00 - 08:00)</option>
-                </select>
+            <p className="text-[11px] text-gray-600 flex items-start gap-1">
+              <MapPin size={12} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <span>{activePatrol.address || activePatrol.locationName}</span>
+            </p>
+            {activePatrol.instructions && (
+              <div className="pt-1 border-t border-indigo-100 text-[11px] text-indigo-900 bg-white/60 p-2 rounded-xl">
+                <strong className="block text-[10px] text-indigo-950 uppercase font-black">Ops Instructions:</strong>
+                {activePatrol.instructions}
               </div>
+            )}
+          </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-0.5">Security Status</label>
-                <select
-                  value={patrolStatus}
-                  onChange={e => setPatrolStatus(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl p-2 text-xs font-semibold cursor-pointer"
+          {/* Security Finding Selector */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-gray-800">Security Finding / Status *</label>
+            <div className="grid grid-cols-2 gap-2">
+              {['All Secure', 'Incident Noticed'].map(st => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setPatrolStatus(st)}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                    patrolStatus === st
+                      ? 'bg-indigo-900 text-white border-indigo-900 shadow-xs'
+                      : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                  }`}
                 >
-                  <option value="All Secure">🛡️ All Secure</option>
-                  <option value="Incident Noticed">⚠️ Incident Noticed</option>
-                  <option value="Unattended Post">🚫 Unattended Post</option>
-                  <option value="Maintenance Required">🔧 Maintenance Issue</option>
-                </select>
-              </div>
+                  {st}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Checkpoint Photo Proof */}
-          <div className="bg-white rounded-3xl p-4 border border-slate-200 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-                  <Camera size={14} className="text-indigo-600" />
-                  Checkpoint Photo Evidence *
-                </h4>
-                <p className="text-[10px] text-slate-500">
-                  Take photo of checkpoint lock, barrier or perimeter
-                </p>
-              </div>
-
-              {patrolPhoto && (
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                  <CheckCircle2 size={11} /> Photo Attached
-                </span>
-              )}
-            </div>
-
-            <input
-              ref={patrolPhotoInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={e => handleFileCapture(e, setPatrolPhoto)}
-              className="hidden"
-            />
+          {/* Patrol Photo Capture */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-gray-800">
+              Checkpoint Inspection Photo Proof *
+            </label>
 
             {patrolPhoto ? (
-              <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-black max-h-48 flex items-center justify-center">
-                <img src={patrolPhoto} alt="Patrol evidence" className="w-full h-48 object-cover" />
+              <div className="relative rounded-2xl overflow-hidden border border-emerald-500 shadow-sm">
+                <img src={patrolPhoto} alt="Patrol Proof" className="w-full h-36 object-cover" />
                 <button
                   type="button"
-                  onClick={() => patrolPhotoInputRef.current?.click()}
-                  className="absolute bottom-2 right-2 bg-white/90 hover:bg-white text-slate-900 px-3 py-1 rounded-xl text-xs font-bold shadow-md cursor-pointer"
+                  onClick={() => setPatrolPhoto(null)}
+                  className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-white hover:bg-rose-600 transition-colors"
                 >
-                  Retake Photo
+                  <XCircle size={16} />
                 </button>
+                <span className="absolute bottom-2 left-2 bg-emerald-600/90 text-white px-2 py-0.5 rounded-full text-[9px] font-bold">
+                  ✓ Photo Ready
+                </span>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={() => patrolPhotoInputRef.current?.click()}
-                className="w-full py-6 rounded-2xl border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/50 hover:bg-indigo-50 flex flex-col items-center justify-center gap-1.5 text-indigo-900 transition-colors cursor-pointer"
+                className="w-full border-2 border-dashed border-gray-300 hover:border-indigo-600 bg-gray-50/50 hover:bg-indigo-50/20 rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1"
               >
-                <div className="w-11 h-11 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center shadow-sm">
-                  <Camera size={20} />
-                </div>
-                <span className="text-xs font-black text-indigo-950">Snap Checkpoint Inspection Photo</span>
-                <span className="text-[10px] text-indigo-600/80">Geo-tagged with live coordinates</span>
+                <input
+                  ref={patrolPhotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={e => handleFileCapture(e, setPatrolPhoto)}
+                  className="hidden"
+                />
+                <Camera size={22} className="text-indigo-600" />
+                <span className="text-xs font-bold text-indigo-900">Snap Checkpoint Verification Photo</span>
+                <span className="text-[10px] text-gray-400">Capture locks, gate barrier, or floodlight area</span>
               </button>
             )}
 
-            {/* Inspection Notes */}
+            {/* Notes input */}
             <div>
-              <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Observation Notes</label>
-              <textarea
-                rows={2}
+              <input
+                type="text"
+                placeholder="Remarks (e.g. Padlocks intact, floodlights on, all quiet)"
                 value={patrolNotes}
                 onChange={e => setPatrolNotes(e.target.value)}
-                placeholder="e.g. Server room double locks checked. Perimeter lights intact."
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs"
+                className="w-full border border-gray-200 rounded-xl p-2.5 text-xs bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-600"
               />
             </div>
-          </div>
 
-          {/* Submit Patrol Log Button */}
-          <button
-            type="button"
-            onClick={handleSubmitPatrol}
-            disabled={submittingPatrol}
-            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-indigo-900 to-[#1A2B79] hover:from-indigo-950 hover:to-[#162363] text-white font-black text-sm uppercase tracking-wider shadow-lg shadow-indigo-900/30 flex items-center justify-center gap-2 transition-transform active:scale-[0.98] cursor-pointer"
-          >
-            {submittingPatrol ? (
-              <>
-                <Loader2 size={16} className="animate-spin text-[#26BCEE]" />
-                <span>Logging Night Patrol to Database...</span>
-              </>
-            ) : (
-              <>
-                <Moon size={18} className="text-[#26BCEE]" />
-                <span>Submit Night Patrol Log</span>
-              </>
-            )}
-          </button>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODE 3: FIELD OFFICER SELF PUNCH IN/OUT */}
-      {/* ========================================================================= */}
-      {activeMode === 'self' && (
-        <div className="space-y-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm text-center space-y-4">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-700">Officer Attendance</span>
-              <button
-                type="button"
-                onClick={() => setShowSelfieModal(true)}
-                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#1A2B79] bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
-              >
-                <Camera size={14} />
-                <span>{selfieData ? 'Selfie Added ✓' : 'Duty Selfie'}</span>
-              </button>
-            </div>
-
-            <div className="flex justify-center w-full py-1">
-              <button
-                type="button"
-                onClick={handleOfficerSelfPunch}
-                disabled={isVerifying}
-                className={`w-full py-5 px-6 rounded-3xl font-black text-base uppercase tracking-wider shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 relative overflow-hidden cursor-pointer ${
-                  punchedIn
-                    ? 'bg-gradient-to-r from-amber-600 to-rose-600 text-white shadow-rose-500/30'
-                    : 'bg-gradient-to-r from-[#1A2B79] to-[#26BCEE] text-white shadow-blue-500/30'
-                }`}
-              >
-                <Navigation size={22} className={punchedIn ? 'rotate-180' : ''} />
-                <div className="text-left">
-                  <div className="text-base font-black leading-tight">
-                    {punchedIn ? 'CHECKOUT (LEAVE SITE)' : 'CHECK-IN (ARRIVE AT SITE)'}
-                  </div>
-                  <div className="text-[10px] font-normal normal-case opacity-90">
-                    {punchedIn ? 'Complete field tour at this campus' : 'Log GPS Arrival at Client Campus'}
-                  </div>
-                </div>
-              </button>
-            </div>
-
-            <p className="text-[11px] font-medium text-slate-500">
-              {isInside
-                ? '✓ Geofence verified. Within client site radius.'
-                : '⚠️ Outside geofence radius. Move within site boundary.'}
-            </p>
-          </div>
-
-          {/* Interactive Geofence Map */}
-          <div className="bg-white rounded-3xl p-4 border border-slate-200 shadow-sm space-y-3">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                  <MapPin size={12} className="text-rose-500" /> Site Coordinates & Geofence
-                </span>
-                <h3 className="text-xs font-black text-[#1A2B79]">{currentSite.name}</h3>
-              </div>
-              <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-xl border border-slate-200">
-                {currentSite.geofenceRadius || 150}m Radius
-              </span>
-            </div>
-
-            <GeofenceMapWidget
-              siteLat={Number(currentSite.latitude)}
-              siteLng={Number(currentSite.longitude)}
-              radiusMeters={currentSite.geofenceRadius || 150}
-              userLat={userCoords?.lat || null}
-              userLng={userCoords?.lng || null}
-              distanceMeters={distanceMeters}
-              isInside={isInside}
-              siteName={currentSite.name}
-              accuracy={gpsAccuracy}
-              heightClass="h-44"
-            />
-
-            {/* GPS Simulation Selector */}
-            <div className="bg-slate-50 rounded-2xl p-2 border border-slate-200/80 flex items-center justify-between text-[10px]">
-              <span className="font-bold text-slate-600">GPS Testing Mode:</span>
-              <div className="flex gap-1 font-bold">
-                <button
-                  type="button"
-                  onClick={() => setGpsSimMode('inside')}
-                  className={`px-2 py-1 rounded-lg transition-colors cursor-pointer ${
-                    gpsSimMode === 'inside' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200'
-                  }`}
-                >
-                  Inside (14m)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGpsSimMode('outside')}
-                  className={`px-2 py-1 rounded-lg transition-colors cursor-pointer ${
-                    gpsSimMode === 'outside' ? 'bg-rose-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200'
-                  }`}
-                >
-                  Outside (480m)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGpsSimMode('device')}
-                  className={`px-2 py-1 rounded-lg transition-colors cursor-pointer ${
-                    gpsSimMode === 'device' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200'
-                  }`}
-                >
-                  Device GPS
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Emergency SOS & Quick Support */}
-      <div className="grid grid-cols-2 gap-3 pt-1">
-        <button
-          type="button"
-          onClick={handleSos}
-          className={`p-3 rounded-2xl border font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
-            sosSent
-              ? 'bg-rose-600 text-white border-rose-600 shadow-md animate-pulse'
-              : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
-          }`}
-        >
-          <AlertOctagon size={15} />
-          <span>{sosSent ? 'SOS SENT TO OPS!' : 'EMERGENCY SOS'}</span>
-        </button>
-
-        <a
-          href={`tel:${COMPANY.phone}`}
-          className="p-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 font-bold text-xs text-slate-700 flex items-center justify-center gap-2 transition-all"
-        >
-          <Phone size={14} className="text-[#1A2B79]" />
-          <span>24/7 Control Desk</span>
-        </a>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* MODAL: MUSTER SUBMISSION SUCCESS */}
-      {/* ========================================================================= */}
-      {musterSuccessModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl border border-slate-200">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
-              <CheckCircle2 size={36} />
-            </div>
-
-            <div>
-              <h3 className="text-base font-black text-slate-900">Muster Audit Logged</h3>
-              <p className="text-xs text-slate-500 mt-1">{musterSuccessModal.siteName}</p>
-            </div>
-
-            <div className="bg-slate-50 rounded-2xl p-3 text-xs space-y-2 text-left border border-slate-100">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Total Sanctioned:</span>
-                <strong className="text-slate-800">{musterSuccessModal.totalSanctioned} Staff</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-emerald-700 font-semibold">Present on Post:</span>
-                <strong className="text-emerald-700">{musterSuccessModal.totalPresent} Staff</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-rose-600 font-semibold">Marked Absent:</span>
-                <strong className="text-rose-600">{musterSuccessModal.totalAbsent} Staff</strong>
-              </div>
-              <div className="flex justify-between border-t border-slate-200 pt-1.5 font-mono text-[11px]">
-                <span className="text-slate-500">GPS Geofence:</span>
-                <span className="text-emerald-600 font-bold">✓ Verified ({musterSuccessModal.distanceMeters}m)</span>
-              </div>
-            </div>
-
-            <p className="text-[11px] text-slate-400">
-              Attendance records and group muster photo committed to PostgreSQL and synced to Operations Console.
-            </p>
-
+            {/* Submit Patrol Inspection Button */}
             <button
               type="button"
-              onClick={() => {
-                setMusterSuccessModal(null);
-                setMusterPhoto(null);
-              }}
-              className="w-full py-2.5 bg-[#1A2B79] hover:bg-[#14215e] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              onClick={handleSubmitPatrol}
+              disabled={submittingPatrol}
+              className="w-full py-2.5 bg-gradient-to-r from-indigo-700 to-indigo-900 hover:from-indigo-800 hover:to-indigo-950 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-indigo-700/20 transition-all cursor-pointer"
             >
-              Done & Continue Inspection
+              {submittingPatrol ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" /> Uploading Patrol Proof...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={15} className="text-emerald-400" />
+                  <span>Submit Night Patrol Inspection</span>
+                </>
+              )}
             </button>
           </div>
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL: NIGHT PATROL SUBMISSION SUCCESS */}
-      {/* ========================================================================= */}
+      {/* MUSTER SUCCESS MODAL */}
+      {musterSuccessModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl p-5 max-w-sm w-full text-center space-y-4 shadow-2xl border border-gray-100">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-100">
+              <CheckCircle2 size={32} />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-base font-black text-gray-900">Roll-Call Submitted!</h3>
+              <p className="text-xs text-gray-500">
+                Turnout verification recorded for <strong>{musterSuccessModal.siteName}</strong>
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-2xl p-3 grid grid-cols-3 gap-2 text-center text-xs">
+              <div>
+                <span className="text-[10px] text-gray-400 block">Sanctioned</span>
+                <span className="font-black text-gray-800 text-sm">{musterSuccessModal.totalSanctioned}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-emerald-600 block">Present</span>
+                <span className="font-black text-emerald-600 text-sm">{musterSuccessModal.totalPresent}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-rose-500 block">Absent</span>
+                <span className="font-black text-rose-500 text-sm">{musterSuccessModal.totalAbsent}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setMusterSuccessModal(null)}
+              className="w-full py-2.5 bg-[#1A2B79] hover:bg-[#121c50] text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PATROL SUCCESS MODAL */}
       {patrolSuccessModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl border border-slate-200">
-            <div className="w-16 h-16 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center mx-auto shadow-inner">
+          <div className="bg-white rounded-3xl p-5 max-w-sm w-full text-center space-y-4 shadow-2xl border border-gray-100">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center mx-auto border border-indigo-100">
               <Moon size={32} />
             </div>
 
-            <div>
-              <h3 className="text-base font-black text-slate-900">Patrol Checkpoint Logged</h3>
-              <p className="text-xs text-indigo-700 font-bold mt-1">{patrolSuccessModal.checkpoint}</p>
-              <p className="text-[11px] text-slate-400">{patrolSuccessModal.siteName}</p>
+            <div className="space-y-1">
+              <h3 className="text-base font-black text-gray-900">Night Patrol Verified!</h3>
+              <p className="text-xs text-gray-500">
+                Checkpoint sweep completed for <strong>{patrolSuccessModal.checkpoint}</strong>
+              </p>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-3 text-xs space-y-2 text-left border border-slate-100">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Security Status:</span>
-                <strong className="text-slate-800">{patrolSuccessModal.status}</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Logged Time:</span>
-                <strong className="text-slate-800 font-mono">{patrolSuccessModal.time}</strong>
-              </div>
-              <div className="flex justify-between border-t border-slate-200 pt-1.5 font-mono text-[11px]">
-                <span className="text-slate-500">GPS Verification:</span>
-                <span className="text-indigo-700 font-bold">✓ Verified ({patrolSuccessModal.distanceMeters}m)</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setPatrolSuccessModal(null);
-                setPatrolPhoto(null);
-              }}
-              className="w-full py-2.5 bg-indigo-900 hover:bg-indigo-950 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
-            >
-              Checkpoint Recorded
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Selfie Modal */}
-      <SelfieCaptureModal
-        isOpen={showSelfieModal}
-        onClose={() => setShowSelfieModal(false)}
-        onCapture={(img) => setSelfieData(img)}
-      />
-
-      {/* Self Punch Result Modal */}
-      {showResultModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl border border-slate-200">
-            <div
-              className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto ${
-                resultSuccess ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'
-              }`}
-            >
-              {resultSuccess ? <CheckCircle2 size={36} /> : <XCircle size={36} />}
-            </div>
-
-            <div>
-              <h3 className="text-base font-black text-slate-900">
-                {resultSuccess ? 'Attendance Verified' : 'Geofence Verification Failed'}
-              </h3>
-              <p className="text-xs text-slate-600 mt-2 leading-relaxed">{resultMessage}</p>
+            <div className="bg-indigo-50/60 rounded-2xl p-3 text-xs text-indigo-900 space-y-1">
+              <p className="flex justify-between">
+                <span className="text-gray-500">Facility:</span>
+                <strong className="text-gray-900">{patrolSuccessModal.siteName}</strong>
+              </p>
+              <p className="flex justify-between">
+                <span className="text-gray-500">Status:</span>
+                <strong className="text-emerald-700">{patrolSuccessModal.status}</strong>
+              </p>
+              <p className="flex justify-between">
+                <span className="text-gray-500">Time:</span>
+                <strong className="font-mono">{patrolSuccessModal.time}</strong>
+              </p>
             </div>
 
             <button
-              type="button"
-              onClick={() => setShowResultModal(false)}
-              className="w-full py-2.5 bg-[#1A2B79] hover:bg-[#14215e] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              onClick={() => setPatrolSuccessModal(null)}
+              className="w-full py-2.5 bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
             >
-              Continue
+              Done
             </button>
           </div>
         </div>

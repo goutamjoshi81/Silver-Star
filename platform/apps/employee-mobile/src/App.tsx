@@ -39,14 +39,14 @@ export default function App() {
     } else if (user.persona === 'client') {
       setActiveTab('client-dashboard');
     } else {
-      setActiveTab('home');
+      setActiveTab('duties');
     }
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     setCurrentUser(null);
-    setActiveTab('home');
+    setActiveTab('duties');
   };
 
   if (!isAuthenticated) {
@@ -80,11 +80,8 @@ export default function App() {
           {/* 1. FIELD STAFF PERSONA */}
           {persona === 'field' && (
             <>
-              {activeTab === 'home' && (
-                <DutyHome currentUser={currentUser} initialMode="muster" onNavigateTab={setActiveTab} />
-              )}
-              {activeTab === 'patrol' && (
-                <DutyHome currentUser={currentUser} initialMode="patrol" onNavigateTab={setActiveTab} />
+              {(activeTab === 'duties' || activeTab === 'home' || activeTab === 'patrol') && (
+                <DutyHome currentUser={currentUser} onNavigateTab={setActiveTab} />
               )}
               {activeTab === 'history' && <AttendanceHistory />}
               {activeTab === 'idcard' && <DigitalID currentUser={currentUser} />}

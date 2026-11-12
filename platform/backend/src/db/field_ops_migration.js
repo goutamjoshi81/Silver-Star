@@ -112,6 +112,87 @@ export async function runFieldOpsMigrations() {
     }
   }
 
+  // 7. Create patrol_assignments table for Night Patrol assignments by Operations
+  await query(`
+    CREATE TABLE IF NOT EXISTS patrol_assignments (
+      id VARCHAR(50) PRIMARY KEY,
+      officer_id VARCHAR(50) NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+      client_id VARCHAR(50) REFERENCES clients(id) ON DELETE SET NULL,
+      site_id VARCHAR(50) REFERENCES sites(id) ON DELETE SET NULL,
+      location_type VARCHAR(20) DEFAULT 'client' CHECK (location_type IN ('client', 'custom')),
+      location_name VARCHAR(255) NOT NULL,
+      address TEXT NOT NULL,
+      latitude DOUBLE PRECISION NOT NULL,
+      longitude DOUBLE PRECISION NOT NULL,
+      geofence_radius INTEGER DEFAULT 150,
+      checkpoint_name VARCHAR(255) NOT NULL,
+      shift VARCHAR(100) DEFAULT 'Night Shift (22:00 - 06:00)',
+      assigned_date DATE DEFAULT CURRENT_DATE,
+      instructions TEXT,
+      status VARCHAR(50) DEFAULT 'Pending' CHECK (status IN ('Pending', 'In Progress', 'Completed', 'Cancelled')),
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  console.log(' - Patrol assignments table created for Night Patrolling dispatch.');
+
+  // 8. Create client_inspection_assignments table for Field Officer day roll-call & client visits
+  await query(`
+    CREATE TABLE IF NOT EXISTS client_inspection_assignments (
+      id VARCHAR(50) PRIMARY KEY,
+      officer_id VARCHAR(50) NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+      client_id VARCHAR(50) NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+      site_id VARCHAR(50) REFERENCES sites(id) ON DELETE CASCADE,
+      assigned_date DATE DEFAULT CURRENT_DATE,
+      shift VARCHAR(100) DEFAULT 'Day Shift (06:00 - 14:00)',
+      status VARCHAR(50) DEFAULT 'Pending' CHECK (status IN ('Pending', 'Completed', 'Cancelled')),
+      notes TEXT,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT unique_officer_site_date UNIQUE (officer_id, site_id, assigned_date)
+    );
+  `);
+  console.log(' - Client inspection assignments table created for Field Officer roll-call visits.');
+
+  // 9. Seed initial assignments for default field officer if empty
+  const assignCheck = await query("SELECT COUNT(*) FROM patrol_assignments");
+  if (parseInt(assignCheck.rows[0].count, 10) === 0) {
+    const officer = await query("SELECT id FROM employees WHERE designation_id LIKE '%FLD%' OR employee_code = 'SS-10001' OR name ILIKE '%Ramesh%' LIMIT 1");
+    const anyOfficer = officer.rows.length > 0 ? officer.rows[0].id : (await query("SELECT id FROM employees LIMIT 1")).rows[0]?.id;
+    const client = await query("SELECT id, name FROM clients LIMIT 1");
+    const site = await query("SELECT id, name, address, latitude, longitude, geofence_radius FROM sites LIMIT 1");
+
+    if (anyOfficer && site.rows.length > 0) {
+      const s = site.rows[0];
+      const cId = client.rows[0]?.id || 'CLI001';
+
+      // 1. Assign client to officer
+      await query(`
+        INSERT INTO client_inspection_assignments (id, officer_id, client_id, site_id, assigned_date, shift, status, notes)
+        VALUES ('CIA_001', $1, $2, $3, CURRENT_DATE, 'Morning Shift (06:00 - 14:00)', 'Pending', 'Perform physical roll-call of deployed guards and housekeepers. Verify turnout & photo.')
+        ON CONFLICT (officer_id, site_id, assigned_date) DO NOTHING;
+      `, [anyOfficer, cId, s.id]);
+
+      // Set supervisor on site
+      await query(`UPDATE sites SET supervisor_id = $1 WHERE id = $2`, [anyOfficer, s.id]);
+
+      // 2. Assign night patrol to officer
+      await query(`
+        INSERT INTO patrol_assignments (
+          id, officer_id, client_id, site_id, location_type, location_name, address, latitude, longitude, geofence_radius, checkpoint_name, shift, assigned_date, instructions, status
+        )
+        VALUES (
+          'PASG_001', $1, $2, $3, 'client', $4, $5, $6, $7, $8,
+          'Main Security Gate & Perimeter Fence', 'Night Shift 1 (20:00 - 00:00)', CURRENT_DATE,
+          'Conduct comprehensive perimeter sweep, check gate logbook, inspect floodlights and snap photo.', 'Pending'
+        )
+        ON CONFLICT (id) DO NOTHING;
+      `, [anyOfficer, cId, s.id, s.name, s.address, s.latitude, s.longitude, s.geofence_radius || 150]);
+
+      console.log(' - Seeded initial sample client and night patrol assignments.');
+    }
+  }
+
   console.log('[Migration] Field Ops database changes completed successfully.');
 }
 

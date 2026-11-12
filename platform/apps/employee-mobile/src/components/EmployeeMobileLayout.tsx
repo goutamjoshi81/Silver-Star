@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import {
   MapPin, Clock, QrCode, User, Wifi, Battery, Signal,
   Smartphone, Maximize2, Minimize2, Bell, Shield, Key,
-  Briefcase, Building, AlertTriangle, FileText, Users, LogOut, Moon
+  Briefcase, Building, AlertTriangle, FileText, Users, LogOut, Moon, ShieldCheck
 } from 'lucide-react';
 import { COMPANY } from '@mock/mockData';
 import type { UserPersona } from '../pages/Login';
@@ -133,24 +133,15 @@ export default function EmployeeMobileLayout({
             <>
               <button
                 type="button"
-                onClick={() => onTabChange('home')}
-                className={`flex flex-col items-center py-1 px-2 rounded-2xl transition-all cursor-pointer ${
-                  activeTab === 'home' ? 'text-[#1A2B79] font-black' : 'text-slate-400 font-semibold hover:text-slate-600'
+                onClick={() => onTabChange('duties')}
+                className={`flex flex-col items-center py-1 px-3 rounded-2xl transition-all cursor-pointer ${
+                  (activeTab === 'duties' || activeTab === 'home' || activeTab === 'patrol')
+                    ? 'text-[#1A2B79] font-black'
+                    : 'text-slate-400 font-semibold hover:text-slate-600'
                 }`}
               >
-                <Users size={17} className={activeTab === 'home' ? 'text-[#1A2B79]' : ''} />
-                <span className="text-[9px] mt-0.5">Roll-Call</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onTabChange('patrol')}
-                className={`flex flex-col items-center py-1 px-2 rounded-2xl transition-all cursor-pointer ${
-                  activeTab === 'patrol' ? 'text-[#1A2B79] font-black' : 'text-slate-400 font-semibold hover:text-slate-600'
-                }`}
-              >
-                <Moon size={17} className={activeTab === 'patrol' ? 'text-[#1A2B79]' : ''} />
-                <span className="text-[9px] mt-0.5">Patrol</span>
+                <ShieldCheck size={18} className={(activeTab === 'duties' || activeTab === 'home' || activeTab === 'patrol') ? 'text-[#1A2B79]' : ''} />
+                <span className="text-[9px] mt-0.5">My Duties</span>
               </button>
 
               <button
