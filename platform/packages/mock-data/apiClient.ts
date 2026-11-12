@@ -4,12 +4,21 @@
 // ============================================================
 
 const getApiBase = () => {
-  if (typeof window === 'undefined') return 'http://localhost:5000/api';
+  if (typeof window === 'undefined') return 'http://192.168.1.36:5000/api';
   if ((window as any).__API_BASE_URL__) return (window as any).__API_BASE_URL__;
   if (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) {
     return (import.meta as any).env.VITE_API_URL;
   }
-  const host = window.location.hostname || 'localhost';
+  // When running inside Capacitor mobile or local emulator/phone, use LAN IP directly
+  if (
+    typeof window !== 'undefined' &&
+    ((window as any).Capacitor ||
+      window.location.protocol === 'capacitor:' ||
+      window.location.hostname === 'localhost')
+  ) {
+    return 'http://192.168.1.36:5000/api';
+  }
+  const host = window.location.hostname || '192.168.1.36';
   return `http://${host}:5000/api`;
 };
 
@@ -47,11 +56,10 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     // If connection completely failed (offline or wrong IP), test candidate endpoints
     if (typeof window !== 'undefined') {
       const candidates = [
-        `http://${window.location.hostname}:5000/api`,
         'http://192.168.1.36:5000/api',
-        'http://10.93.223.85:5000/api',
         'http://localhost:5000/api',
-        'http://10.0.2.2:5000/api'
+        'http://10.0.2.2:5000/api',
+        `http://${window.location.hostname}:5000/api`
       ].filter(b => b !== API_BASE_URL);
 
       for (const fallbackBase of candidates) {
