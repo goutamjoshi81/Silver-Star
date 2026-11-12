@@ -1,5 +1,6 @@
 import express from 'express';
 import { query } from '../db/index.js';
+import { toDateStr } from '../utils/date.js';
 
 const router = express.Router();
 
@@ -208,7 +209,7 @@ router.get('/assignments', async (req, res) => {
       geofenceRadius: Number(r.geofence_radius || 150),
       checkpointName: r.checkpoint_name,
       shift: r.shift,
-      assignedDate: r.assigned_date ? r.assigned_date.toISOString().split('T')[0] : '',
+      assignedDate: toDateStr(r.assigned_date),
       instructions: r.instructions,
       status: r.status,
       createdAt: r.created_at,

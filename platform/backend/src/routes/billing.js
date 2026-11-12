@@ -1,5 +1,6 @@
 import express from 'express';
 import { query } from '../db/index.js';
+import { toDateStr } from '../utils/date.js';
 
 const router = express.Router();
 
@@ -30,13 +31,13 @@ router.get('/contracts', async (req, res) => {
       clientId: r.client_id,
       clientName: r.client_name,
       contractNumber: r.contract_number,
-      startDate: r.start_date ? r.start_date.toISOString().split('T')[0] : '',
-      endDate: r.end_date ? r.end_date.toISOString().split('T')[0] : '',
+      startDate: toDateStr(r.start_date),
+      endDate: toDateStr(r.end_date),
       billingFrequency: r.billing_frequency,
-      totalValue: parseFloat(r.total_value),
-      monthlyAmount: parseFloat(r.monthly_amount),
+      totalValue: parseFloat(r.total_value || 0),
+      monthlyAmount: parseFloat(r.monthly_amount || 0),
       status: r.status,
-      lastInvoiceDate: r.last_invoice_date ? r.last_invoice_date.toISOString().split('T')[0] : '',
+      lastInvoiceDate: toDateStr(r.last_invoice_date),
       lastInvoiceStatus: r.last_invoice_status,
     })));
   } catch (err) {
@@ -100,21 +101,21 @@ router.get('/invoices', async (req, res) => {
       clientId: r.client_id,
       clientName: r.client_name,
       contractId: r.contract_id,
-      invoiceDate: r.invoice_date ? r.invoice_date.toISOString().split('T')[0] : '',
-      dueDate: r.due_date ? r.due_date.toISOString().split('T')[0] : '',
-      billingPeriodStart: r.billing_period_start ? r.billing_period_start.toISOString().split('T')[0] : '',
-      billingPeriodEnd: r.billing_period_end ? r.billing_period_end.toISOString().split('T')[0] : '',
-      subtotal: parseFloat(r.subtotal),
-      cgstRate: parseFloat(r.cgst_rate),
-      cgstAmount: parseFloat(r.cgst_amount),
-      sgstRate: parseFloat(r.sgst_rate),
-      sgstAmount: parseFloat(r.sgst_amount),
-      igstRate: parseFloat(r.igst_rate),
-      igstAmount: parseFloat(r.igst_amount),
-      totalAmount: parseFloat(r.total_amount),
+      invoiceDate: toDateStr(r.invoice_date),
+      dueDate: toDateStr(r.due_date),
+      billingPeriodStart: toDateStr(r.billing_period_start),
+      billingPeriodEnd: toDateStr(r.billing_period_end),
+      subtotal: parseFloat(r.subtotal || 0),
+      cgstRate: parseFloat(r.cgst_rate || 0),
+      cgstAmount: parseFloat(r.cgst_amount || 0),
+      sgstRate: parseFloat(r.sgst_rate || 0),
+      sgstAmount: parseFloat(r.sgst_amount || 0),
+      igstRate: parseFloat(r.igst_rate || 0),
+      igstAmount: parseFloat(r.igst_amount || 0),
+      totalAmount: parseFloat(r.total_amount || 0),
       status: r.status,
       gstBillFileUrl: r.gst_bill_file_url,
-      paymentDate: r.payment_date ? r.payment_date.toISOString().split('T')[0] : null,
+      paymentDate: toDateStr(r.payment_date) || null,
     })));
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -1,5 +1,6 @@
 import express from 'express';
 import { query } from '../db/index.js';
+import { toDateStr, toDateTimeStr } from '../utils/date.js';
 
 const router = express.Router();
 
@@ -45,7 +46,7 @@ router.get('/daily', async (req, res) => {
       siteId: r.site_id,
       siteName: r.site_name,
       clientName: r.client_name,
-      date: r.date ? r.date.toISOString().split('T')[0] : '',
+      date: toDateStr(r.date),
       submittedBy: r.submitted_by,
       submittedByName: r.submitted_by_name,
       status: r.status,
@@ -124,7 +125,7 @@ router.get('/incidents', async (req, res) => {
       category: r.category,
       priority: r.priority,
       reportedBy: r.reported_by,
-      reportedAt: r.reported_at ? r.reported_at.toISOString().replace('T', ' ').slice(0, 16) : '',
+      reportedAt: toDateTimeStr(r.reported_at),
       status: r.status,
       description: r.description,
     })));

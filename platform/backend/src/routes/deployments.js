@@ -1,5 +1,6 @@
 import express from 'express';
 import { query } from '../db/index.js';
+import { toDateStr } from '../utils/date.js';
 
 const router = express.Router();
 
@@ -48,8 +49,8 @@ router.get('/', async (req, res) => {
       employeePhone: r.employee_phone,
       shiftId: r.shift_id,
       shiftName: r.shift_name,
-      startDate: r.start_date ? r.start_date.toISOString().split('T')[0] : '',
-      endDate: r.end_date ? r.end_date.toISOString().split('T')[0] : null,
+      startDate: toDateStr(r.start_date),
+      endDate: toDateStr(r.end_date) || null,
       status: r.status,
       deployedBy: r.deployed_by,
     })));

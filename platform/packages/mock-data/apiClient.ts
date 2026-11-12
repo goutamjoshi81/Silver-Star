@@ -4,21 +4,21 @@
 // ============================================================
 
 const getApiBase = () => {
-  if (typeof window === 'undefined') return 'http://192.168.1.36:5000/api';
+  if (typeof window === 'undefined') return 'http://localhost:5000/api';
   if ((window as any).__API_BASE_URL__) return (window as any).__API_BASE_URL__;
   if (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) {
     return (import.meta as any).env.VITE_API_URL;
   }
-  // When running inside Capacitor mobile or local emulator/phone, use LAN IP directly
-  if (
+  // When running inside native Capacitor mobile wrapper, reach host LAN IP
+  const isCapacitor =
     typeof window !== 'undefined' &&
-    ((window as any).Capacitor ||
-      window.location.protocol === 'capacitor:' ||
-      window.location.hostname === 'localhost')
-  ) {
+    ((window as any).Capacitor || window.location.protocol === 'capacitor:');
+  if (isCapacitor) {
     return 'http://192.168.1.36:5000/api';
   }
-  const host = window.location.hostname || '192.168.1.36';
+  // In web browsers, connect directly to whatever host the user browsed
+  // e.g. localhost -> localhost:5000, 192.168.1.36 -> 192.168.1.36:5000
+  const host = (typeof window !== 'undefined' && window.location.hostname) || 'localhost';
   return `http://${host}:5000/api`;
 };
 
@@ -53,19 +53,22 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
       throw err;
     }
 
-    // If connection completely failed (offline or wrong IP), test candidate endpoints
+    // If connection completely failed (offline, network error or wrong IP), test candidate endpoints
     if (typeof window !== 'undefined') {
-      const candidates = [
-        'http://192.168.1.36:5000/api',
+      const currentHost = window.location.hostname || 'localhost';
+      const candidateList = [
+        `http://${currentHost}:5000/api`,
         'http://localhost:5000/api',
+        'http://127.0.0.1:5000/api',
+        'http://192.168.1.36:5000/api',
         'http://10.0.2.2:5000/api',
-        `http://${window.location.hostname}:5000/api`
-      ].filter(b => b !== API_BASE_URL);
+      ];
+      const candidates = Array.from(new Set(candidateList)).filter(b => b !== API_BASE_URL);
 
       for (const fallbackBase of candidates) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 1200);
+          const timeoutId = setTimeout(() => controller.abort(), 1500);
 
           const fallbackRes = await fetch(`${fallbackBase}${endpoint}`, {
             headers: {
@@ -81,15 +84,16 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
             API_BASE_URL = fallbackBase;
             return await fallbackRes.json();
           } else if (fallbackRes.status >= 400 && fallbackRes.status < 500) {
-            // Server was reached on this candidate, but returned authentication/validation error
+            // Server was reached on this candidate, but returned client/auth error
             API_BASE_URL = fallbackBase;
             const errBody = await fallbackRes.json().catch(() => ({ error: fallbackRes.statusText }));
             const candidateHttpError = new Error(errBody.error || `Request failed with status ${fallbackRes.status}`);
             (candidateHttpError as any).status = fallbackRes.status;
+            (candidateHttpError as any).isHttpError = true;
             throw candidateHttpError;
           }
         } catch (candidateErr: any) {
-          if (candidateErr?.status && candidateErr.status >= 400 && candidateErr.status < 500) {
+          if (candidateErr?.isHttpError || (candidateErr?.status && candidateErr.status >= 400 && candidateErr.status < 500)) {
             throw candidateErr;
           }
         }

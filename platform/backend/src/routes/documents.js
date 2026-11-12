@@ -1,5 +1,6 @@
 import express from 'express';
 import { query } from '../db/index.js';
+import { toDateStr } from '../utils/date.js';
 
 const router = express.Router();
 
@@ -47,7 +48,7 @@ router.get('/', async (req, res) => {
       departmentName: r.department_name,
       documentType: r.document_type,
       fileName: r.file_name,
-      uploadDate: r.upload_date ? r.upload_date.toISOString().split('T')[0] : '',
+      uploadDate: toDateStr(r.upload_date),
       status: r.status,
       fileUrl: r.file_url,
       reviewedBy: r.reviewed_by,

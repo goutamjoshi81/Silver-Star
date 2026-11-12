@@ -1,5 +1,6 @@
 import express from 'express';
 import { query } from '../db/index.js';
+import { toDateStr } from '../utils/date.js';
 
 const router = express.Router();
 
@@ -12,8 +13,8 @@ function formatClient(row) {
     email: row.email,
     phone: row.phone,
     address: row.address,
-    contractStart: row.contract_start ? row.contract_start.toISOString().split('T')[0] : '',
-    contractEnd: row.contract_end ? row.contract_end.toISOString().split('T')[0] : '',
+    contractStart: toDateStr(row.contract_start),
+    contractEnd: toDateStr(row.contract_end),
     status: row.status,
     sites: row.sites || [],
     portalUsername: row.portal_username,
@@ -201,8 +202,8 @@ router.get('/sites', async (req, res) => {
       siteType: r.site_type || 'Permanent',
       isEmergency: !!r.is_emergency,
       emergencyNotes: r.emergency_notes || '',
-      validFrom: r.valid_from ? r.valid_from.toISOString().split('T')[0] : null,
-      validUntil: r.valid_until ? r.valid_until.toISOString().split('T')[0] : null,
+      validFrom: toDateStr(r.valid_from) || null,
+      validUntil: toDateStr(r.valid_until) || null,
       supervisorId: r.supervisor_id,
       supervisorName: r.supervisor_name,
     })));

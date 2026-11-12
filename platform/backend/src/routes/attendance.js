@@ -1,5 +1,6 @@
 import express from 'express';
 import { query } from '../db/index.js';
+import { toDateStr } from '../utils/date.js';
 
 const router = express.Router();
 
@@ -78,7 +79,7 @@ router.get('/', async (req, res) => {
       siteId: r.site_id,
       siteName: r.site_name,
       clientName: r.client_name,
-      date: r.date ? r.date.toISOString().split('T')[0] : '',
+      date: toDateStr(r.date),
       punchIn: r.punch_in ? r.punch_in.slice(0, 5) : null,
       punchOut: r.punch_out ? r.punch_out.slice(0, 5) : null,
       status: r.status,
@@ -445,7 +446,7 @@ router.get('/field-muster', async (req, res) => {
       siteId: r.site_id,
       siteName: r.site_name,
       clientName: r.client_name,
-      date: r.date ? r.date.toISOString().split('T')[0] : '',
+      date: toDateStr(r.date),
       shift: r.shift,
       totalSanctioned: r.total_sanctioned,
       totalPresent: r.total_present,
@@ -592,7 +593,7 @@ router.get('/officer-duties/:officerId', async (req, res) => {
         shift: r.shift,
         instructions: r.instructions,
         status: checkLog.rows.length > 0 ? 'Completed' : r.status,
-        assignedDate: r.assigned_date ? r.assigned_date.toISOString().split('T')[0] : '',
+        assignedDate: toDateStr(r.assigned_date),
         completedLog: checkLog.rows[0] || null,
       });
     }

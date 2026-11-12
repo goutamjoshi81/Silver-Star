@@ -1,5 +1,6 @@
 import express from 'express';
 import { query } from '../db/index.js';
+import { toDateStr } from '../utils/date.js';
 
 const router = express.Router();
 
@@ -10,7 +11,7 @@ function formatEmployee(row) {
     employeeCode: row.employee_code,
     name: row.name,
     photo: row.photo,
-    dob: row.dob ? row.dob.toISOString().split('T')[0] : '',
+    dob: toDateStr(row.dob),
     gender: row.gender,
     maritalStatus: row.marital_status,
     bloodGroup: row.blood_group,
@@ -21,7 +22,7 @@ function formatEmployee(row) {
     departmentId: row.department_id,
     designationId: row.designation_id,
     employmentType: row.employment_type,
-    joiningDate: row.joining_date ? row.joining_date.toISOString().split('T')[0] : '',
+    joiningDate: toDateStr(row.joining_date),
     onboardingStatus: row.onboarding_status,
     kycStatus: row.kyc_status,
     kycMethod: row.kyc_method,
