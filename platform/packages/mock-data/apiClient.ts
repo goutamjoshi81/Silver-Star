@@ -374,6 +374,60 @@ export const api = {
 
   // Dashboard KPIs & Notifications
   getKpis: () => request<any>('/dashboard/kpis'),
+
+  // Services Management (Public Website & Super Admin)
+  getServices: (params?: { category?: string; status?: string }) => {
+    const q = new URLSearchParams(params as any).toString();
+    return request<any[]>(`/services${q ? `?${q}` : ''}`);
+  },
+  getService: (idOrSlug: string) => request<any>(`/services/${encodeURIComponent(idOrSlug)}`),
+  createService: (data: any) =>
+    request<any>('/services', { method: 'POST', body: JSON.stringify(data) }),
+  updateService: (id: string, data: any) =>
+    request<any>(`/services/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteService: (id: string) =>
+    request<any>(`/services/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  // Team Management (Public Website & Super Admin)
+  getTeam: (params?: { department?: string; status?: string }) => {
+    const q = new URLSearchParams(params as any).toString();
+    return request<any[]>(`/team${q ? `?${q}` : ''}`);
+  },
+  createTeamMember: (data: any) =>
+    request<any>('/team', { method: 'POST', body: JSON.stringify(data) }),
+  updateTeamMember: (id: string, data: any) =>
+    request<any>(`/team/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteTeamMember: (id: string) =>
+    request<any>(`/team/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  // Website Clientele & Showcase
+  getWebsiteClientele: (params?: { category?: string; featured?: boolean }) => {
+    const q = new URLSearchParams(params as any).toString();
+    return request<any[]>(`/website/clientele${q ? `?${q}` : ''}`);
+  },
+  createWebsiteClientele: (data: any) =>
+    request<any>('/website/clientele', { method: 'POST', body: JSON.stringify(data) }),
+  deleteWebsiteClientele: (id: string) =>
+    request<any>(`/website/clientele/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  // Contact & Free Quote Inquiries
+  submitContactInquiry: (data: {
+    name: string;
+    email?: string;
+    phone: string;
+    serviceId?: string;
+    serviceName?: string;
+    companyName?: string;
+    city?: string;
+    message?: string;
+  }) => request<any>('/website/inquiries', { method: 'POST', body: JSON.stringify(data) }),
+  getContactInquiries: (status?: string) =>
+    request<any[]>(`/website/inquiries${status ? `?status=${status}` : ''}`),
+  updateInquiryStatus: (id: string, status: string, notes?: string) =>
+    request<any>(`/website/inquiries/${encodeURIComponent(id)}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, notes }),
+    }),
   getNotifications: (role?: string) =>
     request<any[]>(`/dashboard/notifications${role ? `?role=${role}` : ''}`),
 };

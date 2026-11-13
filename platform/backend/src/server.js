@@ -15,6 +15,9 @@ import billingRoutes from './routes/billing.js';
 import reportRoutes from './routes/reports.js';
 import dashboardRoutes from './routes/dashboard.js';
 import patrolRoutes from './routes/patrols.js';
+import serviceRoutes from './routes/services.js';
+import teamRoutes from './routes/team.js';
+import websiteRoutes from './routes/website.js';
 
 dotenv.config();
 
@@ -59,6 +62,9 @@ app.use('/api/billing', billingRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/patrols', patrolRoutes);
+app.use('/api/services', serviceRoutes);
+app.use('/api/team', teamRoutes);
+app.use('/api/website', websiteRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

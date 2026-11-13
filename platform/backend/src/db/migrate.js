@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { pool } from './index.js';
 import { runMobileMigrations } from './mobile_migrations.js';
 import { runFieldOpsMigrations } from './field_ops_migration.js';
+import { runWebsiteMigrations } from './website_migration.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,6 +23,7 @@ export async function runMigrations() {
 
     await runMobileMigrations();
     await runFieldOpsMigrations();
+    await runWebsiteMigrations();
   } catch (err) {
     console.error('[PostgreSQL] Migration error:', err);
     throw err;

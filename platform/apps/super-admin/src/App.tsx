@@ -17,11 +17,13 @@ import Billing from './pages/Billing'
 import UserRoles from './pages/UserRoles'
 import Notifications from './pages/Notifications'
 import Settings from './pages/Settings'
+import ServicesManagement from './pages/ServicesManagement'
 import EmployeeVerificationPage from './pages/EmployeeVerificationPage'
 
 const KNOWN_APP_ROUTES = [
   '/dashboard',
   '/clients',
+  '/services',
   '/employees',
   '/onboarding',
   '/attendance',
@@ -80,6 +82,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/clients" element={<Clients />} />
+        <Route path="/services" element={<ServicesManagement />} />
         <Route path="/employees" element={<Employees />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/attendance" element={<Attendance />} />

@@ -12,7 +12,8 @@
     "dev:ops": "npm --prefix apps/operations-panel run dev",
     "dev:client": "npm --prefix apps/client-mobile run dev",
     "dev:employee": "npm --prefix apps/employee-mobile run dev",
-    "build:all": "npm --prefix apps/super-admin run build && npm --prefix apps/hr-panel run build && npm --prefix apps/operations-panel run build && npm --prefix apps/client-mobile run build && npm --prefix apps/employee-mobile run build"
+    "dev:website": "npm --prefix apps/website run dev",
+    "build:all": "npm --prefix apps/super-admin run build && npm --prefix apps/hr-panel run build && npm --prefix apps/operations-panel run build && npm --prefix apps/client-mobile run build && npm --prefix apps/employee-mobile run build && npm --prefix apps/website run build"
   },
   "dependencies": {
     "xlsx": "^0.18.5"

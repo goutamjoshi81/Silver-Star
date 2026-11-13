@@ -18,6 +18,9 @@ start "Silver Star Backend API (5000)" cmd /k "cd /d "%~dp0platform\backend" && 
 
 timeout /t 3 /nobreak >nul
 
+echo Launching Corporate Website on port 5172...
+start "Silver Star Corporate Website (5172)" cmd /k "cd /d "%~dp0platform\apps\website" && npm run dev"
+
 echo Launching Super Admin on port 5173...
 start "Silver Star Super Admin (5173)" cmd /k "cd /d "%~dp0platform\apps\super-admin" && npm run dev"
 
@@ -37,6 +40,7 @@ echo.
 echo ==========================================================
 echo All services launched!
 echo Access from any device on your Wi-Fi:
+echo   - Corporate Website: http://%IP%:5172
 echo   - Super Admin:       http://%IP%:5173
 echo   - HR Panel:          http://%IP%:5174
 echo   - Operations Panel:  http://%IP%:5175
