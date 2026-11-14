@@ -128,3 +128,4 @@ export default function Clientele({ onOpenQuoteModal }: ClienteleProps) {
     </div>
   );
 }
+

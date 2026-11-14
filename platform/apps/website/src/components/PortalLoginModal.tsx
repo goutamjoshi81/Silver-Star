@@ -119,3 +119,4 @@ export default function PortalLoginModal({ isOpen, onClose }: PortalLoginModalPr
     </div>
   );
 }
+

@@ -687,3 +687,4 @@ export default function Home({ onOpenQuoteModal, onOpenPortalModal }: HomeProps)
     </div>
   );
 }
+

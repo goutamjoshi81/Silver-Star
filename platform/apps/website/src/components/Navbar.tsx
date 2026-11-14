@@ -315,3 +315,4 @@ export default function Navbar({ onOpenQuoteModal, onOpenPortalModal }: NavbarPr
     </header>
   );
 }
+

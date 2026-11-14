@@ -183,3 +183,4 @@ router.put('/inquiries/:id/status', async (req, res) => {
 });
 
 export default router;
+
