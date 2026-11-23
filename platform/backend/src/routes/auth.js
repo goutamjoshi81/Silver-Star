@@ -257,10 +257,9 @@ router.put('/users/:id', async (req, res) => {
         role = COALESCE($4, role),
         status = COALESCE($5, status),
         client_id = CASE WHEN $6 IS NOT NULL THEN $6 ELSE client_id END,
-        employee_id = CASE WHEN $7 IS NOT NULL THEN $7 ELSE employee_id END,
-        updated_at = CURRENT_TIMESTAMP
+        employee_id = CASE WHEN $7 IS NOT NULL THEN $7 ELSE employee_id END
       WHERE id = $8
-      RETURNING id, name, email, role, status, client_id, employee_id, created_at, updated_at`,
+      RETURNING id, name, email, role, status, client_id, employee_id, created_at`,
       [
         name !== undefined ? name.trim() : null,
         email !== undefined ? email.trim() : null,
