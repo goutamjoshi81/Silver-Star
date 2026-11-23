@@ -45,9 +45,16 @@ function getMimeType($file) {
 
 function serveFile($filePath) {
     if (file_exists($filePath) && !is_dir($filePath)) {
-        header('Content-Type: ' . getMimeType($filePath));
+        $mime = getMimeType($filePath);
+        header('Content-Type: ' . $mime);
         header('Content-Length: ' . filesize($filePath));
-        header('Cache-Control: public, max-age=86400');
+        if (strpos($mime, 'text/html') !== false) {
+            header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+            header('Pragma: no-cache');
+            header('Expires: 0');
+        } else {
+            header('Cache-Control: public, max-age=86400');
+        }
         readfile($filePath);
         exit;
     }
