@@ -124,14 +124,19 @@ foreach ($searchAssetPaths as $candidate) {
 }
 
 // -------------------------------------------------------------
-// 3. Sub-app routing: /admin, /hr, /ops, /client, /employee
+// 3. Sub-app routing: /super-admin, /hr-admin, /ops-admin, etc.
 // -------------------------------------------------------------
 $appRoutes = [
-    '/admin'    => $rootDir . '/platform/apps/super-admin/dist',
-    '/hr'       => $rootDir . '/platform/apps/hr-panel/dist',
-    '/ops'      => $rootDir . '/platform/apps/operations-panel/dist',
-    '/client'   => $rootDir . '/platform/apps/client-mobile/dist',
-    '/employee' => $rootDir . '/platform/apps/employee-mobile/dist',
+    '/super-admin'   => $rootDir . '/super-admin',
+    '/admin'         => $rootDir . '/admin',
+    '/hr-admin'      => $rootDir . '/hr-admin',
+    '/hr'            => $rootDir . '/hr',
+    '/ops-admin'     => $rootDir . '/ops-admin',
+    '/ops'           => $rootDir . '/ops',
+    '/client-portal' => $rootDir . '/client-portal',
+    '/client'        => $rootDir . '/client',
+    '/field-officer' => $rootDir . '/field-officer',
+    '/employee'      => $rootDir . '/employee',
 ];
 
 foreach ($appRoutes as $prefix => $distPath) {
@@ -146,16 +151,10 @@ foreach ($appRoutes as $prefix => $distPath) {
 }
 
 // -------------------------------------------------------------
-// 4. Default Application: Corporate Website (SPA)
+// 4. Default Application: Master Portals Hub
 // -------------------------------------------------------------
-$websiteDist = $rootDir . '/platform/apps/website/dist';
-if (file_exists($websiteDist . $uri) && !is_dir($websiteDist . $uri)) {
-    serveFile($websiteDist . $uri);
-}
-
-// SPA fallback for all website routes (e.g. /about-us, /services, /team, /contacts, etc.)
-if (file_exists($websiteDist . '/index.html')) {
-    serveFile($websiteDist . '/index.html');
+if (file_exists($rootDir . '/index.html')) {
+    serveFile($rootDir . '/index.html');
 }
 
 // Fallback message if dist has not been pulled yet
