@@ -251,13 +251,13 @@ router.put('/users/:id', async (req, res) => {
 
     const { rows } = await query(
       `UPDATE user_accounts SET
-        name = COALESCE($1, name),
-        email = COALESCE($2, email),
-        password_hash = COALESCE($3, password_hash),
-        role = COALESCE($4, role),
-        status = COALESCE($5, status),
-        client_id = CASE WHEN $6 IS NOT NULL THEN $6 ELSE client_id END,
-        employee_id = CASE WHEN $7 IS NOT NULL THEN $7 ELSE employee_id END
+        name = COALESCE($1::varchar, name),
+        email = COALESCE($2::varchar, email),
+        password_hash = COALESCE($3::varchar, password_hash),
+        role = COALESCE($4::varchar, role),
+        status = COALESCE($5::varchar, status),
+        client_id = COALESCE($6::varchar, client_id),
+        employee_id = COALESCE($7::varchar, employee_id)
       WHERE id = $8
       RETURNING id, name, email, role, status, client_id, employee_id, created_at`,
       [
