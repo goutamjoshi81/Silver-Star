@@ -1,5 +1,6 @@
 # Silver Star Platform - LiteSpeed & Apache Configuration
-# Routes all public requests through index.php for SPA routing and asset resolution
+# Fallback to SPA index.html for unknown routes
+ErrorDocument 404 /index.html
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
@@ -9,11 +10,12 @@
     RewriteRule ^deploy-hook\.php$ - [L]
 
     # If requested file exists, serve directly
-    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # Route all other requests (SPA pages, assets, API) to index.php
-    RewriteRule ^ index.php [L,QSA]
+    # Route all other requests (SPA pages, subroutes) to index.html
+    RewriteRule ^ index.html [L]
 </IfModule>
 
 # Caching for static assets

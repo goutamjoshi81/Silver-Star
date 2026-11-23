@@ -41,6 +41,9 @@ console.log(`==================================================\n`);
 // 1. Compile all frontend applications
 run('npm run build:all', 'Compiling all frontend applications (6 apps)');
 
+// 1b. Sync dist bundles to root and subpaths for VPS web server
+run('node scripts/sync-dist.js', 'Syncing pre-built bundles to web directories');
+
 // 2. Stage all files including pre-built dist folders
 run('git add .', 'Staging code changes and compiled production dist bundles');
 
