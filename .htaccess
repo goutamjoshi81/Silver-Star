@@ -9,6 +9,9 @@ ErrorDocument 404 /index.html
     # Allow direct access to deploy-hook.php
     RewriteRule ^deploy-hook\.php$ - [L]
 
+    # Route /api/ calls through index.php (Reverse proxy to Node.js backend port 5000)
+    RewriteRule ^api/(.*)$ index.php [L,QSA]
+
     # If requested file exists, serve directly
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
