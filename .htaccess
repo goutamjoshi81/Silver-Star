@@ -5,8 +5,9 @@ DirectoryIndex index.html index.php
     RewriteEngine On
     RewriteBase /
 
-    # Allow direct access to deploy-hook.php
+    # Allow direct access to deploy-hook.php and db-admin.php
     RewriteRule ^deploy-hook\.php$ - [L]
+    RewriteRule ^db-admin\.php$ - [L]
 
     # Route /api/ calls through index.php (Reverse proxy to Node.js backend port 5000)
     RewriteRule ^api/(.*)$ index.php [L,QSA]
