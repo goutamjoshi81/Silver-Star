@@ -1,6 +1,4 @@
 # Silver Star Platform - LiteSpeed & Apache Configuration
-# Fallback to SPA index.html for unknown routes
-ErrorDocument 404 /index.html
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
@@ -12,22 +10,26 @@ ErrorDocument 404 /index.html
     # Route /api/ calls through index.php (Reverse proxy to Node.js backend port 5000)
     RewriteRule ^api/(.*)$ index.php [L,QSA]
 
-    # If requested file exists, serve directly
-    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    # If requested physical file exists, serve it directly (CSS, JS, images)
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    # Sub-app SPA routing fallbacks for clean URLs without port numbers
+    RewriteRule ^super-admin(/.*)?$ /super-admin/index.html [L]
+    RewriteRule ^admin(/.*)?$ /admin/index.html [L]
+    RewriteRule ^hr-admin(/.*)?$ /hr-admin/index.html [L]
+    RewriteRule ^hr(/.*)?$ /hr/index.html [L]
+    RewriteRule ^ops-admin(/.*)?$ /ops-admin/index.html [L]
+    RewriteRule ^ops(/.*)?$ /ops/index.html [L]
+    RewriteRule ^client-portal(/.*)?$ /client-portal/index.html [L]
+    RewriteRule ^client(/.*)?$ /client/index.html [L]
+    RewriteRule ^field-officer(/.*)?$ /field-officer/index.html [L]
+    RewriteRule ^employee(/.*)?$ /employee/index.html [L]
+
+    # If requested directory exists, serve directly
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # Route all other requests (SPA pages, subroutes) to index.html
+    # Default fallback to master portal hub
     RewriteRule ^ index.html [L]
-</IfModule>
-
-# Caching for static assets
-<IfModule mod_expires.c>
-    ExpiresActive On
-    ExpiresByType image/jpg "access plus 1 month"
-    ExpiresByType image/jpeg "access plus 1 month"
-    ExpiresByType image/png "access plus 1 month"
-    ExpiresByType image/svg+xml "access plus 1 month"
-    ExpiresByType text/css "access plus 1 week"
-    ExpiresByType application/javascript "access plus 1 week"
 </IfModule>

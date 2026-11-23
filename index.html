@@ -1,20 +1,351 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SilverStar Facility Management Pvt. Ltd – Your True Business Partners</title>
-    <meta name="description" content="Silver Star Facility Management Pvt. Ltd is a premier facility management company providing integrated facility solutions, technical maintenance, security services, and business support across India." />
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/assets/index-B2k0pL_E.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CxlM2hvS.css">
-  </head>
-  <body class="bg-white text-slate-800 antialiased selection:bg-[#26BCEE] selection:text-white">
-    <div id="root"></div>
-  </body>
-</html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Silver Star Platform — Enterprise Admin & Operations Portals</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            navy: {
+              900: '#061325',
+              850: '#0a1a33',
+              800: '#0f2444',
+              700: '#173663',
+            },
+            cyan: {
+              400: '#22d3ee',
+              500: '#06b6d4',
+              600: '#0891b2',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background: radial-gradient(circle at 50% 0%, #0d274c 0%, #061325 70%);
+      min-height: 100vh;
+    }
+    .portal-card {
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .portal-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 35px -10px rgba(6, 182, 212, 0.25);
+    }
+  </style>
+</head>
+<body class="text-slate-100 font-sans selection:bg-cyan-500 selection:text-white flex flex-col justify-between min-h-screen">
 
+  <!-- Top Announcement / System Status Bar -->
+  <header class="border-b border-slate-800/80 bg-navy-900/60 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="/silverstar-logo.png" alt="Silver Star Logo" class="h-9 w-auto object-contain bg-white/95 rounded px-2 py-0.5" onerror="this.src='/favicon.png'" />
+        <div>
+          <span class="font-display font-bold text-base tracking-wide text-white block leading-tight">SILVER STAR</span>
+          <span class="text-[11px] text-cyan-400 font-semibold tracking-wider uppercase block">Facility Management Pvt. Ltd.</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <!-- Live API Status Indicator -->
+        <div id="apiStatusBadge" class="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-xs text-slate-300">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span id="apiStatusText" class="font-medium">Checking System API...</span>
+        </div>
+
+        <button onclick="document.getElementById('credsModal').classList.remove('hidden')" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition">
+          Access Credentials 🔑
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Header -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-grow w-full">
+    <div class="text-center max-w-3xl mx-auto mb-12">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/20 text-cyan-300 text-xs font-semibold mb-4">
+        <span>⚡ UNIFIED PLATFORM GATEWAY</span>
+        <span class="text-slate-500">•</span>
+        <span>PRODUCTION VPS (129.121.170.111)</span>
+      </div>
+      <h1 class="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-white tracking-tight leading-tight">
+        Enterprise Management <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">Portals</span>
+      </h1>
+      <p class="mt-3 text-slate-300 text-sm sm:text-base leading-relaxed">
+        Select your designated departmental console below. Direct access without port numbers.
+      </p>
+    </div>
+
+    <!-- 5 Central Portals Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <!-- 1. Super Admin Panel -->
+      <a href="/super-admin" class="portal-card group relative bg-navy-850/90 border border-slate-700/60 rounded-2xl p-6 flex flex-col justify-between hover:border-cyan-500/50">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-2xl group-hover:scale-110 transition">
+              🛡️
+            </div>
+            <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-300">
+              Executive
+            </span>
+          </div>
+          <h2 class="text-xl font-display font-bold text-white group-hover:text-cyan-300 transition">Super Admin Panel</h2>
+          <p class="text-xs text-slate-400 font-mono mt-0.5">/super-admin</p>
+          <p class="text-sm text-slate-300 mt-3 leading-relaxed">
+            Central governance console. Manage client master records, financial billing, executive audits, platform settings, and live service offerings.
+          </p>
+          <ul class="mt-4 space-y-1.5 text-xs text-slate-300">
+            <li class="flex items-center gap-2">
+              <span class="text-cyan-400 font-bold">✓</span> Service Catalogue Manager
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-cyan-400 font-bold">✓</span> Client Contracts & Billing
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-cyan-400 font-bold">✓</span> System Logs & User Governance
+            </li>
+          </ul>
+        </div>
+        <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-sm font-semibold text-cyan-400 group-hover:translate-x-1 transition">
+          <span>Launch Super Admin</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <!-- 2. HR Admin Panel -->
+      <a href="/hr-admin" class="portal-card group relative bg-navy-850/90 border border-slate-700/60 rounded-2xl p-6 flex flex-col justify-between hover:border-emerald-500/50">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-2xl group-hover:scale-110 transition">
+              👥
+            </div>
+            <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
+              HR & Personnel
+            </span>
+          </div>
+          <h2 class="text-xl font-display font-bold text-white group-hover:text-emerald-300 transition">HR Admin Panel</h2>
+          <p class="text-xs text-slate-400 font-mono mt-0.5">/hr-admin</p>
+          <p class="text-sm text-slate-300 mt-3 leading-relaxed">
+            Workforce recruitment and lifecycle operations. Handle candidate KYC, document validation, digital ID generation, and PF/ESI compliance.
+          </p>
+          <ul class="mt-4 space-y-1.5 text-xs text-slate-300">
+            <li class="flex items-center gap-2">
+              <span class="text-emerald-400 font-bold">✓</span> Staff Onboarding & KYC
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-emerald-400 font-bold">✓</span> ID Card Digital Generation
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-emerald-400 font-bold">✓</span> Biometric Attendance & Payroll
+            </li>
+          </ul>
+        </div>
+        <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-sm font-semibold text-emerald-400 group-hover:translate-x-1 transition">
+          <span>Launch HR Admin</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <!-- 3. Operations Admin Panel -->
+      <a href="/ops-admin" class="portal-card group relative bg-navy-850/90 border border-slate-700/60 rounded-2xl p-6 flex flex-col justify-between hover:border-amber-500/50">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-2xl group-hover:scale-110 transition">
+              📍
+            </div>
+            <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300">
+              Operations
+            </span>
+          </div>
+          <h2 class="text-xl font-display font-bold text-white group-hover:text-amber-300 transition">Operations Admin</h2>
+          <p class="text-xs text-slate-400 font-mono mt-0.5">/ops-admin</p>
+          <p class="text-sm text-slate-300 mt-3 leading-relaxed">
+            Frontline deployment and site control center. Manage client geofencing, temporary visit locations, night patrolling dispatch, and guard allocations.
+          </p>
+          <ul class="mt-4 space-y-1.5 text-xs text-slate-300">
+            <li class="flex items-center gap-2">
+              <span class="text-amber-400 font-bold">✓</span> Dynamic Geofencing & Site Maps
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-amber-400 font-bold">✓</span> Night Patrol Route Dispatch
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-amber-400 font-bold">✓</span> Field Officer Client Visits
+            </li>
+          </ul>
+        </div>
+        <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-sm font-semibold text-amber-400 group-hover:translate-x-1 transition">
+          <span>Launch Ops Admin</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <!-- 4. Client Inspection Portal -->
+      <a href="/client-portal" class="portal-card group relative bg-navy-850/90 border border-slate-700/60 rounded-2xl p-6 flex flex-col justify-between hover:border-purple-500/50">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 text-2xl group-hover:scale-110 transition">
+              🏢
+            </div>
+            <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300">
+              Enterprise Client
+            </span>
+          </div>
+          <h2 class="text-xl font-display font-bold text-white group-hover:text-purple-300 transition">Client Portal</h2>
+          <p class="text-xs text-slate-400 font-mono mt-0.5">/client-portal</p>
+          <p class="text-sm text-slate-300 mt-3 leading-relaxed">
+            Client executive reporting suite. Transparent on-site staff presence, daily work reports (DWR), muster roll-call audits, and incident ticket tracking.
+          </p>
+          <ul class="mt-4 space-y-1.5 text-xs text-slate-300">
+            <li class="flex items-center gap-2">
+              <span class="text-purple-400 font-bold">✓</span> Real-Time Deployment Roll-Call
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-purple-400 font-bold">✓</span> Site Incident Logs & Photos
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-purple-400 font-bold">✓</span> Monthly SLA & Attendance Records
+            </li>
+          </ul>
+        </div>
+        <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-sm font-semibold text-purple-400 group-hover:translate-x-1 transition">
+          <span>Launch Client Portal</span>
+          <span>→</span>
+        </div>
+      </a>
+
+      <!-- 5. Field Officer Mobile App -->
+      <a href="/field-officer" class="portal-card group relative bg-navy-850/90 border border-slate-700/60 rounded-2xl p-6 flex flex-col justify-between hover:border-cyan-400/50 md:col-span-2 lg:col-span-1">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-2xl group-hover:scale-110 transition">
+              📱
+            </div>
+            <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300">
+              Field Staff
+            </span>
+          </div>
+          <h2 class="text-xl font-display font-bold text-white group-hover:text-cyan-300 transition">Field Officer App</h2>
+          <p class="text-xs text-slate-400 font-mono mt-0.5">/field-officer</p>
+          <p class="text-sm text-slate-300 mt-3 leading-relaxed">
+            Mobile-optimized inspection console for Field Officers. Conduct on-site staff roll-call, verify presence, log night patrol checkpoints, and upload photo proof.
+          </p>
+          <ul class="mt-4 space-y-1.5 text-xs text-slate-300">
+            <li class="flex items-center gap-2">
+              <span class="text-cyan-400 font-bold">✓</span> Client Roll-Call Audits
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-cyan-400 font-bold">✓</span> Night Patrol Photo Logging
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-cyan-400 font-bold">✓</span> Offline Sync & Geofence Guard
+            </li>
+          </ul>
+        </div>
+        <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-sm font-semibold text-cyan-400 group-hover:translate-x-1 transition">
+          <span>Launch Field Officer App</span>
+          <span>→</span>
+        </div>
+      </a>
+
+    </div>
+  </main>
+
+  <!-- Access Credentials Modal -->
+  <div id="credsModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-navy-850 border border-slate-700 max-w-md w-full rounded-2xl p-6 shadow-2xl relative">
+      <button onclick="document.getElementById('credsModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">✕</button>
+      <h3 class="text-lg font-display font-bold text-white flex items-center gap-2">
+        <span>🔑</span> Standard Account Credentials
+      </h3>
+      <p class="text-xs text-slate-400 mt-1">Default credentials for initial access across all panels.</p>
+      
+      <div class="mt-4 space-y-3 text-xs">
+        <div class="p-3 rounded-lg bg-slate-800/80 border border-slate-700/60">
+          <div class="font-bold text-cyan-300">Super Admin & Management</div>
+          <div class="text-slate-300 mt-1">Username: <code class="bg-navy-900 px-1.5 py-0.5 rounded text-white font-mono">admin</code> or <code class="bg-navy-900 px-1.5 py-0.5 rounded text-white font-mono">director@silverstar.com</code></div>
+          <div class="text-slate-300 mt-0.5">Password: <code class="bg-navy-900 px-1.5 py-0.5 rounded text-white font-mono">Silverstar@123</code></div>
+        </div>
+
+        <div class="p-3 rounded-lg bg-slate-800/80 border border-slate-700/60">
+          <div class="font-bold text-emerald-300">HR Panel</div>
+          <div class="text-slate-300 mt-1">Username: <code class="bg-navy-900 px-1.5 py-0.5 rounded text-white font-mono">hr@silverstar.com</code></div>
+          <div class="text-slate-300 mt-0.5">Password: <code class="bg-navy-900 px-1.5 py-0.5 rounded text-white font-mono">Silverstar@123</code></div>
+        </div>
+
+        <div class="p-3 rounded-lg bg-slate-800/80 border border-slate-700/60">
+          <div class="font-bold text-amber-300">Operations & Field Officer</div>
+          <div class="text-slate-300 mt-1">Username: <code class="bg-navy-900 px-1.5 py-0.5 rounded text-white font-mono">ops@silverstar.com</code> or <code class="bg-navy-900 px-1.5 py-0.5 rounded text-white font-mono">SS-10001</code></div>
+          <div class="text-slate-300 mt-0.5">Password: <code class="bg-navy-900 px-1.5 py-0.5 rounded text-white font-mono">Silverstar@123</code></div>
+        </div>
+      </div>
+
+      <button onclick="document.getElementById('credsModal').classList.add('hidden')" class="mt-5 w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold transition">
+        Close
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800 bg-navy-900/80 py-5 text-center text-xs text-slate-400">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div>
+        © 2026 Silver Star Facility Management Pvt. Ltd. All rights reserved.
+      </div>
+      <div class="flex items-center gap-4 text-slate-400">
+        <a href="/super-admin" class="hover:text-cyan-400 transition">Super Admin</a>
+        <span>•</span>
+        <a href="/hr-admin" class="hover:text-emerald-400 transition">HR Admin</a>
+        <span>•</span>
+        <a href="/ops-admin" class="hover:text-amber-400 transition">Ops Admin</a>
+        <span>•</span>
+        <a href="/client-portal" class="hover:text-purple-400 transition">Client</a>
+        <span>•</span>
+        <a href="/field-officer" class="hover:text-cyan-400 transition">Field App</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Real-time API Ping -->
+  <script>
+    async function checkApi() {
+      const text = document.getElementById('apiStatusText');
+      try {
+        const res = await fetch('/api/services', { signal: AbortSignal.timeout(3000) });
+        if (res.ok) {
+          text.textContent = 'API & DB: Operational';
+          text.classList.remove('text-slate-300', 'text-amber-300');
+          text.classList.add('text-emerald-400');
+        } else {
+          text.textContent = 'Backend starting on port 5000';
+          text.classList.add('text-amber-300');
+        }
+      } catch (err) {
+        text.textContent = 'Backend starting on port 5000';
+        text.classList.add('text-amber-300');
+      }
+    }
+    checkApi();
+    setInterval(checkApi, 10000);
+  </script>
+</body>
+</html>

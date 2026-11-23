@@ -18,21 +18,19 @@ function copyDir(src, dest) {
   }
 }
 
-console.log('==> Syncing build outputs for direct VPS hosting...');
+console.log('==> Syncing build outputs for direct VPS hosting (no port numbers)...');
 
-// 1. Sync Corporate Website to Web Root
-const websiteDist = path.join(rootDir, 'platform/apps/website/dist');
-if (fs.existsSync(websiteDist)) {
-  copyDir(websiteDist, rootDir);
-  console.log('  [OK] Synced Corporate Website dist to root (index.html, assets, logos)');
-}
-
-// 2. Sync Sub-applications to direct subpaths
+// 1. Sync Sub-applications to direct clean subpaths
 const subApps = [
+  { name: 'super-admin', src: 'platform/apps/super-admin/dist' },
   { name: 'admin', src: 'platform/apps/super-admin/dist' },
+  { name: 'hr-admin', src: 'platform/apps/hr-panel/dist' },
   { name: 'hr', src: 'platform/apps/hr-panel/dist' },
+  { name: 'ops-admin', src: 'platform/apps/operations-panel/dist' },
   { name: 'ops', src: 'platform/apps/operations-panel/dist' },
+  { name: 'client-portal', src: 'platform/apps/client-mobile/dist' },
   { name: 'client', src: 'platform/apps/client-mobile/dist' },
+  { name: 'field-officer', src: 'platform/apps/employee-mobile/dist' },
   { name: 'employee', src: 'platform/apps/employee-mobile/dist' },
 ];
 
