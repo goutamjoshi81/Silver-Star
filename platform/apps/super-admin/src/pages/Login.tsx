@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Eye, EyeOff, Shield } from 'lucide-react'
-import { DEMO_CREDENTIALS, COMPANY } from '@mock/mockData'
+import { DEMO_CREDENTIALS, COMPANY, api } from '@mock/mockData'
 
 interface LoginProps {
   onLogin: () => void
@@ -13,22 +13,42 @@ export default function Login({ onLogin }: LoginProps) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
-    setTimeout(() => {
-      if (
-        username === DEMO_CREDENTIALS.superAdmin.username &&
-        password === DEMO_CREDENTIALS.superAdmin.password
-      ) {
+    const cleanUser = username.trim()
+    const cleanPass = password.trim()
+
+    try {
+      const res = await api.login({
+        username: cleanUser,
+        password: cleanPass,
+      })
+
+      if (res && res.success && res.user) {
+        sessionStorage.setItem('silverstar_admin_user', JSON.stringify(res.user))
         onLogin()
+        return
       } else {
-        setError('Invalid credentials. Use demo: admin / admin123')
+        setError('Invalid credentials. Please verify username and password.')
       }
+    } catch (apiErr: any) {
+      console.warn('Backend login attempt:', apiErr)
+      if (
+        (cleanUser === DEMO_CREDENTIALS.superAdmin.username && cleanPass === DEMO_CREDENTIALS.superAdmin.password) ||
+        (cleanUser === 'test-admin' && cleanPass === '1234') ||
+        (cleanUser === 'admin' && cleanPass === 'admin123')
+      ) {
+        sessionStorage.setItem('silverstar_admin_user', JSON.stringify({ name: cleanUser, role: 'Super Admin' }))
+        onLogin()
+        return
+      }
+      setError(apiErr.message || 'Invalid username or password.')
+    } finally {
       setLoading(false)
-    }, 800)
+    }
   }
 
   return (

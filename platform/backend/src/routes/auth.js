@@ -27,7 +27,7 @@ router.post('/login', async (req, res) => {
     // -------------------------------------------------------------
     const userRes = await query(
       `SELECT * FROM user_accounts 
-       WHERE (LOWER(email) = LOWER($1) OR LOWER(id) = LOWER($1)) AND status = 'Active'`,
+       WHERE (LOWER(email) = LOWER($1) OR LOWER(id) = LOWER($1) OR LOWER(name) = LOWER($1)) AND status = 'Active'`,
       [loginIdentifier]
     );
 
@@ -42,6 +42,11 @@ router.post('/login', async (req, res) => {
 
       if (validOpsPass) {
         await query('UPDATE user_accounts SET last_login = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);
+        const roleLower = (user.role || '').toLowerCase();
+        const persona = roleLower.includes('operations') || roleLower.includes('supervisor')
+          ? 'operations'
+          : (roleLower.includes('hr') ? 'hr' : 'admin');
+
         return res.json({
           success: true,
           user: {
@@ -49,7 +54,7 @@ router.post('/login', async (req, res) => {
             name: user.name,
             email: user.email,
             role: user.role, // 'Operations Manager', 'Super Admin', 'HR Executive'
-            persona: user.role === 'Operations Manager' || user.role === 'Supervisor' ? 'operations' : 'admin',
+            persona,
             clientId: user.client_id,
             employeeId: user.employee_id,
           },
@@ -233,6 +238,65 @@ router.post('/users', async (req, res) => {
     );
 
     res.status(201).json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update user account (Reset password, change role, toggle status)
+router.put('/users/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { name, email, password, role, status, clientId, employeeId } = req.body;
+
+    const { rows } = await query(
+      `UPDATE user_accounts SET
+        name = COALESCE($1, name),
+        email = COALESCE($2, email),
+        password_hash = COALESCE($3, password_hash),
+        role = COALESCE($4, role),
+        status = COALESCE($5, status),
+        client_id = CASE WHEN $6 IS NOT NULL THEN $6 ELSE client_id END,
+        employee_id = CASE WHEN $7 IS NOT NULL THEN $7 ELSE employee_id END,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $8
+      RETURNING id, name, email, role, status, client_id, employee_id, created_at, updated_at`,
+      [
+        name !== undefined ? name.trim() : null,
+        email !== undefined ? email.trim() : null,
+        password !== undefined ? password.trim() : null,
+        role !== undefined ? role : null,
+        status !== undefined ? status : null,
+        clientId !== undefined ? clientId : null,
+        employeeId !== undefined ? employeeId : null,
+        id,
+      ]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'User account not found' });
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete user account
+router.delete('/users/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (id === 'USR001') {
+      return res.status(403).json({ error: 'Primary Super Admin account cannot be deleted.' });
+    }
+
+    const { rowCount } = await query('DELETE FROM user_accounts WHERE id = $1', [id]);
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'User account not found' });
+    }
+
+    res.json({ success: true, message: `User account ${id} deleted successfully.` });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { SITES, CONTRACT_BILLINGS, api, downloadClientTemplate, downloadClientExcelTemplate, parseSpreadsheetFile, mapClientCsvRows } from '@mock/mockData'
-import { Plus, Search, Eye, Edit2, X, Building2, Phone, Mail, Calendar, MapPin, Check, Upload, Download, FileSpreadsheet, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Plus, Search, Eye, Edit2, X, Building2, Phone, Mail, Calendar, MapPin, Check, Upload, Download, FileSpreadsheet, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react'
 
 export default function Clients() {
   const [clients, setClients] = useState<any[]>([])
@@ -8,6 +8,22 @@ export default function Clients() {
   const [selected, setSelected] = useState<string | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showBulkModal, setShowBulkModal] = useState(false)
+  const [editingClient, setEditingClient] = useState<any | null>(null)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    contactPerson: '',
+    email: '',
+    phone: '',
+    address: '',
+    monthlyBilling: 0,
+    status: 'Active',
+    servicesProvided: ['Security Services'],
+    contractStart: '',
+    contractEnd: '',
+  })
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
   const [newClient, setNewClient] = useState({
     name: '',
     contactPerson: '',
@@ -78,6 +94,54 @@ export default function Clients() {
   useEffect(() => {
     loadData()
   }, [])
+
+  const handleOpenEdit = (c: any) => {
+    setEditingClient(c)
+    setEditForm({
+      name: c.name || '',
+      contactPerson: c.contactPerson || '',
+      email: c.email || '',
+      phone: c.phone || '',
+      address: c.address || '',
+      monthlyBilling: c.monthlyBilling || 0,
+      status: c.status || 'Active',
+      servicesProvided: Array.isArray(c.servicesProvided) && c.servicesProvided.length > 0
+        ? [...c.servicesProvided]
+        : ['Security Services'],
+      contractStart: c.contractStart || '',
+      contractEnd: c.contractEnd || '',
+    })
+  }
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingClient) return
+    setSavingEdit(true)
+    try {
+      await api.updateClient(editingClient.id, editForm)
+      setEditingClient(null)
+      loadData()
+    } catch (err: any) {
+      alert(`Failed to update client: ${err.message}`)
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  const handleDeleteClient = async (c: any) => {
+    if (!window.confirm(`Are you sure you want to delete client "${c.name}" (${c.id})? This action cannot be undone.`)) {
+      return
+    }
+    setDeletingId(c.id)
+    try {
+      await api.deleteClient(c.id)
+      loadData()
+    } catch (err: any) {
+      alert(`Failed to delete client: ${err.message}`)
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const handleCreateClient = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -263,12 +327,15 @@ export default function Clients() {
                       }`}>{client.status}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => setSelected(client.id)} className="p-1.5 text-gray-400 hover:text-[#202B75] hover:bg-gray-100 rounded-lg transition-colors">
+                      <div className="flex items-center gap-1.5">
+                        <button onClick={() => setSelected(client.id)} className="p-1.5 text-gray-400 hover:text-[#202B75] hover:bg-gray-100 rounded-lg transition-colors cursor-pointer" title="View Details">
                           <Eye size={14} />
                         </button>
-                        <button className="p-1.5 text-gray-400 hover:text-[#202B75] hover:bg-gray-100 rounded-lg transition-colors">
+                        <button onClick={() => handleOpenEdit(client)} className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer" title="Edit Client">
                           <Edit2 size={14} />
+                        </button>
+                        <button onClick={() => handleDeleteClient(client)} disabled={deletingId === client.id} className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer disabled:opacity-50" title="Delete Client">
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -327,6 +394,133 @@ export default function Clients() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Client Modal */}
+      {editingClient && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="font-bold text-gray-800 text-base">Edit Client Account</h3>
+                <p className="text-xs text-gray-400 font-mono">ID: {editingClient.id}</p>
+              </div>
+              <button onClick={() => setEditingClient(null)} className="text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleSaveEdit} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Company / Organization Name *</label>
+                <input
+                  required
+                  value={editForm.name}
+                  onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-[#202B75]"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-gray-700 mb-1">Contact Person *</label>
+                  <input
+                    required
+                    value={editForm.contactPerson}
+                    onChange={e => setEditForm({ ...editForm, contactPerson: e.target.value })}
+                    className="w-full border rounded-lg p-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-700 mb-1">Phone Number *</label>
+                  <input
+                    required
+                    value={editForm.phone}
+                    onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                    className="w-full border rounded-lg p-2.5 text-sm font-mono"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Official Email Address *</label>
+                <input
+                  required
+                  type="email"
+                  value={editForm.email}
+                  onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                  className="w-full border rounded-lg p-2.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Facility / Billing Address *</label>
+                <input
+                  required
+                  value={editForm.address}
+                  onChange={e => setEditForm({ ...editForm, address: e.target.value })}
+                  className="w-full border rounded-lg p-2.5 text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-gray-700 mb-1">Monthly Billing (₹)</label>
+                  <input
+                    type="number"
+                    value={editForm.monthlyBilling || ''}
+                    onChange={e => setEditForm({ ...editForm, monthlyBilling: parseFloat(e.target.value) || 0 })}
+                    className="w-full border rounded-lg p-2.5 text-sm font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-700 mb-1">Status</label>
+                  <select
+                    value={editForm.status}
+                    onChange={e => setEditForm({ ...editForm, status: e.target.value })}
+                    className="w-full border rounded-lg p-2.5 text-sm bg-white"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Suspended">Suspended</option>
+                    <option value="Expired">Expired</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-gray-700 mb-1">Contract Start Date</label>
+                  <input
+                    type="date"
+                    value={editForm.contractStart}
+                    onChange={e => setEditForm({ ...editForm, contractStart: e.target.value })}
+                    className="w-full border rounded-lg p-2.5 text-xs font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-700 mb-1">Contract End Date</label>
+                  <input
+                    type="date"
+                    value={editForm.contractEnd}
+                    onChange={e => setEditForm({ ...editForm, contractEnd: e.target.value })}
+                    className="w-full border rounded-lg p-2.5 text-xs font-mono"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setEditingClient(null)}
+                  className="px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="px-5 py-2 bg-[#202B75] hover:bg-[#161f56] text-white rounded-lg font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                >
+                  <Check size={14} /> {savingEdit ? 'Updating...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

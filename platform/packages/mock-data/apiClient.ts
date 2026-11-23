@@ -16,8 +16,13 @@ const getApiBase = () => {
   if (isCapacitor) {
     return 'http://192.168.1.36:5000/api';
   }
-  // In web browsers, connect directly to whatever host the user browsed
-  // e.g. localhost -> localhost:5000, 192.168.1.36 -> 192.168.1.36:5000
+
+  // In production VPS deployment (port 80 / 443 or default), use standard proxy path /api
+  if (typeof window !== 'undefined' && (window.location.port === '' || window.location.port === '80' || window.location.port === '443')) {
+    return `${window.location.origin}/api`;
+  }
+
+  // In local dev servers (e.g. Vite on port 5173), connect directly to backend on port 5000
   const host = (typeof window !== 'undefined' && window.location.hostname) || 'localhost';
   return `http://${host}:5000/api`;
 };
@@ -57,6 +62,8 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     if (typeof window !== 'undefined') {
       const currentHost = window.location.hostname || 'localhost';
       const candidateList = [
+        `${window.location.origin}/api`,
+        `http://${currentHost}/api`,
         `http://${currentHost}:5000/api`,
         'http://localhost:5000/api',
         'http://127.0.0.1:5000/api',
@@ -148,6 +155,10 @@ export const api = {
   getClients: () => request<any[]>('/clients'),
   createClient: (clientData: any) =>
     request<any>('/clients', { method: 'POST', body: JSON.stringify(clientData) }),
+  updateClient: (id: string, clientData: any) =>
+    request<any>(`/clients/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(clientData) }),
+  deleteClient: (id: string) =>
+    request<{ success: boolean; message: string }>(`/clients/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   bulkCreateClients: (clients: any[]) =>
     request<{ success: boolean; count: number; inserted: any[]; errors?: any[] }>('/clients/bulk', {
       method: 'POST',

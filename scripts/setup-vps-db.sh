@@ -23,7 +23,7 @@ cd "$PROJECT_DIR"
 # 1. Authorize Antigravity SSH Key for direct automation
 # ------------------------------------------------------------
 echo ""
-echo "==> 1. Configuring Antigravity SSH Access..."
+echo "==> 1. Configuring Antigravity SSH Access & Webhook..."
 mkdir -p /root/.ssh && chmod 700 /root/.ssh
 touch /root/.ssh/authorized_keys
 if ! grep -q "antigravity-vps" /root/.ssh/authorized_keys 2>/dev/null; then
@@ -33,6 +33,20 @@ if ! grep -q "antigravity-vps" /root/.ssh/authorized_keys 2>/dev/null; then
 else
   echo "  [OK] SSH key already authorized."
 fi
+
+# Upgrade deploy-hook.php to automatically force-sync origin/main
+cat << 'EOF' > deploy-hook.php
+<?php
+$token = $_GET['token'] ?? '';
+if ($token !== 'silverstar2026') { http_response_code(403); die("Forbidden: Invalid token"); }
+chdir('/home/silverstarindia.admin/public_html');
+echo "<pre>\n";
+passthru("git fetch origin main 2>&1");
+passthru("git reset --hard origin/main 2>&1");
+echo "</pre>";
+EOF
+chmod 644 deploy-hook.php
+echo "  [OK] Upgraded deploy-hook.php for clean auto-sync."
 
 # ------------------------------------------------------------
 # 2. Configure PostgreSQL: Set password and create silverstardb

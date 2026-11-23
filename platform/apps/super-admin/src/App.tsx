@@ -57,7 +57,9 @@ function isEmployeeVerificationPath(pathname: string): boolean {
 }
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return Boolean(sessionStorage.getItem('silverstar_admin_user'))
+  })
   const location = useLocation()
 
   // Allow public access to employee verification pages without login
@@ -72,12 +74,17 @@ export default function App() {
     )
   }
 
+  const handleLogout = () => {
+    sessionStorage.removeItem('silverstar_admin_user')
+    setIsAuthenticated(false)
+  }
+
   if (!isAuthenticated) {
     return <Login onLogin={() => setIsAuthenticated(true)} />
   }
 
   return (
-    <Layout onLogout={() => setIsAuthenticated(false)}>
+    <Layout onLogout={handleLogout}>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />

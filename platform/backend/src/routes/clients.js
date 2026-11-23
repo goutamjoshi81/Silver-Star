@@ -161,6 +161,70 @@ router.post('/clients/bulk', async (req, res) => {
   }
 });
 
+// PUT update client
+router.put('/clients/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const b = req.body;
+    let servicesProvided = b.servicesProvided || b.services_provided;
+    if (typeof servicesProvided === 'string') {
+      servicesProvided = servicesProvided.split(/[;,|]/).map(s => s.trim()).filter(Boolean);
+    }
+
+    const { rows } = await query(
+      `UPDATE clients SET
+        name = COALESCE($1, name),
+        contact_person = COALESCE($2, contact_person),
+        email = COALESCE($3, email),
+        phone = COALESCE($4, phone),
+        address = COALESCE($5, address),
+        contract_start = COALESCE($6, contract_start),
+        contract_end = COALESCE($7, contract_end),
+        status = COALESCE($8, status),
+        monthly_billing = COALESCE($9, monthly_billing),
+        services_provided = CASE WHEN $10::jsonb IS NOT NULL THEN $10::jsonb ELSE services_provided END,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $11
+      RETURNING *`,
+      [
+        b.name !== undefined ? b.name : null,
+        (b.contactPerson || b.contact_person) !== undefined ? (b.contactPerson || b.contact_person) : null,
+        b.email !== undefined ? b.email : null,
+        b.phone !== undefined ? b.phone : null,
+        b.address !== undefined ? b.address : null,
+        (b.contractStart || b.contract_start) !== undefined ? (b.contractStart || b.contract_start) : null,
+        (b.contractEnd || b.contract_end) !== undefined ? (b.contractEnd || b.contract_end) : null,
+        b.status !== undefined ? b.status : null,
+        b.monthlyBilling !== undefined ? parseFloat(b.monthlyBilling) : null,
+        servicesProvided ? JSON.stringify(servicesProvided) : null,
+        id,
+      ]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    res.json(formatClient(rows[0]));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE client
+router.delete('/clients/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { rowCount } = await query('DELETE FROM clients WHERE id = $1', [id]);
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+    res.json({ success: true, message: `Client ${id} deleted successfully.` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET all sites
 router.get('/sites', async (req, res) => {
   try {
