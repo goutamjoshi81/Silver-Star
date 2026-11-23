@@ -38,12 +38,12 @@ export async function runMobileMigrations() {
   `);
   console.log(' - Attendance table enhanced with geofence & mobile punch columns.');
 
-  // 4. Update user_accounts passwords for operations & staff
+  // 4. Update user_accounts passwords for operations & staff if unassigned
   await query(`
     UPDATE user_accounts 
     SET password_hash = 'Silverstar@123'
     WHERE role IN ('Operations Manager', 'Supervisor', 'Employee') 
-      AND password_hash != 'Silverstar@123';
+      AND (password_hash IS NULL OR password_hash = '');
   `);
   console.log(' - Operations user_accounts updated with Silverstar@123.');
 
