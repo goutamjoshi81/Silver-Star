@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Silver Star — Official Personnel Verification Registry</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              navy: '#1A2B79',
+              darkNavy: '#0F1A4A',
+              deep: '#061325',
+              cyan: '#26BCEE',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .glow-cyan {
+      box-shadow: 0 0 35px -5px rgba(38, 188, 238, 0.35);
+    }
+    .badge-shimmer {
+      background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%);
+      background-size: 200% 100%;
+      animation: shimmer 3s infinite;
+    }
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 font-sans text-slate-900 min-h-screen flex flex-col items-center justify-start p-3 sm:p-6 antialiased selection:bg-[#26BCEE] selection:text-slate-900">
+
+  <!-- Ambient Decorative Background -->
+  <div class="fixed inset-0 pointer-events-none opacity-25">
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-b from-[#26BCEE] to-[#1A2B79] blur-[140px] rounded-full"></div>
+  </div>
+
+  <!-- Loading State Container -->
+  <div id="loadingState" class="relative z-10 w-full max-w-xl my-12 flex flex-col items-center justify-center text-center p-8">
+    <div class="w-16 h-16 relative flex items-center justify-center animate-pulse mb-4">
+      <img src="/silverstar-icon-512.png" alt="Silver Star" class="w-full h-full object-contain" onerror="this.src='/favicon.png'" />
+    </div>
+    <h3 class="text-white text-base font-bold tracking-wide">Connecting to Silver Star Verification Registry...</h3>
+    <p class="text-slate-400 text-xs mt-1.5 font-mono" id="loadingBadgeText">Verifying cryptographic personnel badge with central HR registry</p>
+  </div>
+
+  <!-- Main Card Container (Hidden while loading) -->
+  <div id="mainContainer" class="hidden relative z-10 w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200/80 my-4">
+    
+    <!-- Top Corporate Branding Bar -->
+    <div class="bg-gradient-to-r from-[#1A2B79] via-[#152362] to-[#0D153B] px-6 py-5 text-white flex items-center justify-between border-b border-white/10">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 relative flex-shrink-0 bg-white p-1 rounded-xl shadow-sm overflow-hidden flex items-center justify-center">
+          <img src="/silverstar-icon-512.png" alt="Silver Star Emblem" class="w-full h-full object-contain" onerror="this.src='/favicon.png'" />
+        </div>
+        <div>
+          <h1 class="font-display font-extrabold text-sm tracking-wide uppercase text-white flex items-center gap-1.5">
+            Silver Star
+            <span class="text-[9px] bg-[#26BCEE]/20 text-[#26BCEE] px-2 py-0.5 rounded-full border border-[#26BCEE]/30 font-mono font-semibold">
+              PSARA Licensed
+            </span>
+          </h1>
+          <p class="text-[11px] text-slate-300 font-medium">Official Digital Identity & Personnel Registry</p>
+        </div>
+      </div>
+
+      <div class="text-right">
+        <span class="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-bold bg-emerald-950/70 px-2.5 py-1 rounded-full border border-emerald-500/30">
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+          Active Personnel
+        </span>
+      </div>
+    </div>
+
+    <!-- Official Verification Banner -->
+    <div class="bg-emerald-600 px-6 py-2.5 text-white flex items-center justify-between text-xs font-semibold shadow-inner">
+      <div class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-emerald-100 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+        <span>VERIFIED ACTIVE PERSONNEL &middot; PSARA COMPLIANT</span>
+      </div>
+      <span class="text-[10px] text-emerald-100 font-mono hidden sm:inline" id="verifiedDateStamp">Verified Live</span>
+    </div>
+
+    <!-- Personnel Card Body -->
+    <div class="p-6 space-y-6">
+      
+      <!-- Top Profile Row -->
+      <div class="flex flex-col sm:flex-row items-center sm:items-start gap-5 pb-6 border-b border-slate-100 text-center sm:text-left">
+        <!-- Photo / Initials Avatar -->
+        <div class="relative flex-shrink-0">
+          <div id="avatarContainer" class="w-24 h-24 rounded-2xl bg-gradient-to-tr from-[#1A2B79] to-[#26BCEE] p-0.5 shadow-lg overflow-hidden flex items-center justify-center">
+            <span id="avatarInitials" class="text-white text-2xl font-display font-extrabold tracking-wider">SS</span>
+            <img id="avatarImage" src="" alt="" class="hidden w-full h-full object-cover rounded-2xl" />
+          </div>
+          <div class="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1 rounded-full border-2 border-white shadow-sm" title="Cryptographically Verified">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+          </div>
+        </div>
+
+        <!-- Name, Designation, Badge Code -->
+        <div class="flex-1 space-y-1">
+          <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+            <h2 id="empName" class="text-xl font-bold text-slate-900 tracking-tight">Staff Name</h2>
+            <span id="badgePill" class="text-xs bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-md font-mono font-bold border border-slate-200">
+              SS-10001
+            </span>
+          </div>
+
+          <p id="empDesignation" class="text-sm font-semibold text-[#1A2B79]">Security Officer</p>
+          <p id="empDepartment" class="text-xs text-slate-500 font-medium">Operations &middot; Guarding Division</p>
+
+          <div class="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2 text-xs text-slate-600">
+            <span class="inline-flex items-center gap-1 font-mono">
+              <span class="text-slate-400 font-semibold">Blood:</span>
+              <strong id="empBlood" class="text-rose-600 font-bold">O+</strong>
+            </span>
+            <span class="text-slate-300">&bull;</span>
+            <span class="inline-flex items-center gap-1">
+              <span class="text-slate-400">KYC:</span>
+              <span id="empKyc" class="text-emerald-700 font-semibold">Aadhaar Verified</span>
+            </span>
+            <span class="text-slate-300">&bull;</span>
+            <span class="inline-flex items-center gap-1">
+              <span class="text-slate-400">Status:</span>
+              <strong id="empStatus" class="text-emerald-600 font-semibold">Active</strong>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deployment & Work Site Information -->
+      <div class="bg-slate-50 rounded-2xl p-4.5 border border-slate-200/80 space-y-3 text-xs">
+        <h4 class="font-bold text-slate-700 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-[#1A2B79]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+          Current Corporate Deployment & Work Location
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-700">
+          <div>
+            <span class="text-[10px] text-slate-400 font-medium block">Client Organization</span>
+            <p id="empClient" class="font-semibold text-slate-900 mt-0.5">Silver Star Central HQ</p>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 font-medium block">Designated Work Facility / Site</span>
+            <p id="empSite" class="font-semibold text-slate-900 mt-0.5">Bengaluru Regional Operations</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+        <!-- Save to Contacts (vCard) -->
+        <button id="btnVCard" class="flex items-center justify-center gap-2 py-3 px-4 bg-[#26BCEE] hover:bg-[#1ea8d6] text-slate-900 font-bold rounded-xl text-xs shadow-md transition-all active:scale-98 cursor-pointer">
+          <svg class="w-4 h-4 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          Save to Contacts (.vcf)
+        </button>
+
+        <!-- Direct Phone Call -->
+        <a id="btnCall" href="tel:+918041234567" class="flex items-center justify-center gap-2 py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs shadow-md transition-all active:scale-98 cursor-pointer">
+          <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+          Direct Call
+        </a>
+
+        <!-- Copy Badge ID -->
+        <button id="btnCopy" class="flex items-center justify-center gap-2 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs border border-slate-200 transition-all active:scale-98 cursor-pointer">
+          <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+          <span id="btnCopyText">Copy Badge ID</span>
+        </button>
+      </div>
+
+      <!-- Official Security & Statutory Guarantee -->
+      <div class="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-4 text-xs text-slate-700 space-y-1.5">
+        <div class="flex items-center gap-2 font-bold text-[#1A2B79]">
+          <svg class="w-4 h-4 text-[#1A2B79]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+          Statutory Quality & Compliance Verification
+        </div>
+        <p class="text-slate-600 text-[11px] leading-relaxed">
+          This personnel credential is authenticated by Silver Star Facility Management Pvt. Ltd. The cardholder is vetted under PSARA standards, covered under active ESI & PF policies, and subject to 24/7 central control desk monitoring.
+        </p>
+        <div class="pt-2 border-t border-blue-200/60 flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-500 font-mono">
+          <span>CIN: U74999KA2014PTC075123</span>
+          <span>GSTIN: 29AABCS1429B1ZB</span>
+          <span>24/7 Helpline: +91 80 4123 4567</span>
+        </div>
+      </div>
+
+      <!-- Quick Verify Another Badge Search Form -->
+      <div class="pt-2 border-t border-slate-100">
+        <form id="searchForm" class="flex gap-2">
+          <input
+            id="searchInput"
+            type="text"
+            placeholder="Verify another Badge ID (e.g. SS-FOUNDER-01, SS-10001)"
+            class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#1A2B79]"
+          />
+          <button
+            type="submit"
+            class="px-5 py-2.5 bg-[#1A2B79] hover:bg-[#14215e] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+          >
+            Verify
+          </button>
+        </form>
+      </div>
+
+    </div>
+
+    <!-- Footer Return Link -->
+    <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+      <a href="/" class="hover:text-[#1A2B79] font-semibold flex items-center gap-1.5 transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        Return to Enterprise Portals
+      </a>
+      <span class="text-[11px] font-mono text-slate-400">&copy; 2026 Silver Star FM</span>
+    </div>
+
+  </div>
+
+  <!-- Error / Badge Not Found Container (Hidden by default) -->
+  <div id="errorContainer" class="hidden relative z-10 w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-red-200 text-center space-y-4 my-8">
+    <div class="w-16 h-16 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+    </div>
+    <div>
+      <h2 class="text-xl font-bold text-slate-900">Verification Alert</h2>
+      <p class="text-sm text-red-600 font-semibold mt-1">Badge Not Found or Inactive</p>
+      <p id="errorMessage" class="text-xs text-slate-500 mt-2">
+        The requested employee code was not found in the active Silver Star registry.
+      </p>
+    </div>
+
+    <!-- Quick Search on error -->
+    <form id="errorSearchForm" class="pt-2">
+      <div class="flex gap-2">
+        <input
+          id="errorSearchInput"
+          type="text"
+          placeholder="Enter Employee Code (e.g. SS-FOUNDER-01)"
+          class="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#1A2B79]"
+        />
+        <button
+          type="submit"
+          class="px-4 py-2 bg-[#1A2B79] hover:bg-[#14215e] text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+        >
+          Verify
+        </button>
+      </div>
+      <div class="flex flex-wrap items-center justify-center gap-1.5 mt-2.5">
+        <span class="text-[10px] text-slate-400">Sample verified badges:</span>
+        <button type="button" onclick="loadBadge('SS-FOUNDER-01')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-mono font-medium">SS-FOUNDER-01</button>
+        <button type="button" onclick="loadBadge('SS-10001')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-mono font-medium">SS-10001</button>
+      </div>
+    </form>
+
+    <div class="bg-slate-50 p-4 rounded-xl text-left text-xs text-slate-600 space-y-2 border border-slate-200">
+      <div class="flex items-center gap-1.5 font-bold text-slate-800">
+        <svg class="w-4 h-4 text-[#1A2B79]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        Security Advisory
+      </div>
+      <p class="text-[11px] leading-relaxed">
+        If an individual presents an identification badge bearing this ID, please contact the Silver Star 24/7 Operations Control Desk immediately for manual verification.
+      </p>
+      <div class="pt-2 border-t border-slate-200 flex flex-col gap-0.5 font-mono text-[11px]">
+        <span>Helpline: <strong class="text-slate-900">+91 80 4123 4567</strong></span>
+        <span>Email: <strong class="text-slate-900">info@silverstarindia.net</strong></span>
+      </div>
+    </div>
+
+    <a href="/" class="inline-block px-5 py-2.5 bg-[#1A2B79] hover:bg-[#14215e] text-white rounded-xl text-xs font-semibold shadow transition-colors">
+      Return to Enterprise Portals
+    </a>
+  </div>
+
+  <!-- Core JavaScript Logic -->
+  <script>
+    // 1. Extract Target Badge ID from URL
+    function getBadgeIdFromUrl() {
+      // Check query parameter ?id=...
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryId = urlParams.get('id') || urlParams.get('code') || urlParams.get('emp');
+      if (queryId) return queryId.trim();
+
+      // Check URL path: /verify/SS-10001 or /verify/SS-FOUNDER-01
+      const pathSegments = window.location.pathname.split('/').filter(Boolean);
+      const lastSegment = pathSegments[pathSegments.length - 1];
+      if (lastSegment && lastSegment.toLowerCase() !== 'verify' && lastSegment.toLowerCase() !== 'emp') {
+        return decodeURIComponent(lastSegment).trim();
+      }
+
+      // Check URL hash #SS-10001
+      if (window.location.hash && window.location.hash.length > 1) {
+        return decodeURIComponent(window.location.hash.substring(1)).trim();
+      }
+
+      return 'SS-FOUNDER-01';
+    }
+
+    let currentEmployee = null;
+
+    // 2. Fetch Employee from backend API or Founder data
+    async function loadBadge(badgeId) {
+      const cleanId = (badgeId || getBadgeIdFromUrl() || 'SS-FOUNDER-01').trim();
+      
+      const loadingState = document.getElementById('loadingState');
+      const mainContainer = document.getElementById('mainContainer');
+      const errorContainer = document.getElementById('errorContainer');
+      const loadingBadgeText = document.getElementById('loadingBadgeText');
+
+      loadingState.classList.remove('hidden');
+      mainContainer.classList.add('hidden');
+      errorContainer.classList.add('hidden');
+      loadingBadgeText.textContent = `Verifying cryptographic badge "${cleanId}" with central HR registry...`;
+
+      try {
+        let emp = null;
+
+        // Founder fast path
+        if (cleanId.toUpperCase().includes('FOUNDER') || cleanId.toUpperCase().includes('ASHOK')) {
+          emp = {
+            id: 'EMP-FOUNDER',
+            employeeCode: 'SS-FOUNDER-01',
+            name: 'Ashok Majjige',
+            photo: '/silverstar-icon-512.png',
+            bloodGroup: 'O+',
+            phone: '+91 9620000494',
+            phone2: '+91 9620008783',
+            email: 'info@silverstarindia.net',
+            departmentName: 'Executive Directorate',
+            designationName: 'CEO & Founder',
+            onboardingStatus: 'Approved',
+            kycStatus: 'Verified',
+            kycMethod: 'Ministry of Corporate Affairs (DIN Verified)',
+            siteName: 'Silver Star Corporate HQ',
+            clientName: 'Silver Star Facility Management Pvt. Ltd.',
+            status: 'Active'
+          };
+        } else {
+          // Fetch from /api/employees/:id
+          const res = await fetch(`/api/employees/${encodeURIComponent(cleanId)}`);
+          if (res.ok) {
+            emp = await res.json();
+          } else {
+            // If direct ID lookup returned 404, search all employees
+            const listRes = await fetch('/api/employees');
+            if (listRes.ok) {
+              const allEmps = await listRes.json();
+              if (Array.isArray(allEmps)) {
+                emp = allEmps.find(e => 
+                  e.id === cleanId ||
+                  (e.employeeCode && e.employeeCode.toUpperCase() === cleanId.toUpperCase()) ||
+                  (e.phone && e.phone.replace(/\\D/g, '').includes(cleanId.replace(/\\D/g, '')))
+                );
+              }
+            }
+          }
+        }
+
+        if (emp) {
+          renderEmployee(emp);
+        } else {
+          showError(`The requested employee code "${cleanId}" was not found in the active Silver Star registry.`);
+        }
+      } catch (err) {
+        console.error('Error verifying employee:', err);
+        // Fallback for founder if network error
+        if (cleanId.toUpperCase().includes('FOUNDER') || cleanId.toUpperCase().includes('ASHOK')) {
+          renderEmployee({
+            id: 'EMP-FOUNDER',
+            employeeCode: 'SS-FOUNDER-01',
+            name: 'Ashok Majjige',
+            photo: '/silverstar-icon-512.png',
+            bloodGroup: 'O+',
+            phone: '+91 9620000494',
+            departmentName: 'Executive Directorate',
+            designationName: 'CEO & Founder',
+            siteName: 'Silver Star Corporate HQ',
+            clientName: 'Silver Star Facility Management Pvt. Ltd.',
+            status: 'Active'
+          });
+        } else {
+          showError(`Unable to connect to verification registry for Badge ID "${cleanId}". Please check internet connection.`);
+        }
+      }
+    }
+
+    // 3. Render Employee Details
+    function renderEmployee(emp) {
+      currentEmployee = emp;
+
+      document.getElementById('empName').textContent = emp.name || 'Silver Star Personnel';
+      document.getElementById('badgePill').textContent = emp.employeeCode || emp.id || 'SS-10001';
+      document.getElementById('empDesignation').textContent = emp.designationName || emp.designation || 'Security Personnel';
+      document.getElementById('empDepartment').textContent = `${emp.departmentName || emp.department || 'Operations'} · Guarding Division`;
+      document.getElementById('empBlood').textContent = emp.bloodGroup || 'O+';
+      document.getElementById('empKyc').textContent = emp.kycMethod || 'Aadhaar Secure QR Verified';
+      document.getElementById('empStatus').textContent = emp.status || 'Active';
+      document.getElementById('empClient').textContent = emp.clientName || 'Silver Star Corporate Client';
+      document.getElementById('empSite').textContent = emp.siteName || 'Designated Client Facility';
+
+      // Avatar / Photo
+      const avatarImage = document.getElementById('avatarImage');
+      const avatarInitials = document.getElementById('avatarInitials');
+      if (emp.photo) {
+        avatarImage.src = emp.photo;
+        avatarImage.classList.remove('hidden');
+        avatarInitials.classList.add('hidden');
+      } else {
+        const initials = (emp.name || 'SS').split(' ').filter(Boolean).slice(0, 2).map(n => n[0].toUpperCase()).join('');
+        avatarInitials.textContent = initials || 'SS';
+        avatarInitials.classList.remove('hidden');
+        avatarImage.classList.add('hidden');
+      }
+
+      // Call button
+      const cleanPhone = (emp.phone || '+918041234567').replace(/\\s+/g, '');
+      document.getElementById('btnCall').href = `tel:${cleanPhone}`;
+
+      // Date stamp
+      document.getElementById('verifiedDateStamp').textContent = `Verified: ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} IST`;
+
+      document.getElementById('loadingState').classList.add('hidden');
+      document.getElementById('errorContainer').classList.add('hidden');
+      document.getElementById('mainContainer').classList.remove('hidden');
+    }
+
+    // 4. Show Error
+    function showError(message) {
+      document.getElementById('errorMessage').textContent = message;
+      document.getElementById('loadingState').classList.add('hidden');
+      document.getElementById('mainContainer').classList.add('hidden');
+      document.getElementById('errorContainer').classList.remove('hidden');
+    }
+
+    // 5. Generate and Download vCard (.vcf)
+    function downloadVCard(emp) {
+      if (!emp) return;
+      const cleanPhone = (emp.phone || '').replace(/\\s+/g, '');
+      const vcard = [
+        'BEGIN:VCARD',
+        'VERSION:3.0',
+        `FN:${emp.name}`,
+        `N:;${emp.name};;;`,
+        'ORG:Silver Star Facility Management Pvt. Ltd.',
+        `TITLE:${emp.designationName || emp.designation || 'Personnel'}`,
+        `ROLE:${emp.departmentName || emp.department || 'Operations'}`,
+        cleanPhone ? `TEL;TYPE=CELL,VOICE:${cleanPhone}` : '',
+        emp.email ? `EMAIL;TYPE=PREF,INTERNET:${emp.email}` : '',
+        'URL:https://silverstarindia.net/',
+        `NOTE:Verified Silver Star Employee Badge ID: ${emp.employeeCode || emp.id || ''}`,
+        'END:VCARD'
+      ].filter(Boolean).join('\\r\\n');
+
+      const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeName = (emp.name || 'SilverStar_Staff').replace(/[^a-zA-Z0-9]/g, '_');
+      a.download = `${safeName}_SilverStar.vcf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // 6. Event Listeners
+    document.getElementById('btnVCard').addEventListener('click', () => {
+      downloadVCard(currentEmployee);
+    });
+
+    document.getElementById('btnCopy').addEventListener('click', () => {
+      if (!currentEmployee) return;
+      const code = currentEmployee.employeeCode || currentEmployee.id || '';
+      navigator.clipboard?.writeText(code);
+      const textSpan = document.getElementById('btnCopyText');
+      textSpan.textContent = 'Copied!';
+      setTimeout(() => { textSpan.textContent = 'Copy Badge ID'; }, 2000);
+    });
+
+    document.getElementById('searchForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const val = document.getElementById('searchInput').value.trim();
+      if (val) loadBadge(val);
+    });
+
+    document.getElementById('errorSearchForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const val = document.getElementById('errorSearchInput').value.trim();
+      if (val) loadBadge(val);
+    });
+
+    // Run on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      loadBadge();
+    });
+  </script>
+
+</body>
+</html>

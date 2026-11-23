@@ -36,6 +36,11 @@ DirectoryIndex index.html index.php
     RewriteRule ^field-officer(/.*)?$ /field-officer/index.html [L]
     RewriteRule ^employee(/.*)?$ /employee/index.html [L]
 
+    # Public Smart ID Card & Personnel Verification Badge
+    RewriteRule ^verify(/.*)?$ /verify/index.html [L]
+    RewriteRule ^emp(/.*)?$ /verify/index.html [L]
+    RewriteRule ^ss-[a-zA-Z0-9_-]+$ /verify/index.html [L]
+
     # If requested directory exists, serve directly
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]

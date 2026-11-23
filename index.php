@@ -158,6 +158,15 @@ foreach ($appRoutes as $prefix => $distPath) {
 }
 
 // -------------------------------------------------------------
+// 3.5 Public Smart ID Card & Personnel Verification: /verify/*
+// -------------------------------------------------------------
+if (strpos($uri, '/verify') === 0 || strpos($uri, '/emp') === 0 || preg_match('#^/ss-[a-z0-9_-]+#i', $uri)) {
+    if (file_exists($rootDir . '/verify/index.html')) {
+        serveFile($rootDir . '/verify/index.html');
+    }
+}
+
+// -------------------------------------------------------------
 // 4. Default Application: Master Portals Hub
 // -------------------------------------------------------------
 if (file_exists($rootDir . '/index.html')) {
