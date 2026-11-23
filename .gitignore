@@ -4,10 +4,10 @@ node_modules/
 */*/node_modules/
 */*/*/node_modules/
 
-# Production Build Outputs
-dist/
-*/dist/
-*/*/dist/
+# Production Build Outputs (tracked for direct VPS deployment without server build step)
+# dist/
+# */dist/
+# */*/dist/
 build/
 */build/
 
