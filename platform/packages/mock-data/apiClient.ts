@@ -125,7 +125,7 @@ export const api = {
   getShifts: () => request<any[]>('/shifts'),
 
   // Auth & Users
-  login: (credentials: { username?: string; email?: string; password?: string; employeeCode?: string }) =>
+  login: (credentials: { username?: string; email?: string; password?: string; employeeCode?: string; persona?: string; role?: string }) =>
     request<{ success: boolean; user: any }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),

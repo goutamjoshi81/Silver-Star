@@ -86,4 +86,10 @@ INSERT INTO contract_billings (id, client_id, contract_number, start_date, end_d
 ('BIL002', 'CLI002', 'SS-CON-2026-002', '2026-02-01', '2027-01-31', 'Monthly', 7440000.00, 620000.00, 'Active', '2026-10-31', 'Paid')
 ON CONFLICT (id) DO NOTHING;
 
+-- Foundational Employees
+INSERT INTO employees (id, employee_code, name, phone, email, department_id, designation_id, deployed_site_id, deployed_client_id, status, onboarding_status, kyc_status, blood_group) VALUES
+('EMP837389', 'SS-10001', 'Rajesh Kumar (Field Officer)', '+91 96200 00494', 'rajesh.kumar@silverstarindia.net', 'DEP002', 'DES002', 'SITE001', 'CLI001', 'Active', 'Approved', 'Verified', 'B+')
+ON CONFLICT (id) DO NOTHING;
+
+
 

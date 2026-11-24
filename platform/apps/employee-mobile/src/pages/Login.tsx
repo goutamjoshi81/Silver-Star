@@ -85,12 +85,10 @@ export default function Login({ onLogin, onOpenIntegrations }: LoginProps) {
         username: identifier.trim(),
         email: identifier.trim(),
         password: password.trim(),
-      });
+        persona: persona,
+      } as any);
 
       if (res && res.success && res.user) {
-        // Reset attempts upon success
-        setAttempts(0);
-        // Enforce persona attribute
         const user = res.user;
         if (!user.persona) {
           if (user.role === 'Corporate Client') user.persona = 'client';
@@ -102,98 +100,91 @@ export default function Login({ onLogin, onOpenIntegrations }: LoginProps) {
             user.persona = 'operations';
           else user.persona = 'field';
         }
+
+        // STRICT SECTION-BASED ACCESS ENFORCEMENT:
+        // 1. Client section: ONLY Corporate Clients can login
+        if (persona === 'client') {
+          if (user.role !== 'Corporate Client' && user.persona !== 'client') {
+            const msg = 'Access Denied: Only Corporate Clients can sign in to the Client section. Please switch to the Field Staff or Operations tab.';
+            setError(msg);
+            setErrorTitle('Section Access Denied');
+            setErrorDetails(msg);
+            setShowErrorPopup(true);
+            return;
+          }
+        }
+
+        // 2. Field section: ONLY Field Staff & Field Officers can login
+        if (persona === 'field') {
+          if (user.role === 'Corporate Client' || user.persona === 'client') {
+            const msg = 'Access Denied: Corporate Client accounts cannot sign in to the Field Duty section. Please switch to the Client tab.';
+            setError(msg);
+            setErrorTitle('Section Access Denied');
+            setErrorDetails(msg);
+            setShowErrorPopup(true);
+            return;
+          }
+          if (user.role === 'Super Admin' || (user.persona === 'operations' && !user.employeeCode)) {
+            const msg = 'Access Denied: Operations management accounts cannot sign in to the Field Staff section. Please switch to the Operations tab.';
+            setError(msg);
+            setErrorTitle('Section Access Denied');
+            setErrorDetails(msg);
+            setShowErrorPopup(true);
+            return;
+          }
+        }
+
+        // 3. Operations section: Only Operations & Admin accounts can login
+        if (persona === 'operations') {
+          if (user.role === 'Corporate Client' || user.persona === 'client') {
+            const msg = 'Access Denied: Corporate Client accounts cannot access the Operations Console. Please switch to the Client tab.';
+            setError(msg);
+            setErrorTitle('Section Access Denied');
+            setErrorDetails(msg);
+            setShowErrorPopup(true);
+            return;
+          }
+        }
+
+        // Authentication & section verified
+        setAttempts(0);
         onLogin(user);
       } else {
         const nextAttempts = attempts + 1;
         setAttempts(nextAttempts);
-        const msg = 'Invalid credentials. Please verify your badge ID and password.';
+        const msg = 'Invalid credentials. Please verify your badge ID / username and password.';
         setError(msg);
-        setErrorTitle('Incorrect Password');
+        setErrorTitle('Incorrect Credentials');
         setErrorDetails(msg);
         setShowErrorPopup(true);
       }
     } catch (err: any) {
       console.error('Mobile login error:', err);
 
-      const isNetworkError =
-        err.message?.toLowerCase().includes('fetch') ||
-        err.message?.toLowerCase().includes('network') ||
-        err.message?.toLowerCase().includes('connect') ||
-        err.name === 'TypeError';
-
-      // If network error occurred, provide seamless offline fallback demo login so field operations are never blocked
-      if (isNetworkError) {
-        const cleanIdent = identifier.trim().toLowerCase();
-        const cleanPass = password.trim();
-        const isStandardPass =
-          cleanPass === 'Silverstar@123' ||
-          cleanPass === 'ops123' ||
-          cleanPass === 'admin123' ||
-          cleanPass === '+91 80 2852 0261' ||
-          cleanPass.length >= 6;
-
-        if (isStandardPass) {
-          if (persona === 'field' || cleanIdent.includes('ss-') || cleanIdent.includes('emp')) {
-            const fallbackFieldOfficer = {
-              id: 'EMP837389',
-              employeeCode: identifier.trim() || 'SS-10001',
-              name: 'Rajesh Kumar (Field Officer)',
-              role: 'Field Officer',
-              persona: 'field',
-              department: 'Operations',
-              designation: 'Mobile Field Inspector',
-              siteId: 'SITE001',
-              siteName: 'Manyata Tech Park - Gate 5',
-              isOfflineMode: true,
-            };
-            setAttempts(0);
-            onLogin(fallbackFieldOfficer);
-            return;
-          } else if (persona === 'operations' || cleanIdent.includes('ops') || cleanIdent.includes('admin')) {
-            const fallbackOpsUser = {
-              id: 'USR002',
-              name: 'Vikram Singh',
-              email: identifier.trim() || 'ops@silverstarindia.net',
-              role: 'Operations Manager',
-              persona: 'operations',
-              isOfflineMode: true,
-            };
-            setAttempts(0);
-            onLogin(fallbackOpsUser);
-            return;
-          } else if (persona === 'client' || cleanIdent.includes('client') || cleanIdent.includes('infosys')) {
-            const fallbackClientUser = {
-              id: 'CL001',
-              name: 'Infosys Limited (Facility Head)',
-              portalUsername: identifier.trim() || 'infosys_client',
-              role: 'Corporate Client',
-              persona: 'client',
-              isOfflineMode: true,
-            };
-            setAttempts(0);
-            onLogin(fallbackClientUser);
-            return;
-          }
-        }
-      }
-
       const nextAttempts = attempts + 1;
       setAttempts(nextAttempts);
 
-      const isPasswordError =
-        err.message?.toLowerCase().includes('credential') ||
-        err.message?.toLowerCase().includes('password') ||
-        err.status === 401 ||
-        err.status === 400;
+      const isAccessDenied =
+        err.status === 403 ||
+        err.message?.toLowerCase().includes('access denied');
 
-      const title = isPasswordError
-        ? 'Incorrect Password'
+      const isNetworkError =
+        err.message?.toLowerCase().includes('failed to fetch') ||
+        err.message?.toLowerCase().includes('network') ||
+        err.message?.toLowerCase().includes('timeout') ||
+        err.message?.toLowerCase().includes('refused') ||
+        err.name === 'TypeError';
+
+      const title = isAccessDenied
+        ? 'Section Access Denied'
         : isNetworkError
         ? 'Network Connection Notice'
-        : 'Login Authentication Failed';
+        : 'Incorrect Credentials';
 
-      const msg = isNetworkError
-        ? 'Unable to establish server connection. Verify your network or tap "Fill Default Password" to authenticate with offline fallback.'
+      const msg = isAccessDenied
+        ? err.message
+        : isNetworkError
+        ? 'Unable to connect to the authentication server. Please check your internet connection.'
         : err.message ||
           (persona === 'client'
             ? 'Invalid client credentials. Password must be your registered contact phone number.'

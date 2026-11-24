@@ -44,6 +44,7 @@ export default function Login({ onLogin, onOpenIntegrations }: LoginProps) {
         username: identifier.trim(),
         email: identifier.trim(),
         password: password.trim(),
+        persona: persona,
       });
 
       if (res && res.success && res.user) {
@@ -54,6 +55,25 @@ export default function Login({ onLogin, onOpenIntegrations }: LoginProps) {
           else if (user.role === 'Operations Manager' || user.role === 'Supervisor' || user.role === 'Operations Employee') user.persona = 'operations';
           else user.persona = 'field';
         }
+
+        // Section-based enforcement:
+        if (persona === 'client') {
+          if (user.role !== 'Corporate Client' && user.persona !== 'client') {
+            setError('Access Denied: Only Corporate Clients can sign in to the Client section. Please switch to Field Staff or Operations.');
+            return;
+          }
+        } else if (persona === 'field') {
+          if (user.role === 'Corporate Client' || user.persona === 'client') {
+            setError('Access Denied: Corporate Client accounts cannot sign in to the Field Duty section.');
+            return;
+          }
+        } else if (persona === 'operations') {
+          if (user.role === 'Corporate Client' || user.persona === 'client') {
+            setError('Access Denied: Corporate Client accounts cannot sign in to the Operations Console.');
+            return;
+          }
+        }
+
         onLogin(user);
       } else {
         setError('Login failed. Please check your credentials.');
@@ -66,55 +86,13 @@ export default function Login({ onLogin, onOpenIntegrations }: LoginProps) {
         err.message?.toLowerCase().includes('connect') ||
         err.name === 'TypeError';
 
-      if (isNetworkError) {
-        const cleanPass = password.trim();
-        const isStandardPass =
-          cleanPass === 'Silverstar@123' ||
-          cleanPass === '+91 80 2852 0261' ||
-          cleanPass.length >= 6;
-
-        if (isStandardPass) {
-          if (persona === 'client') {
-            onLogin({
-              id: 'CL001',
-              name: 'Infosys Limited (Facility Head)',
-              portalUsername: identifier.trim() || 'infosys_client',
-              role: 'Corporate Client',
-              persona: 'client',
-              isOfflineMode: true,
-            });
-            return;
-          } else if (persona === 'operations') {
-            onLogin({
-              id: 'USR002',
-              name: 'Vikram Singh',
-              email: identifier.trim() || 'ops@silverstarindia.net',
-              role: 'Operations Manager',
-              persona: 'operations',
-              isOfflineMode: true,
-            });
-            return;
-          } else {
-            onLogin({
-              id: 'EMP837389',
-              employeeCode: identifier.trim() || 'SS-10001',
-              name: 'Rajesh Kumar (Field Officer)',
-              role: 'Field Officer',
-              persona: 'field',
-              isOfflineMode: true,
-            });
-            return;
-          }
-        }
-      }
-
       setError(
-        isNetworkError
-          ? 'Unable to connect to backend server. Verify your connection or use demo credentials.'
-          : err.message ||
-            (persona === 'client'
+        err.message ||
+          (isNetworkError
+            ? 'Unable to connect to backend server. Please verify your connection.'
+            : (persona === 'client'
               ? 'Invalid client credentials. Password must be your registered contact phone number.'
-              : 'Invalid credentials. Default employee password is "Silverstar@123".')
+              : 'Invalid credentials. Default employee password is "Silverstar@123".'))
       );
     } finally {
       setLoading(false);
