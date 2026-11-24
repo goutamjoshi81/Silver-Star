@@ -12,12 +12,18 @@ function getDigits(str) {
 // 1. Operations Employees (Super Admin / Ops Managers / Supervisors)
 // 2. Field Employees (Housekeepers / Security Guards / Technicians) - Default Pass: Silverstar@123
 // 3. Corporate Clients (Facility heads / Estate managers) - Default Pass: Contact Phone Number
+router.get('/test-ping', (req, res) => {
+  res.json({ version: 'section-enforced-v2', timestamp: new Date().toISOString() });
+});
+
 router.post('/login', async (req, res) => {
   try {
     const { username, email, password, employeeCode, role: requestedRole, persona: requestedPersona } = req.body;
     const loginIdentifier = (email || username || employeeCode || '').trim();
     const cleanPassword = (password || '').trim();
     const targetPersona = (requestedPersona || '').toLowerCase();
+
+    console.log(`[AUTH LOGIN DEBUG] id=${loginIdentifier} targetPersona=${targetPersona} passLen=${cleanPassword.length}`);
 
     if (!loginIdentifier || !cleanPassword) {
       return res.status(400).json({ error: 'Username/Email/Badge ID and password are required' });
