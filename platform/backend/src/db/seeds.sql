@@ -89,7 +89,7 @@ ON CONFLICT (id) DO NOTHING;
 -- Foundational Employees
 INSERT INTO employees (id, employee_code, name, phone, email, department_id, designation_id, deployed_site_id, deployed_client_id, status, onboarding_status, kyc_status, blood_group) VALUES
 ('EMP837389', 'SS-10001', 'Rajesh Kumar (Field Officer)', '+91 96200 00494', 'rajesh.kumar@silverstarindia.net', 'DEP002', 'DES002', 'SITE001', 'CLI001', 'Active', 'Approved', 'Verified', 'B+')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (employee_code) DO NOTHING;
 
 
 
