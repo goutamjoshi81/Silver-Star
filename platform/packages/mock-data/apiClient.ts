@@ -4,17 +4,17 @@
 // ============================================================
 
 const getApiBase = () => {
-  if (typeof window === 'undefined') return 'http://localhost:5000/api';
+  if (typeof window === 'undefined') return 'http://129.121.170.111:5000/api';
   if ((window as any).__API_BASE_URL__) return (window as any).__API_BASE_URL__;
   if (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) {
     return (import.meta as any).env.VITE_API_URL;
   }
-  // When running inside native Capacitor mobile wrapper, reach host LAN IP
+  // When running inside native Capacitor mobile wrapper, reach public server IP
   const isCapacitor =
     typeof window !== 'undefined' &&
     ((window as any).Capacitor || window.location.protocol === 'capacitor:');
   if (isCapacitor) {
-    return 'http://192.168.1.36:5000/api';
+    return 'http://129.121.170.111:5000/api';
   }
 
   // In production VPS deployment (port 80 / 443 or default), use standard proxy path /api
@@ -23,7 +23,7 @@ const getApiBase = () => {
   }
 
   // In local dev servers (e.g. Vite on port 5173), connect directly to backend on port 5000
-  const host = (typeof window !== 'undefined' && window.location.hostname) || 'localhost';
+  const host = (typeof window !== 'undefined' && window.location.hostname) || '129.121.170.111';
   return `http://${host}:5000/api`;
 };
 
@@ -62,12 +62,13 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     if (typeof window !== 'undefined') {
       const currentHost = window.location.hostname || 'localhost';
       const candidateList = [
+        'http://129.121.170.111:5000/api',
         `${window.location.origin}/api`,
         `http://${currentHost}/api`,
         `http://${currentHost}:5000/api`,
+        'http://192.168.1.36:5000/api',
         'http://localhost:5000/api',
         'http://127.0.0.1:5000/api',
-        'http://192.168.1.36:5000/api',
         'http://10.0.2.2:5000/api',
       ];
       const candidates = Array.from(new Set(candidateList)).filter(b => b !== API_BASE_URL);
