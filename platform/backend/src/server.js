@@ -18,6 +18,7 @@ import patrolRoutes from './routes/patrols.js';
 import serviceRoutes from './routes/services.js';
 import teamRoutes from './routes/team.js';
 import websiteRoutes from './routes/website.js';
+import fieldOfficersRoutes from './routes/fieldOfficers.js';
 
 dotenv.config();
 
@@ -65,6 +66,7 @@ app.use('/api/patrols', patrolRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/website', websiteRoutes);
+app.use('/api/field-officers', fieldOfficersRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

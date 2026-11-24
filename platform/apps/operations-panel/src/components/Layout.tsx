@@ -1,12 +1,13 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, ClipboardList, Clock, Radio, AlertTriangle, FileText, Truck, Receipt, LogOut, ChevronLeft, ChevronRight, Menu, Building2, Users, Moon } from 'lucide-react'
+import { LayoutDashboard, ClipboardList, Clock, Radio, AlertTriangle, FileText, Truck, Receipt, LogOut, ChevronLeft, ChevronRight, Menu, Building2, Users, Moon, ShieldCheck } from 'lucide-react'
 import { COMPANY } from '@mock/mockData'
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Ops Dashboard', path: '/dashboard' },
   { icon: Building2, label: 'Clients', path: '/clients' },
   { icon: Users, label: 'Staff & Employees', path: '/employees' },
+  { icon: ShieldCheck, label: 'Field Officers', path: '/field-officers' },
   { icon: ClipboardList, label: 'Site Rosters', path: '/rosters' },
   { icon: Clock, label: 'Attendance Monitor', path: '/attendance' },
   { icon: Radio, label: 'Geofence Control', path: '/geofence-alerts' },

@@ -442,5 +442,34 @@ export const api = {
     }),
   getNotifications: (role?: string) =>
     request<any[]>(`/dashboard/notifications${role ? `?role=${role}` : ''}`),
+
+  // Field Officers & Site Appointments
+  getFieldOfficers: () => request<any[]>('/field-officers'),
+  createFieldOfficer: (data: {
+    name: string;
+    phone: string;
+    email?: string;
+    employeeCode?: string;
+    bloodGroup?: string;
+    gender?: string;
+    address?: string;
+  }) => request<any>('/field-officers', { method: 'POST', body: JSON.stringify(data) }),
+  getFieldOfficerAppointments: (params?: { officerId?: string; clientId?: string; siteId?: string; status?: string }) => {
+    const q = new URLSearchParams(params as any).toString();
+    return request<any[]>(`/field-officers/appointments${q ? `?${q}` : ''}`);
+  },
+  appointFieldOfficer: (data: {
+    officerId: string;
+    clientId: string;
+    siteId: string;
+    visitFrequency?: string;
+    shift?: string;
+    notes?: string;
+    status?: string;
+  }) => request<any>('/field-officers/appoint', { method: 'POST', body: JSON.stringify(data) }),
+  updateFieldOfficerAppointment: (id: string, data: any) =>
+    request<any>(`/field-officers/appointments/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteFieldOfficerAppointment: (id: string) =>
+    request<any>(`/field-officers/appointments/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 };
 

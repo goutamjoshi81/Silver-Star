@@ -145,14 +145,40 @@ export async function runFieldOpsMigrations() {
       site_id VARCHAR(50) REFERENCES sites(id) ON DELETE CASCADE,
       assigned_date DATE DEFAULT CURRENT_DATE,
       shift VARCHAR(100) DEFAULT 'Day Shift (06:00 - 14:00)',
-      status VARCHAR(50) DEFAULT 'Pending' CHECK (status IN ('Pending', 'Completed', 'Cancelled')),
+      visit_frequency VARCHAR(50) DEFAULT 'Daily',
+      status VARCHAR(50) DEFAULT 'Active',
       notes TEXT,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT unique_officer_site_date UNIQUE (officer_id, site_id, assigned_date)
     );
   `);
-  console.log(' - Client inspection assignments table created for Field Officer roll-call visits.');
+
+  // Ensure visit_frequency column and broadened status constraint exist
+  await query(`
+    ALTER TABLE client_inspection_assignments 
+    ADD COLUMN IF NOT EXISTS visit_frequency VARCHAR(50) DEFAULT 'Daily';
+  `);
+  try {
+    await query(`
+      ALTER TABLE client_inspection_assignments 
+      DROP CONSTRAINT IF EXISTS client_inspection_assignments_status_check;
+      ALTER TABLE client_inspection_assignments 
+      ADD CONSTRAINT client_inspection_assignments_status_check 
+      CHECK (status IN ('Active', 'Assigned', 'Pending', 'Completed', 'Cancelled'));
+    `);
+  } catch (cErr) {
+    console.warn('Status constraint update note:', cErr.message);
+  }
+
+  // Ensure Field Officer designation exists
+  await query(`
+    INSERT INTO designations (id, name, department_id)
+    VALUES ('DES009', 'Field Officer', 'DEP002')
+    ON CONFLICT (id) DO NOTHING;
+  `);
+
+  console.log(' - Client inspection assignments table and Field Officer designations verified.');
 
   // 9. Seed initial assignments for default field officer if empty
   const assignCheck = await query("SELECT COUNT(*) FROM patrol_assignments");
