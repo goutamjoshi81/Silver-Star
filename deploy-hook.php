@@ -7,6 +7,7 @@ echo "<pre>\n";
 // 1. Git pull
 exec("git fetch origin main 2>&1", $gitOut);
 exec("git reset --hard origin/main 2>&1", $gitOut);
+exec("git status 2>&1", $gitOut);
 echo implode("\n", $gitOut) . "\n";
 
 // 2. Kill whatever process is holding port 5000
