@@ -130,6 +130,19 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(credentials),
     }),
+  changePassword: (data: {
+    userId?: string;
+    employeeCode?: string;
+    username?: string;
+    email?: string;
+    persona?: string;
+    currentPassword: string;
+    newPassword: string;
+  }) =>
+    request<{ success: boolean; message: string; userType?: string }>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   getUsers: () => request<any[]>('/auth/users'),
   createUser: (data: any) => request<any>('/auth/users', { method: 'POST', body: JSON.stringify(data) }),
   updateUser: (id: string, data: any) => request<any>(`/auth/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
