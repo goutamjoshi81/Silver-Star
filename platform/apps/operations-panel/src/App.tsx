@@ -5,7 +5,6 @@ import Layout from './components/Layout'
 import OpsDashboard from './pages/OpsDashboard'
 import OpsClients from './pages/OpsClients'
 import OpsEmployees from './pages/OpsEmployees'
-import OpsFieldOfficers from './pages/OpsFieldOfficers'
 import SiteRosters from './pages/SiteRosters'
 import AttendanceMonitor from './pages/AttendanceMonitor'
 import GeofenceAlerts from './pages/GeofenceAlerts'
@@ -20,7 +19,6 @@ const KNOWN_APP_ROUTES = [
   '/dashboard',
   '/clients',
   '/employees',
-  '/field-officers',
   '/rosters',
   '/attendance',
   '/geofence-alerts',
@@ -80,7 +78,6 @@ export default function App() {
         <Route path="/dashboard" element={<OpsDashboard />} />
         <Route path="/clients" element={<OpsClients />} />
         <Route path="/employees" element={<OpsEmployees />} />
-        <Route path="/field-officers" element={<OpsFieldOfficers />} />
         <Route path="/rosters" element={<SiteRosters />} />
         <Route path="/attendance" element={<AttendanceMonitor />} />
         <Route path="/geofence-alerts" element={<GeofenceAlerts />} />

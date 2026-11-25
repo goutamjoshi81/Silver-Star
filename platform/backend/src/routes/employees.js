@@ -6,6 +6,11 @@ const router = express.Router();
 
 // Helper to format DB row to Frontend Employee interface
 function formatEmployee(row) {
+  const isFieldOfficer = Boolean(
+    (row.desig_name && (row.desig_name.toLowerCase().includes('field') || row.desig_name.toLowerCase().includes('supervisor') || row.desig_name.toLowerCase().includes('officer'))) ||
+    (row.app_role && (row.app_role.toLowerCase().includes('operation') || row.app_role.toLowerCase().includes('supervisor') || row.app_role.toLowerCase().includes('field')))
+  );
+
   return {
     id: row.id,
     employeeCode: row.employee_code,
@@ -38,6 +43,15 @@ function formatEmployee(row) {
     designationName: row.desig_name,
     siteName: row.site_name,
     clientName: row.client_name,
+    hasAppAccess: Boolean(row.user_account_id && row.app_status === 'Active'),
+    isFieldOfficer,
+    appAccess: row.user_account_id ? {
+      userId: row.user_account_id,
+      role: row.app_role,
+      status: row.app_status,
+      email: row.app_email,
+      username: row.app_username,
+    } : null,
   };
 }
 
@@ -50,12 +64,18 @@ router.get('/', async (req, res) => {
              d.name as dept_name, 
              des.name as desig_name,
              s.name as site_name,
-             c.name as client_name
+             c.name as client_name,
+             u.id as user_account_id,
+             u.role as app_role,
+             u.status as app_status,
+             u.email as app_email,
+             u.name as app_username
       FROM employees e
       LEFT JOIN departments d ON e.department_id = d.id
       LEFT JOIN designations des ON e.designation_id = des.id
       LEFT JOIN sites s ON e.deployed_site_id = s.id
       LEFT JOIN clients c ON e.deployed_client_id = c.id
+      LEFT JOIN user_accounts u ON (u.employee_id = e.id OR LOWER(u.email) = LOWER(e.email))
       WHERE 1=1
     `;
     const params = [];
@@ -522,6 +542,116 @@ router.put('/:id', async (req, res) => {
 
     res.json(formatEmployee(rows[0]));
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GRANT Field Officer Application Access
+router.post('/:id/grant-field-officer', async (req, res) => {
+  try {
+    const empId = req.params.id;
+    const {
+      username,
+      email,
+      password = 'Silverstar@123',
+      role = 'Operations Manager',
+      updateDesignation = true,
+    } = req.body;
+
+    const empRes = await query('SELECT * FROM employees WHERE id = $1 OR employee_code = $1', [empId]);
+    if (empRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+    const emp = empRes.rows[0];
+
+    // 1. Update employee password and kyc_status, and optionally designation
+    let designationUpdateSql = '';
+    const empParams = [password, emp.id];
+    if (updateDesignation) {
+      const desCheck = await query("SELECT id FROM designations WHERE id = 'DES009' OR name ILIKE '%Field Officer%' LIMIT 1");
+      const targetDesId = desCheck.rows.length > 0 ? desCheck.rows[0].id : 'DES002';
+      empParams.push(targetDesId);
+      designationUpdateSql = `, designation_id = $${empParams.length}`;
+    }
+
+    await query(`
+      UPDATE employees 
+      SET password_hash = $1, 
+          kyc_status = 'Verified'
+          ${designationUpdateSql},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+    `, empParams);
+
+    // 2. Provision or update user_accounts record for mobile & ops panel login
+    const loginEmail = (email && email.trim()) || emp.email || `${emp.employee_code.toLowerCase().replace(/[^a-z0-9]/g, '')}@silverstarindia.net`;
+    const loginName = (username && username.trim()) || emp.name;
+
+    const userCheck = await query('SELECT id FROM user_accounts WHERE employee_id = $1 OR LOWER(email) = LOWER($2)', [emp.id, loginEmail]);
+    
+    let accountId;
+    if (userCheck.rows.length > 0) {
+      accountId = userCheck.rows[0].id;
+      await query(`
+        UPDATE user_accounts
+        SET password_hash = $1,
+            role = $2,
+            status = 'Active',
+            name = $3,
+            employee_id = $4
+        WHERE id = $5
+      `, [password, role, loginName, emp.id, accountId]);
+    } else {
+      accountId = `USR${Date.now().toString().slice(-6)}`;
+      await query(`
+        INSERT INTO user_accounts (id, name, email, password_hash, role, status, employee_id)
+        VALUES ($1, $2, $3, $4, $5, 'Active', $6)
+      `, [accountId, loginName, loginEmail, password, role, emp.id]);
+    }
+
+    res.json({
+      success: true,
+      message: `Field Officer application access successfully granted to ${emp.name}`,
+      credentials: {
+        employeeId: emp.id,
+        employeeCode: emp.employee_code,
+        name: emp.name,
+        loginIdentifier: emp.employee_code,
+        loginEmail,
+        role,
+        status: 'Active',
+        defaultPassword: password,
+      },
+    });
+  } catch (err) {
+    console.error('Error granting field officer app access:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// REVOKE Field Officer Application Access
+router.post('/:id/revoke-field-officer', async (req, res) => {
+  try {
+    const empId = req.params.id;
+    const empRes = await query('SELECT * FROM employees WHERE id = $1 OR employee_code = $1', [empId]);
+    if (empRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+    const emp = empRes.rows[0];
+
+    // Deactivate user_accounts for this employee
+    await query("UPDATE user_accounts SET status = 'Inactive' WHERE employee_id = $1 OR LOWER(email) = LOWER($2)", [emp.id, emp.email || '']);
+
+    // Clear supervisor assignments
+    await query('UPDATE sites SET supervisor_id = NULL WHERE supervisor_id = $1', [emp.id]);
+    await query("UPDATE client_inspection_assignments SET status = 'Cancelled' WHERE officer_id = $1", [emp.id]);
+
+    res.json({
+      success: true,
+      message: `Field Officer application access revoked for ${emp.name}`,
+    });
+  } catch (err) {
+    console.error('Error revoking field officer app access:', err);
     res.status(500).json({ error: err.message });
   }
 });

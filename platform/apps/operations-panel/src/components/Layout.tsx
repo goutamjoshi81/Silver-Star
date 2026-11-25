@@ -7,7 +7,6 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Ops Dashboard', path: '/dashboard' },
   { icon: Building2, label: 'Clients', path: '/clients' },
   { icon: Users, label: 'Staff & Employees', path: '/employees' },
-  { icon: ShieldCheck, label: 'Field Officers', path: '/field-officers' },
   { icon: ClipboardList, label: 'Site Rosters', path: '/rosters' },
   { icon: Clock, label: 'Attendance Monitor', path: '/attendance' },
   { icon: Radio, label: 'Geofence Control', path: '/geofence-alerts' },

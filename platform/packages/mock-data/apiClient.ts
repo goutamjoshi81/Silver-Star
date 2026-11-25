@@ -484,5 +484,38 @@ export const api = {
     request<any>(`/field-officers/appointments/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteFieldOfficerAppointment: (id: string) =>
     request<any>(`/field-officers/appointments/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  // Grant / Revoke Field Officer Mobile & Application Access
+  grantFieldOfficerAccess: (
+    employeeId: string,
+    data?: {
+      username?: string;
+      email?: string;
+      password?: string;
+      role?: string;
+      updateDesignation?: boolean;
+    }
+  ) =>
+    request<{
+      success: boolean;
+      message: string;
+      credentials: {
+        employeeId: string;
+        employeeCode: string;
+        name: string;
+        loginIdentifier: string;
+        loginEmail: string;
+        role: string;
+        status: string;
+        defaultPassword?: string;
+      };
+    }>(`/employees/${encodeURIComponent(employeeId)}/grant-field-officer`, {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
+    }),
+  revokeFieldOfficerAccess: (employeeId: string) =>
+    request<{ success: boolean; message: string }>(`/employees/${encodeURIComponent(employeeId)}/revoke-field-officer`, {
+      method: 'POST',
+    }),
 };
 
