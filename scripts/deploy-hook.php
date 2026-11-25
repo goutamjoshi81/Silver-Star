@@ -41,8 +41,8 @@ if (is_dir("$PROJECT_DIR/platform/backend")) {
     exec("cd platform/backend && npm run migrate 2>&1", $log);
 }
 
-// 3. Reload or start PM2 process 'silverstar-backend'
-exec("pm2 reload silverstar-backend || pm2 start ecosystem.config.cjs || (cd platform/backend && pm2 start src/server.js --name 'silverstar-backend') 2>&1", $log);
+// 3. Restart PM2 process 'silverstar-backend' with updated code
+exec("pm2 restart silverstar-backend --update-env || pm2 restart all || pm2 reload silverstar-backend || (cd platform/backend && pm2 start src/server.js --name 'silverstar-backend') 2>&1", $log);
 exec("pm2 save 2>&1", $log);
 
 $log[] = "Deployment completed successfully at " . date('Y-m-d H:i:s');
