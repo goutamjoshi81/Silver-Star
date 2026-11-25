@@ -117,11 +117,28 @@ router.post('/login', async (req, res) => {
 
       if (!validEmpPass) return { invalidPassword: true };
 
+      // Identify Field Staff / Field Officers vs Headquarter Operations Managers
+      const isFieldOfficer =
+        (emp.desig_name || '').toLowerCase().includes('field') ||
+        (emp.desig_name || '').toLowerCase().includes('officer') ||
+        (emp.desig_name || '').toLowerCase().includes('guard') ||
+        (emp.desig_name || '').toLowerCase().includes('supervisor') ||
+        (emp.desig_name || '').toLowerCase().includes('housekeep') ||
+        (emp.desig_name || '').toLowerCase().includes('security') ||
+        targetPersona === 'field';
+
       const isOpsRole =
-        (emp.desig_name || '').toLowerCase().includes('operations') ||
-        (emp.desig_name || '').toLowerCase().includes('manager') ||
-        (emp.dept_name || '').toLowerCase().includes('administration') ||
-        requestedRole === 'operations';
+        !isFieldOfficer &&
+        ((emp.desig_name || '').toLowerCase().includes('operations') ||
+          (emp.desig_name || '').toLowerCase().includes('manager') ||
+          targetPersona === 'operations');
+
+      const resolvedPersona = isFieldOfficer ? 'field' : isOpsRole ? 'operations' : 'field';
+      const resolvedRole = isFieldOfficer
+        ? emp.desig_name || 'Field Officer'
+        : isOpsRole
+        ? 'Operations Employee'
+        : 'Field Employee';
 
       return {
         success: true,
@@ -130,8 +147,8 @@ router.post('/login', async (req, res) => {
           name: emp.name,
           email: emp.email,
           phone: emp.phone,
-          role: isOpsRole ? 'Operations Employee' : 'Field Employee',
-          persona: isOpsRole ? 'operations' : 'field',
+          role: resolvedRole,
+          persona: resolvedPersona,
           employeeId: emp.id,
           employeeCode: emp.employee_code,
           departmentName: emp.dept_name || 'Field Operations',

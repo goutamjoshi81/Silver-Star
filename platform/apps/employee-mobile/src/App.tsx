@@ -27,16 +27,38 @@ const ClientMobileSites = lazy(() => import('./pages/client/ClientMobileSites'))
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<string>('home');
+  const [activeTab, setActiveTab] = useState<string>('duties');
   const [showIntegrations, setShowIntegrations] = useState(false);
 
   const handleLogin = (user: any) => {
-    setCurrentUser(user);
+    // Resolve strict persona based on verified role & badge ID
+    let strictPersona: UserPersona = 'field';
+    if (user.role === 'Corporate Client' || user.persona === 'client') {
+      strictPersona = 'client';
+    } else if (
+      user.persona === 'operations' &&
+      !user.employeeCode &&
+      !user.designationName?.toLowerCase().includes('field') &&
+      !user.designationName?.toLowerCase().includes('officer') &&
+      !user.designationName?.toLowerCase().includes('guard')
+    ) {
+      strictPersona = 'operations';
+    } else {
+      strictPersona = 'field';
+    }
+
+    const authorizedUser = {
+      ...user,
+      persona: strictPersona,
+    };
+
+    setCurrentUser(authorizedUser);
     setIsAuthenticated(true);
-    // Set default tab based on persona
-    if (user.persona === 'operations') {
+
+    // Set default tab based strictly on verified persona
+    if (strictPersona === 'operations') {
       setActiveTab('ops-dashboard');
-    } else if (user.persona === 'client') {
+    } else if (strictPersona === 'client') {
       setActiveTab('client-dashboard');
     } else {
       setActiveTab('duties');
@@ -47,6 +69,24 @@ export default function App() {
     setIsAuthenticated(false);
     setCurrentUser(null);
     setActiveTab('duties');
+  };
+
+  const handleTabChange = (newTab: string) => {
+    const currentPersona: UserPersona = currentUser?.persona || 'field';
+    // Prevent cross-persona tab hijacking
+    if (currentPersona === 'field' && newTab.startsWith('client-')) {
+      setActiveTab('duties');
+      return;
+    }
+    if (currentPersona === 'client' && (newTab === 'duties' || newTab.startsWith('ops-'))) {
+      setActiveTab('client-dashboard');
+      return;
+    }
+    if (currentPersona === 'operations' && newTab.startsWith('client-')) {
+      setActiveTab('ops-dashboard');
+      return;
+    }
+    setActiveTab(newTab);
   };
 
   if (!isAuthenticated) {
@@ -64,7 +104,7 @@ export default function App() {
     <ErrorBoundary>
       <EmployeeMobileLayout
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         onLogout={handleLogout}
         currentUser={currentUser}
         onOpenIntegrations={() => setShowIntegrations(true)}

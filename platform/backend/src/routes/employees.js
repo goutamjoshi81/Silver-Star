@@ -554,7 +554,7 @@ router.post('/:id/grant-field-officer', async (req, res) => {
       username,
       email,
       password = 'Silverstar@123',
-      role = 'Operations Manager',
+      role = 'Supervisor',
       updateDesignation = true,
     } = req.body;
 

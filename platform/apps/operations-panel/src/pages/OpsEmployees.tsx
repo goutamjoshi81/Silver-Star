@@ -100,7 +100,7 @@ export default function OpsEmployees() {
       username: emp.employeeCode || emp.name,
       email: defaultEmail,
       password: 'Silverstar@123',
-      role: 'Operations Manager',
+      role: 'Supervisor',
       updateDesignation: true,
     })
   }
@@ -734,8 +734,8 @@ export default function OpsEmployees() {
                   onChange={(e) => setGrantForm({ ...grantForm, role: e.target.value })}
                   className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#202B75] bg-white font-medium text-gray-700"
                 >
-                  <option value="Operations Manager">Field Officer / Operations Supervisor</option>
-                  <option value="Supervisor">Security Area Supervisor</option>
+                  <option value="Supervisor">Field Officer / Security Supervisor</option>
+                  <option value="Operations Manager">Operations Manager</option>
                 </select>
               </div>
 

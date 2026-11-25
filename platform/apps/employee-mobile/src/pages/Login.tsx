@@ -89,34 +89,40 @@ export default function Login({ onLogin, onOpenIntegrations }: LoginProps) {
       } as any);
 
       if (res && res.success && res.user) {
-        const user = res.user;
-        if (!user.persona) {
-          if (user.role === 'Corporate Client') user.persona = 'client';
-          else if (
-            user.role === 'Operations Manager' ||
-            user.role === 'Supervisor' ||
-            user.role === 'Operations Employee'
-          )
-            user.persona = 'operations';
-          else user.persona = 'field';
-        }
+        const user = { ...res.user };
+
+        // Normalize / resolve account type
+        const isClientAccount =
+          user.role === 'Corporate Client' ||
+          user.portalUsername ||
+          (!user.employeeCode && user.clientId);
+        const isFieldStaffOrOfficer =
+          Boolean(user.employeeCode) ||
+          user.role === 'Field Officer' ||
+          user.role === 'Field Employee' ||
+          (user.designationName || '').toLowerCase().includes('field') ||
+          (user.designationName || '').toLowerCase().includes('officer') ||
+          (user.designationName || '').toLowerCase().includes('guard') ||
+          (user.designationName || '').toLowerCase().includes('supervisor') ||
+          (user.designationName || '').toLowerCase().includes('housekeep');
 
         // STRICT SECTION-BASED ACCESS ENFORCEMENT:
         // 1. Client section: ONLY Corporate Clients can login
         if (persona === 'client') {
-          if (user.role !== 'Corporate Client' && user.persona !== 'client') {
-            const msg = 'Access Denied: Only Corporate Clients can sign in to the Client section. Please switch to the Field Staff or Operations tab.';
+          if (!isClientAccount && user.role !== 'Corporate Client') {
+            const msg = 'Access Denied: Only Corporate Clients can sign in to the Client section. Field Officers and Staff must sign in on the Field Staff tab.';
             setError(msg);
             setErrorTitle('Section Access Denied');
             setErrorDetails(msg);
             setShowErrorPopup(true);
             return;
           }
+          user.persona = 'client';
         }
 
         // 2. Field section: ONLY Field Staff & Field Officers can login
         if (persona === 'field') {
-          if (user.role === 'Corporate Client' || user.persona === 'client') {
+          if (isClientAccount || user.role === 'Corporate Client') {
             const msg = 'Access Denied: Corporate Client accounts cannot sign in to the Field Duty section. Please switch to the Client tab.';
             setError(msg);
             setErrorTitle('Section Access Denied');
@@ -124,25 +130,30 @@ export default function Login({ onLogin, onOpenIntegrations }: LoginProps) {
             setShowErrorPopup(true);
             return;
           }
-          if (user.role === 'Super Admin' || (user.persona === 'operations' && !user.employeeCode)) {
-            const msg = 'Access Denied: Operations management accounts cannot sign in to the Field Staff section. Please switch to the Operations tab.';
+          if (user.role === 'Super Admin' && !user.employeeCode) {
+            const msg = 'Access Denied: Headquarters Super Admin accounts cannot sign in to the Field Staff section. Please switch to the Operations tab.';
             setError(msg);
             setErrorTitle('Section Access Denied');
             setErrorDetails(msg);
             setShowErrorPopup(true);
             return;
           }
+          // Enforce field persona for all field staff and field officers
+          user.persona = 'field';
         }
 
         // 3. Operations section: Only Operations & Admin accounts can login
         if (persona === 'operations') {
-          if (user.role === 'Corporate Client' || user.persona === 'client') {
+          if (isClientAccount || user.role === 'Corporate Client') {
             const msg = 'Access Denied: Corporate Client accounts cannot access the Operations Console. Please switch to the Client tab.';
             setError(msg);
             setErrorTitle('Section Access Denied');
             setErrorDetails(msg);
             setShowErrorPopup(true);
             return;
+          }
+          if (!user.persona) {
+            user.persona = 'operations';
           }
         }
 

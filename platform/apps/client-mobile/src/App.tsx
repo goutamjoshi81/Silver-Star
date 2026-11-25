@@ -30,12 +30,28 @@ export default function App() {
   const [showIntegrations, setShowIntegrations] = useState(false);
 
   const handleLogin = (user: any) => {
-    setCurrentUser(user);
+    let strictPersona: UserPersona = 'client';
+    if (user.role === 'Corporate Client' || user.persona === 'client') {
+      strictPersona = 'client';
+    } else if (
+      user.persona === 'operations' &&
+      !user.employeeCode &&
+      !user.designationName?.toLowerCase().includes('field') &&
+      !user.designationName?.toLowerCase().includes('officer') &&
+      !user.designationName?.toLowerCase().includes('guard')
+    ) {
+      strictPersona = 'operations';
+    } else {
+      strictPersona = 'field';
+    }
+
+    const authorizedUser = { ...user, persona: strictPersona };
+    setCurrentUser(authorizedUser);
     setIsAuthenticated(true);
-    // Set default tab based on persona
-    if (user.persona === 'operations') {
+
+    if (strictPersona === 'operations') {
       setActiveTab('ops-dashboard');
-    } else if (user.persona === 'client') {
+    } else if (strictPersona === 'client') {
       setActiveTab('client-dashboard');
     } else {
       setActiveTab('home');
@@ -45,7 +61,7 @@ export default function App() {
   const handleLogout = () => {
     setIsAuthenticated(false);
     setCurrentUser(null);
-    setActiveTab('home');
+    setActiveTab('client-dashboard');
   };
 
   if (!isAuthenticated) {

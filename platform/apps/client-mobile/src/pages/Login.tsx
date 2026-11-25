@@ -10,9 +10,9 @@ interface LoginProps {
 }
 
 export default function Login({ onLogin, onOpenIntegrations }: LoginProps) {
-  const [persona, setPersona] = useState<UserPersona>('field');
-  const [identifier, setIdentifier] = useState('SS-10001');
-  const [password, setPassword] = useState('Silverstar@123');
+  const [persona, setPersona] = useState<UserPersona>('client');
+  const [identifier, setIdentifier] = useState('infosys_client');
+  const [password, setPassword] = useState('+91 80 2852 0261');
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,30 +48,31 @@ export default function Login({ onLogin, onOpenIntegrations }: LoginProps) {
       });
 
       if (res && res.success && res.user) {
-        // Enforce persona attribute
-        const user = res.user;
-        if (!user.persona) {
-          if (user.role === 'Corporate Client') user.persona = 'client';
-          else if (user.role === 'Operations Manager' || user.role === 'Supervisor' || user.role === 'Operations Employee') user.persona = 'operations';
-          else user.persona = 'field';
-        }
+        const user = { ...res.user };
+        const isClientAccount =
+          user.role === 'Corporate Client' ||
+          user.portalUsername ||
+          (!user.employeeCode && user.clientId);
 
         // Section-based enforcement:
         if (persona === 'client') {
-          if (user.role !== 'Corporate Client' && user.persona !== 'client') {
-            setError('Access Denied: Only Corporate Clients can sign in to the Client section. Please switch to Field Staff or Operations.');
+          if (!isClientAccount && user.role !== 'Corporate Client') {
+            setError('Access Denied: Only authorized Corporate Clients can sign in to the Client section. Field Staff and Officers must use the Field Staff mobile app.');
             return;
           }
+          user.persona = 'client';
         } else if (persona === 'field') {
-          if (user.role === 'Corporate Client' || user.persona === 'client') {
+          if (isClientAccount || user.role === 'Corporate Client') {
             setError('Access Denied: Corporate Client accounts cannot sign in to the Field Duty section.');
             return;
           }
+          user.persona = 'field';
         } else if (persona === 'operations') {
-          if (user.role === 'Corporate Client' || user.persona === 'client') {
+          if (isClientAccount || user.role === 'Corporate Client') {
             setError('Access Denied: Corporate Client accounts cannot sign in to the Operations Console.');
             return;
           }
+          user.persona = 'operations';
         }
 
         onLogin(user);

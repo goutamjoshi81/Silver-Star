@@ -110,10 +110,10 @@ router.post('/', async (req, res) => {
 
     try {
       await query(`
-        INSERT INTO user_accounts (id, name, email, password_hash, role, status)
-        VALUES ($1, $2, $3, '1234', 'Operations Manager', 'Active')
+        INSERT INTO user_accounts (id, name, email, password_hash, role, status, employee_id)
+        VALUES ($1, $2, $3, 'Silverstar@123', 'Supervisor', 'Active', $4)
         ON CONFLICT (email) DO NOTHING;
-      `, [userId, name.trim(), userEmail]);
+      `, [userId, name.trim(), userEmail, newEmp.id]);
     } catch (authErr) {
       console.warn('Could not auto-create user_accounts entry for field officer:', authErr.message);
     }
