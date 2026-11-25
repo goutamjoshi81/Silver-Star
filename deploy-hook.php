@@ -41,7 +41,9 @@ if ($inode) {
 
 // 3. Restart backend
 sleep(1);
-exec("pm2 restart silverstar-backend || (cd /home/silverstarindia.admin/public_html/platform/backend && nohup node src/server.js > /home/silverstarindia.admin/server.log 2>&1 &)", $pm2Out);
+exec("pm2 describe 0 2>&1", $pm2Desc);
+echo implode("\n", $pm2Desc) . "\n";
+exec("pm2 restart 0 --update-env 2>&1", $pm2Out);
 echo implode("\n", $pm2Out) . "\n";
 echo "Deployment & Server Restart Completed Successfully at " . date('Y-m-d H:i:s') . "\n";
 echo "</pre>";
